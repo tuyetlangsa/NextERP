@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/http/errors";
 import type { SessionUser } from "@/types/domain";
 
 interface Props {
@@ -21,28 +20,26 @@ export function LoginScreen({ onDone }: Props) {
     setSubmitting(true);
     setError(null);
 
-    try {
-      const res = await authApi.login({ username, password });
+    const res = await authApi.login({ username, password });
+
+    if (res.isSuccess) {
       onDone({
-        staffAccountId: res.staffAccountId,
-        username: res.username,
-        fullName: res.fullName,
-        roleCode: res.roleCode,
+        staffAccountId: res.data.staffAccountId,
+        username: res.data.username,
+        fullName: res.data.fullName,
+        roleCode: res.data.roleCode,
       });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        // Dev fallback: backend not running → allow entering UI with stub session.
-        if (err.status === 0) {
-          onDone({ staffAccountId: 0, username, fullName: username, roleCode: "OWNER" });
-          return;
-        }
-        setError(err.detail || err.code);
-      } else {
-        setError("Lỗi không xác định");
-      }
-    } finally {
-      setSubmitting(false);
+      return;
     }
+
+    // Dev fallback: backend not running → enter UI with stub session.
+    if (res.statusCode === 0) {
+      onDone({ staffAccountId: 0, username, fullName: username, roleCode: "OWNER" });
+      return;
+    }
+
+    setError(res.detail || res.title || "Đăng nhập thất bại");
+    setSubmitting(false);
   };
 
   return (

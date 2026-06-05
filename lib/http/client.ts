@@ -1,93 +1,140 @@
 "use client";
 
 import axios, {
+  type AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
-  type AxiosResponse,
 } from "axios";
 import { getAccessToken, setAccessToken } from "./auth-storage";
-import { ApiError, problemToApiError } from "./errors";
-import type { ApiResult, ProblemDetails } from "./types";
+import type { BaseResponse, ErrorResponse, SuccessResponse } from "./types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5000";
 
+export interface HttpOptions {
+  token?: string | null;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  /** Query-string params; values that are `undefined`, `null`, or `""` are dropped. */
+  params?: object;
+}
+
+function cleanParams(params: object | undefined): Record<string, unknown> | undefined {
+  if (!params) return undefined;
+  const entries = Object.entries(params as Record<string, unknown>).filter(
+    ([, v]) => v !== undefined && v !== null && v !== ""
+  );
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 const instance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30_000,
-  headers: { "Content-Type": "application/json" },
+  timeout: 100_000,
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
 });
 
-instance.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+interface RpomApiSuccessBody<T> {
+  isSuccess: true;
+  data: T;
+}
+
+interface RpomProblemDetails {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  extensions?: Record<string, unknown>;
+  errors?: unknown;
+}
 
 /**
- * Response normalization:
- * - On 2xx with `isSuccess: true` → unwrap to `data` field.
- * - On 2xx with `isSuccess: false` (defensive) → throw ApiError.
- * - On non-2xx → parse ProblemDetails and throw ApiError. 401 also clears
- *   the stored access token so the next render redirects to login.
+ * Branch on payload shape:
+ *  - `{ isSuccess: true, data }` → unwrap as SuccessResponse.
+ *  - ProblemDetails → wrap as ErrorResponse with all PD fields populated.
  */
-instance.interceptors.response.use(
-  (response: AxiosResponse<ApiResult<unknown>>) => {
-    const body = response.data;
-    if (body && typeof body === "object" && "isSuccess" in body) {
-      if (!body.isSuccess) {
-        throw new ApiError({
-          status: response.status,
-          code: "unexpected_failure",
-          detail: "Backend returned isSuccess=false without ProblemDetails",
-        });
-      }
-      // Replace body with unwrapped data; downstream sees `response.data === T`.
-      (response as AxiosResponse<unknown>).data = body.data;
-    }
-    return response;
-  },
-  (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response) {
-      const status = error.response.status;
-      const problem = error.response.data as ProblemDetails | undefined;
-      if (status === 401) setAccessToken(null);
-      throw problemToApiError(status, problem);
-    }
-    if (axios.isAxiosError(error)) {
-      throw new ApiError({
-        status: 0,
-        code: "network_error",
-        detail: error.message,
-      });
-    }
-    throw error;
+function normalize<T>(statusCode: number, raw: unknown): BaseResponse<T> {
+  if (raw && typeof raw === "object" && "isSuccess" in raw && (raw as RpomApiSuccessBody<T>).isSuccess) {
+    const body = raw as RpomApiSuccessBody<T>;
+    return {
+      isSuccess: true,
+      message: "",
+      data: body.data,
+      type: null,
+      title: null,
+      status: null,
+      detail: null,
+      extensions: null,
+      statusCode,
+    } satisfies SuccessResponse<T>;
   }
-);
 
-/** Generic typed HTTP service. Each method returns the unwrapped `T`. */
+  const pd = (raw ?? {}) as RpomProblemDetails;
+  const extensions =
+    pd.extensions ??
+    (pd.errors !== undefined ? ({ errors: pd.errors } as Record<string, unknown>) : null);
+
+  return {
+    isSuccess: false,
+    message: pd.detail ?? pd.title ?? "Request failed",
+    data: null,
+    type: pd.type ?? "about:blank",
+    title: pd.title ?? `http_${statusCode}`,
+    status: pd.status ?? statusCode,
+    detail: pd.detail ?? `Request failed with status ${statusCode}`,
+    extensions,
+    statusCode,
+  } satisfies ErrorResponse;
+}
+
+async function handleRequest<T>(
+  method: "get" | "post" | "put" | "patch" | "delete",
+  url: string,
+  data?: unknown,
+  options: HttpOptions = {}
+): Promise<BaseResponse<T>> {
+  const config: AxiosRequestConfig = {
+    method,
+    url,
+    data,
+    timeout: options.timeoutMs,
+    signal: options.signal,
+    params: cleanParams(options.params),
+  };
+
+  const token = options.token ?? getAccessToken();
+  if (token) {
+    config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
+  }
+
+  try {
+    const response = await instance.request<unknown>(config);
+    return normalize<T>(response.status, response.data);
+  } catch (err) {
+    const error = err as AxiosError<unknown>;
+    if (error.response) {
+      // 401 → clear stored token so next render redirects to login.
+      if (error.response.status === 401) setAccessToken(null);
+      return normalize<T>(error.response.status, error.response.data);
+    }
+    // No response = network/timeout/abort. statusCode = 0.
+    return normalize<T>(0, {
+      title: "network_error",
+      detail: error.message || "Không thể kết nối tới máy chủ",
+    });
+  }
+}
+
 export const http = {
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const res = await instance.get<unknown, AxiosResponse<T>>(url, config);
-    return res.data;
-  },
-  async post<T, B = unknown>(url: string, body?: B, config?: AxiosRequestConfig): Promise<T> {
-    const res = await instance.post<unknown, AxiosResponse<T>, B>(url, body, config);
-    return res.data;
-  },
-  async put<T, B = unknown>(url: string, body?: B, config?: AxiosRequestConfig): Promise<T> {
-    const res = await instance.put<unknown, AxiosResponse<T>, B>(url, body, config);
-    return res.data;
-  },
-  async patch<T, B = unknown>(url: string, body?: B, config?: AxiosRequestConfig): Promise<T> {
-    const res = await instance.patch<unknown, AxiosResponse<T>, B>(url, body, config);
-    return res.data;
-  },
-  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const res = await instance.delete<unknown, AxiosResponse<T>>(url, config);
-    return res.data;
-  },
+  get: <T>(url: string, options?: HttpOptions) =>
+    handleRequest<T>("get", url, undefined, options),
+  post: <T>(url: string, data?: unknown, options?: HttpOptions) =>
+    handleRequest<T>("post", url, data, options),
+  put: <T>(url: string, data?: unknown, options?: HttpOptions) =>
+    handleRequest<T>("put", url, data, options),
+  patch: <T>(url: string, data?: unknown, options?: HttpOptions) =>
+    handleRequest<T>("patch", url, data, options),
+  delete: <T>(url: string, options?: HttpOptions) =>
+    handleRequest<T>("delete", url, undefined, options),
 };
+
+export type { BaseResponse } from "./types";

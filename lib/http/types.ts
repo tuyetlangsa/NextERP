@@ -1,14 +1,42 @@
 /**
- * Wire-format contract with Rpom-backend (ASP.NET Core).
- * Success: `ApiResult<T> = { isSuccess: true, data: T }` wrapped in HTTP 2xx.
- * Failure: RFC 7807 ProblemDetails wrapped in HTTP 4xx/5xx.
+ * Unified envelope returned by every `http.*` call (success or failure).
  *
- * See backend `src/Rpom.Api/Results/ApiResult.cs` + `CustomResults.cs`.
+ * Backend Rpom emits two distinct response bodies:
+ *   - success → `ApiResult<T> = { isSuccess: true, data: T }` (HTTP 2xx)
+ *   - failure → RFC 7807 ProblemDetails (HTTP 4xx/5xx) with our `Error.Code`
+ *               in `title`, description in `detail`, and validation field
+ *               errors under `extensions.errors`.
+ *
+ * The http client normalises both into a single `BaseResponse<T>` shape so
+ * callers never need to try/catch — they branch on `isSuccess` and use
+ * `data!` on the happy path.
  */
 
-export interface ApiResult<T> {
+interface GenericResponse<T> {
   isSuccess: boolean;
+  message: string;
   data: T | null;
+  type: string | null;
+  title: string | null;
+  status: number | null;
+  detail: string | null;
+  extensions: Record<string, unknown> | null;
+  /** Raw HTTP status injected by the http layer (`0` on network error). */
+  statusCode: number;
+}
+
+export interface SuccessResponse<T> extends GenericResponse<T> {
+  isSuccess: true;
+  data: T;
+}
+
+export interface ErrorResponse extends GenericResponse<null> {
+  isSuccess: false;
+  data: null;
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
 }
 
 export interface ValidationErrorItem {
@@ -16,17 +44,21 @@ export interface ValidationErrorItem {
   description: string;
 }
 
-/**
- * RFC 7807 ProblemDetails as emitted by backend `CustomResults.Problem`.
- * - `title` carries our `Error.Code`
- * - `detail` carries our `Error.Description`
- * - `status` is the HTTP status code matched from `ErrorType`
- * - `extensions.errors` (optional) contains per-field validation messages
- */
-export interface ProblemDetails {
-  type?: string;
-  title?: string;
-  detail?: string;
-  status?: number;
-  errors?: ValidationErrorItem[];
+export interface ValidationErrorResponse extends ErrorResponse {
+  extensions: { errors: ValidationErrorItem[] };
+}
+
+export type BaseResponse<T> =
+  | SuccessResponse<T>
+  | ErrorResponse
+  | ValidationErrorResponse;
+
+export interface PagedResponse<T> extends SuccessResponse<{ items: T }> {
+  extensions: {
+    pageNumber: number;
+    totalItems: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
 }
