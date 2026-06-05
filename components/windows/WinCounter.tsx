@@ -18,6 +18,8 @@ import { StatusBar } from "@/components/ui/StatusBar";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { countersApi, areasApi, type CounterUpsert } from "@/lib/api/restaurant";
 import { useResource } from "@/lib/http/useResource";
+import { useDomainVersion } from "@/lib/http/useDomainVersion";
+import { Scopes } from "@/lib/api/sync";
 import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { mockCounters, mockAreas } from "@/data/mock";
 import type { Counter } from "@/types/api/restaurant";
@@ -29,6 +31,11 @@ type Draft = Partial<Counter> & { name: string; displayOrder: number; isActive: 
 export function WinCounter() {
   const counters = useResource(() => countersApi.list(), { fallback: mockCounters });
   const areas = useResource(() => areasApi.list(), { fallback: mockAreas });
+
+  useDomainVersion([Scopes.FloorPlan], () => {
+    counters.reload();
+    areas.reload();
+  }, 5000);
 
   const list = counters.data ?? [];
   const [selectedId, setSelectedId] = useState<number | null>(null);

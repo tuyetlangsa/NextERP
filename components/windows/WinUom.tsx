@@ -19,6 +19,8 @@ import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { uomsApi, type UomUpsert } from "@/lib/api/menu";
 import { useResource } from "@/lib/http/useResource";
+import { useDomainVersion } from "@/lib/http/useDomainVersion";
+import { Scopes } from "@/lib/api/sync";
 import { mockUoms } from "@/data/mock";
 import type { Uom } from "@/types/api/menu";
 
@@ -28,6 +30,9 @@ type Draft = Partial<Uom> & { code: string; name: string; isActive: boolean };
 
 export function WinUom() {
   const uoms = useResource(() => uomsApi.list(), { fallback: mockUoms });
+
+  // Auto-refetch when another client edits any MENU master data.
+  useDomainVersion([Scopes.Menu], () => uoms.reload(), 5000);
 
   const list = uoms.data ?? [];
   const [selectedId, setSelectedId] = useState<number | null>(null);

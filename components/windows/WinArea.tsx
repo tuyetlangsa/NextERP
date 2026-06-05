@@ -19,6 +19,8 @@ import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { areasApi, countersApi, tablesApi, type AreaUpsert } from "@/lib/api/restaurant";
 import { useResource } from "@/lib/http/useResource";
+import { useDomainVersion } from "@/lib/http/useDomainVersion";
+import { Scopes } from "@/lib/api/sync";
 import { mockAreas, mockCounters, mockTables } from "@/data/mock";
 import type { Area } from "@/types/api/restaurant";
 
@@ -35,6 +37,12 @@ export function WinArea() {
   const areas = useResource(() => areasApi.list(), { fallback: mockAreas });
   const counters = useResource(() => countersApi.list(), { fallback: mockCounters });
   const tables = useResource(() => tablesApi.list(), { fallback: mockTables });
+
+  useDomainVersion([Scopes.FloorPlan], () => {
+    areas.reload();
+    counters.reload();
+    tables.reload();
+  }, 5000);
 
   const list = areas.data ?? [];
   const counterList = counters.data ?? [];
