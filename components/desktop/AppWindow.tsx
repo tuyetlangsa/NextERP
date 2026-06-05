@@ -49,13 +49,13 @@ export function AppWindow({ w, z, onClose, onMin, onMax, onFocus, children }: Pr
     ? { left: 0, top: 0, width: "100%", height: "calc(100% - 40px)", zIndex: z }
     : { left: pos.x, top: pos.y, width: size.width, height: size.height, zIndex: z };
 
-  const Icon = SubsystemIcons[subsystemIconKey[w.def.id] ?? "fn"];
+  const Icon = SubsystemIcons[subsystemIconKey[w.def.id] ?? "generic"];
 
   return (
     <div className={clsx("win", w.maximized && "maximized")} style={style} onMouseDown={onFocus}>
       <div className="win-titlebar" onMouseDown={onMouseDown} onDoubleClick={onMax}>
         <span className="title-icon"><Icon /></span>
-        <span className="title">{w.def.ten}</span>
+        <span className="title">{w.def.label}</span>
         <div className="win-controls">
           <button className="win-ctrl" onClick={onMin} title="Thu nhỏ"><ChromeIcons.Min /></button>
           <button className="win-ctrl" onClick={onMax} title={w.maximized ? "Khôi phục" : "Phóng to"}>

@@ -7,13 +7,18 @@ import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
 import { StartMenu } from "./StartMenu";
 import { Taskbar } from "./Taskbar";
-import { WinKhu } from "@/components/windows/WinKhu";
+import { WinCounter } from "@/components/windows/WinCounter";
+import { WinArea } from "@/components/windows/WinArea";
+import { WinTable } from "@/components/windows/WinTable";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
-  WinKhu,
+  WinCounter,
+  WinArea,
+  WinTable,
 };
 
-const fmtClock = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const fmtClock = (d: Date) =>
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const fmtDate = (d: Date) =>
   `${d.toLocaleDateString("vi-VN", { weekday: "long" })}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 
@@ -40,7 +45,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     const newZ = zMax + 1;
     setZMax(newZ);
     const offset = windows.length * 24;
-    const w: AppWindowState = {
+    const next: AppWindowState = {
       id: def.id,
       def,
       pos: { x: 80 + offset, y: 50 + offset },
@@ -52,7 +57,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
       minimized: false,
       z: newZ,
     };
-    setWindows([...windows, w]);
+    setWindows([...windows, next]);
     setActiveId(def.id);
   };
 
@@ -62,18 +67,17 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     setWindows(ws => ws.map(w => (w.id === id ? { ...w, z: newZ, minimized: false } : w)));
     setActiveId(id);
   };
-
   const close = (id: string) => setWindows(ws => ws.filter(w => w.id !== id));
   const min = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, minimized: true } : w)));
   const max = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, maximized: !w.maximized } : w)));
 
-  const desktopIcons = subsystems.filter(s => s.desktop);
+  const desktopIcons = subsystems.filter(s => s.showOnDesktop);
 
   return (
     <div className="desktop">
       <div className="desktop-icons">
         {desktopIcons.map(s => {
-          const Icon = SubsystemIcons[subsystemIconKey[s.id] ?? "fn"];
+          const Icon = SubsystemIcons[subsystemIconKey[s.id] ?? "generic"];
           const isOpen = windows.some(w => w.id === s.id);
           return (
             <button
@@ -82,7 +86,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
               onClick={() => launch(s)}
             >
               <span className="ico"><Icon /></span>
-              <span className="label">{s.ten}</span>
+              <span className="label">{s.label}</span>
             </button>
           );
         })}
@@ -95,13 +99,8 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         </div>
         <div className="widget">
           <h4>Phiên làm việc</h4>
-          <div className="session-row"><span className="k">Người dùng</span><span>{user.username}</span></div>
-          <div className="session-row"><span className="k">Vai trò</span><span>{user.role}</span></div>
-        </div>
-        <div className="widget">
-          <h4>Cảnh báo tồn kho</h4>
-          <div className="alert-item"><span className="name">Bia Heineken</span><span className="val warn">12 chai</span></div>
-          <div className="alert-item"><span className="name">Bánh Flan</span><span className="val warn">3 cái</span></div>
+          <div className="session-row"><span className="k">Người dùng</span><span>{user.fullName || user.username}</span></div>
+          <div className="session-row"><span className="k">Vai trò</span><span>{user.roleCode}</span></div>
         </div>
       </div>
 
@@ -120,7 +119,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
             {Comp ? <Comp /> : (
               <div className="empty">
                 <div>
-                  <div className="em-title">{w.def.ten}</div>
+                  <div className="em-title">{w.def.label}</div>
                   <div>Module này sẽ có ở giai đoạn 2 của lộ trình.</div>
                 </div>
               </div>
@@ -138,7 +137,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         onStartToggle={() => setStartOpen(o => !o)}
         onFocus={focus}
         onMin={min}
-        user={{ name: user.username, role: user.role }}
+        user={{ username: user.username, roleCode: user.roleCode }}
         clock={clock}
       />
     </div>

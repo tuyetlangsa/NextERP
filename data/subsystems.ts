@@ -1,35 +1,35 @@
 import type { Subsystem, SubsystemGroup } from "@/types/domain";
 
 export const subsystems: Subsystem[] = [
-  // Mặt bằng
-  { id: "quay",   ten: "Quầy",                sub: "Top-level: Quầy → Khu → Bàn", group: "mat-bang", desktop: true, win: null },
-  { id: "khu",    ten: "Khu",                 sub: "Quản lý khu vực bàn",          group: "mat-bang", desktop: true, win: "WinKhu" },
-  { id: "ban",    ten: "Bàn / Phòng / Máy",   sub: "Sơ đồ bàn & cấu hình",         group: "mat-bang", desktop: true, win: null },
-  { id: "layout", ten: "Sơ đồ bàn",           sub: "Editor kéo-thả",               group: "mat-bang", desktop: true, win: null },
-  // Thực đơn
-  { id: "items",   ten: "Hàng Hóa - Dịch Vụ", sub: "Catalog + Nhóm hàng",          group: "thuc-don", desktop: true, win: null },
-  { id: "dvt",     ten: "Đơn vị tính",        sub: "Count / Weight / Volume",      group: "thuc-don", desktop: true, win: null },
-  { id: "choice",  ten: "Loại lựa chọn",      sub: "Choice Categories & Modifiers", group: "thuc-don", desktop: true, win: null },
-  { id: "setmenu", ten: "Set Menu",           sub: "Combo & Main Components",      group: "thuc-don", desktop: true, win: null },
-  // Giá & Khuyến mãi
-  { id: "pricing",  ten: "Bảng giá bán",      sub: "Variant Time/Day/Area",        group: "gia-km",   desktop: true, win: null },
-  { id: "discount", ten: "Khuyến mãi",        sub: "Bill & Quantity-based",        group: "gia-km",   win: null },
-  { id: "tax",      ten: "Phí phục vụ",       sub: "Service charge theo Khu",      group: "gia-km",   desktop: true, win: null },
-  // Hệ thống
-  { id: "users",     ten: "Người dùng",       sub: "Vai trò, ma trận quyền",       group: "he-thong", desktop: true, win: null },
-  { id: "shift",     ten: "Danh sách ca",     sub: "Khung giờ làm theo ngày",      group: "he-thong", desktop: true, win: null },
-  { id: "sched-m",   ten: "Lịch làm việc tháng", sub: "Manager · calendar + day detail", group: "he-thong", desktop: true, win: null },
-  { id: "config",    ten: "Cấu hình nhà hàng", sub: "Restaurant Profile",          group: "he-thong", win: null },
-  // Báo cáo
-  { id: "report", ten: "Báo cáo & Phân tích", sub: "Doanh thu / Top bán",          group: "bao-cao", win: null },
-  { id: "ai",     ten: "AI Conversational",   sub: "Chart-bound chat",             group: "bao-cao", win: null },
+  // Layout (Counter → Area → Table)
+  { id: "counter", label: "Quầy",              description: "Top-level: Quầy → Khu → Bàn",      group: "layout",  showOnDesktop: true, win: "WinCounter" },
+  { id: "area",    label: "Khu",               description: "Quản lý khu vực bàn",              group: "layout",  showOnDesktop: true, win: "WinArea" },
+  { id: "table",   label: "Bàn / Phòng / Máy", description: "Cấu hình bàn",                     group: "layout",  showOnDesktop: true, win: "WinTable" },
+  { id: "floorplan", label: "Sơ đồ bàn",       description: "Editor kéo-thả",                   group: "layout",  showOnDesktop: true, win: null },
+  // Menu
+  { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: null },
+  { id: "uom",     label: "Đơn vị tính",        description: "Count / Weight / Volume",         group: "menu",    showOnDesktop: true, win: null },
+  { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: null },
+  { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: null },
+  // Pricing
+  { id: "pricing",  label: "Bảng giá bán",     description: "Variant Time/Day/Area",            group: "pricing", showOnDesktop: true, win: null },
+  { id: "discount", label: "Khuyến mãi",        description: "Bill & Quantity-based",           group: "pricing", win: null },
+  { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: null },
+  // System
+  { id: "users",     label: "Người dùng",      description: "Vai trò, ma trận quyền",           group: "system",  showOnDesktop: true, win: null },
+  { id: "shifts",    label: "Danh sách ca",    description: "Khung giờ làm theo ngày",          group: "system",  showOnDesktop: true, win: null },
+  { id: "schedule",  label: "Lịch làm việc tháng", description: "Manager · calendar + day detail", group: "system", showOnDesktop: true, win: null },
+  { id: "config",    label: "Cấu hình nhà hàng", description: "Restaurant Profile",             group: "system",  win: null },
+  // Reports
+  { id: "reports", label: "Báo cáo & Phân tích", description: "Doanh thu / Top bán",            group: "reports", win: null },
+  { id: "ai",      label: "AI Conversational",   description: "Chart-bound chat",               group: "reports", win: null },
 ];
 
-export const subsystemGroups: { id: SubsystemGroup | "all"; ten: string }[] = [
-  { id: "all",      ten: "Tất cả" },
-  { id: "mat-bang", ten: "Mặt bằng" },
-  { id: "thuc-don", ten: "Thực đơn" },
-  { id: "gia-km",   ten: "Giá & Khuyến mãi" },
-  { id: "he-thong", ten: "Hệ thống" },
-  { id: "bao-cao",  ten: "Báo cáo" },
+export const subsystemGroups: { id: SubsystemGroup | "all"; label: string }[] = [
+  { id: "all",     label: "Tất cả" },
+  { id: "layout",  label: "Mặt bằng" },
+  { id: "menu",    label: "Thực đơn" },
+  { id: "pricing", label: "Giá & Khuyến mãi" },
+  { id: "system",  label: "Hệ thống" },
+  { id: "reports", label: "Báo cáo" },
 ];

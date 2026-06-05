@@ -1,64 +1,45 @@
 import {
-  LayoutGrid,
-  Building2,
-  MapPin,
-  Utensils,
-  ListOrdered,
-  Layers,
-  Tags,
-  Users,
-  CalendarClock,
-  Settings,
-  BarChart3,
-  Sparkles,
-  Minus,
-  Square,
-  X,
-  Maximize2,
-  Plus,
-  Save,
-  Trash2,
-  RefreshCw,
-  Download,
-  HelpCircle,
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  PanelLeftClose,
-  PanelLeftOpen,
-  type LucideIcon,
+  LayoutGrid, Building2, MapPin, Utensils, ListOrdered, Layers, Tags,
+  Users, CalendarClock, Settings, BarChart3, Sparkles,
+  Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download,
+  HelpCircle, ChevronDown, ChevronRight, Folder,
+  PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
 
 export type SubsystemIconKey =
-  | "counter" | "area" | "table" | "layout"
-  | "items" | "fn" | "choice" | "setmenu"
-  | "pricing" | "users" | "shift" | "cog"
-  | "report" | "ai" | "printer";
+  | "counter" | "area" | "table" | "floorplan"
+  | "items"   | "uom"  | "choice" | "setmenu"
+  | "pricing" | "discount" | "service-charge"
+  | "users"   | "shifts" | "schedule" | "config"
+  | "reports" | "ai" | "generic";
 
 export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
-  counter: Building2,
-  area:    MapPin,
-  table:   LayoutGrid,
-  layout:  Layers,
-  items:   Utensils,
-  fn:      ListOrdered,
-  choice:  Tags,
-  setmenu: Layers,
-  pricing: Tags,
-  users:   Users,
-  shift:   CalendarClock,
-  cog:     Settings,
-  report:  BarChart3,
-  ai:      Sparkles,
-  printer: Settings,
+  counter:         Building2,
+  area:            MapPin,
+  table:           LayoutGrid,
+  floorplan:       Layers,
+  items:           Utensils,
+  uom:             ListOrdered,
+  choice:          Tags,
+  setmenu:         Layers,
+  pricing:         Tags,
+  discount:        ListOrdered,
+  "service-charge": ListOrdered,
+  users:           Users,
+  shifts:          CalendarClock,
+  schedule:        CalendarClock,
+  config:          Settings,
+  reports:         BarChart3,
+  ai:              Sparkles,
+  generic:         ListOrdered,
 };
 
 export const subsystemIconKey: Record<string, SubsystemIconKey> = {
-  quay: "counter", khu: "area", ban: "table", layout: "layout",
-  items: "items", dvt: "fn", choice: "choice", setmenu: "setmenu",
-  pricing: "pricing", discount: "fn", tax: "fn",
-  users: "users", shift: "shift", "sched-m": "shift", config: "cog",
-  report: "report", ai: "ai",
+  counter: "counter", area: "area", table: "table", floorplan: "floorplan",
+  items: "items", uom: "uom", choice: "choice", setmenu: "setmenu",
+  pricing: "pricing", discount: "discount", "service-charge": "service-charge",
+  users: "users", shifts: "shifts", schedule: "schedule", config: "config",
+  reports: "reports", ai: "ai",
 };
 
 export const ChromeIcons = {

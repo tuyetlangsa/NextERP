@@ -12,14 +12,22 @@ interface Props {
   onLaunch: (def: Subsystem) => void;
 }
 
+const groupIconKey = (id: SubsystemGroup | "all") =>
+  id === "all" ? "generic"
+  : id === "layout" ? "floorplan"
+  : id === "menu" ? "items"
+  : id === "pricing" ? "pricing"
+  : id === "system" ? "config"
+  : "reports" as const;
+
 export function StartMenu({ open, onClose, onLaunch }: Props) {
-  const [grp, setGrp] = useState<SubsystemGroup | "all">("all");
-  const [q, setQ] = useState("");
+  const [group, setGroup] = useState<SubsystemGroup | "all">("all");
+  const [query, setQuery] = useState("");
   if (!open) return null;
 
   const items = subsystems.filter(s =>
-    (grp === "all" || s.group === grp) &&
-    (!q || s.ten.toLowerCase().includes(q.toLowerCase()))
+    (group === "all" || s.group === group) &&
+    (!query || s.label.toLowerCase().includes(query.toLowerCase()))
   );
 
   return (
@@ -31,27 +39,27 @@ export function StartMenu({ open, onClose, onLaunch }: Props) {
             Module
           </div>
           {subsystemGroups.map(g => {
-            const Icon = SubsystemIcons[g.id === "all" ? "fn" : (g.id === "mat-bang" ? "layout" : g.id === "thuc-don" ? "items" : g.id === "gia-km" ? "pricing" : g.id === "he-thong" ? "cog" : "report")];
+            const Icon = SubsystemIcons[groupIconKey(g.id)];
             return (
-              <button key={g.id} className={clsx("group-btn", grp === g.id && "active")} onClick={() => setGrp(g.id)}>
-                <Icon /> {g.ten}
+              <button key={g.id} className={clsx("group-btn", group === g.id && "active")} onClick={() => setGroup(g.id)}>
+                <Icon /> {g.label}
               </button>
             );
           })}
         </div>
         <div className="right">
           <div className="search">
-            <input placeholder="Tìm kiếm module..." value={q} onChange={e => setQ(e.target.value)} autoFocus />
+            <input placeholder="Tìm kiếm module..." value={query} onChange={e => setQuery(e.target.value)} autoFocus />
           </div>
           <div className="items">
             {items.map(s => {
-              const Icon = SubsystemIcons[subsystemIconKey[s.id] ?? "fn"];
+              const Icon = SubsystemIcons[subsystemIconKey[s.id] ?? "generic"];
               return (
                 <button key={s.id} className="item" onClick={() => { onLaunch(s); onClose(); }}>
                   <span className="ico"><Icon /></span>
                   <span className="meta">
-                    <span className="t">{s.ten}</span>
-                    <span className="s">{s.sub}</span>
+                    <span className="t">{s.label}</span>
+                    <span className="s">{s.description}</span>
                   </span>
                   {!s.win && <span style={{ fontSize: 11, color: "#71717a" }}>Sắp ra mắt</span>}
                 </button>

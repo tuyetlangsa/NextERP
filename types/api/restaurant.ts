@@ -1,0 +1,71 @@
+/**
+ * Mirrors backend Domain entities under `src/Rpom.Domain/Restaurant/` —
+ * Counter, Area, Table. CRUD endpoints are not yet implemented; these types
+ * fix the contract so mocks can be swapped 1:1 once endpoints exist.
+ */
+
+export interface Counter {
+  id: number;
+  name: string;
+  note: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Area {
+  id: number;
+  counterId: number;
+  name: string;
+  description: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TableStatus = "AVAILABLE" | "OCCUPIED";
+
+export interface RestaurantTable {
+  id: number;
+  areaId: number;
+  code: string;
+  seatCount: number;
+  description: string | null;
+  status: TableStatus;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* Lookup item shapes (BE already implements these) — see
+   `src/Rpom.Application/Lookups/`. */
+
+export interface CounterLookupItem {
+  id: number;
+  name: string;
+  displayOrder: number;
+}
+
+export interface KitchenStationLookupItem {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface ShiftLookupItem {
+  id: number;
+  code: string;
+  name: string;
+  beginTime: string;
+  endTime: string;
+  isNextDay: boolean;
+}
+
+export interface DenominationLookupItem {
+  id: number;
+  faceValue: number;
+  name: string;
+  displayOrder: number;
+}

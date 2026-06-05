@@ -1,41 +1,35 @@
-export interface Counter {
-  id: string;
-  ten: string;
-  dien_giai?: string;
-  kich_hoat: boolean;
-}
-
-export interface Area {
-  id: string;
-  quay: string; // Counter id
-  ten: string;
-  ten1?: string;
-  ten2?: string;
-  mo_ta?: string;
-  khu_cha?: string | null;
-  loai_kd?: string;
-  co_so_do: boolean;
-  so_so_do: number;
-  thu_tu: number;
-  quy_mo: number;
-  kich_hoat: boolean;
-  nhom_menu: string[]; // Category ids
-}
+/**
+ * UI/session domain types — distinct from API DTOs in `types/api/`.
+ *
+ * Re-exports backend entity shapes so window components can import from one
+ * place. UI-only constructs (window state, subsystem catalog) live here.
+ */
+export type {
+  Counter,
+  Area,
+  RestaurantTable,
+  TableStatus,
+  CounterLookupItem,
+  KitchenStationLookupItem,
+  ShiftLookupItem,
+  DenominationLookupItem,
+} from "./api/restaurant";
 
 export type SubsystemGroup =
-  | "mat-bang"
-  | "thuc-don"
-  | "gia-km"
-  | "he-thong"
-  | "bao-cao";
+  | "layout"
+  | "menu"
+  | "pricing"
+  | "system"
+  | "reports";
 
 export interface Subsystem {
   id: string;
-  ten: string;
-  sub: string;
+  label: string;
+  description: string;
   group: SubsystemGroup;
-  desktop?: boolean;
-  win: string | null; // window component id; null = chưa làm
+  showOnDesktop?: boolean;
+  /** Component key registered in `DesktopShell.WIN_REGISTRY`; `null` when not yet implemented. */
+  win: string | null;
 }
 
 export interface AppWindowState {
@@ -49,7 +43,8 @@ export interface AppWindowState {
 }
 
 export interface SessionUser {
+  staffAccountId: number;
   username: string;
   fullName: string;
-  role: "owner" | "manager" | "admin";
+  roleCode: string;
 }

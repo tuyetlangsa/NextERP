@@ -1,16 +1,37 @@
-import type { Counter, Area } from "@/types/domain";
+/**
+ * Dev-only mock data matching backend Domain entity shape (camelCase).
+ * Used by Win* components while CRUD endpoints are still being built.
+ * Field names MUST match `types/api/restaurant.ts` exactly so the swap
+ * to live API is a 1-line change.
+ */
+import type { Area, Counter, RestaurantTable } from "@/types/api/restaurant";
+
+const now = "2026-06-05T00:00:00Z";
 
 export const mockCounters: Counter[] = [
-  { id: "Q01", ten: "Quầy chính", dien_giai: "Tầng 1 sảnh", kich_hoat: true },
-  { id: "Q02", ten: "Quầy bar", dien_giai: "Tầng 1 quầy bar", kich_hoat: true },
-  { id: "Q03", ten: "Quầy phòng riêng", dien_giai: "Tầng 2", kich_hoat: true },
-  { id: "Q04", ten: "Quầy sân vườn", dien_giai: "Sân trước", kich_hoat: true },
+  { id: 1, name: "Quầy chính",        note: "Tầng 1 sảnh",         displayOrder: 1, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2, name: "Quầy bar",          note: "Tầng 1 quầy bar",     displayOrder: 2, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3, name: "Quầy phòng riêng",  note: "Tầng 2",              displayOrder: 3, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 4, name: "Quầy sân vườn",     note: "Sân trước",           displayOrder: 4, isActive: false, createdAt: now, updatedAt: now },
 ];
 
 export const mockAreas: Area[] = [
-  { id: "KV01", quay: "Q01", ten: "Sảnh chính", ten1: "Main Hall", mo_ta: "Tầng 1 — bàn thường", khu_cha: null, co_so_do: true, so_so_do: 1, thu_tu: 1, quy_mo: 60, kich_hoat: true, nhom_menu: [] },
-  { id: "KV02", quay: "Q01", ten: "Khu VIP", ten1: "VIP Area", mo_ta: "Tầng 1 — bàn VIP phụ thu", khu_cha: null, co_so_do: true, so_so_do: 1, thu_tu: 2, quy_mo: 20, kich_hoat: true, nhom_menu: [] },
-  { id: "KV03", quay: "Q02", ten: "Khu quầy bar", ten1: "Bar", mo_ta: "Quầy bar — ghế cao", khu_cha: null, co_so_do: false, so_so_do: 0, thu_tu: 3, quy_mo: 12, kich_hoat: true, nhom_menu: [] },
-  { id: "KV04", quay: "Q03", ten: "Phòng riêng Lầu 2", ten1: "Private Room", mo_ta: "Phòng riêng cho nhóm 8-12 khách", khu_cha: null, co_so_do: true, so_so_do: 3, thu_tu: 4, quy_mo: 36, kich_hoat: true, nhom_menu: [] },
-  { id: "KV05", quay: "Q04", ten: "Sân vườn", ten1: "Garden", mo_ta: "Ngoài trời, mùa nắng", khu_cha: null, co_so_do: true, so_so_do: 1, thu_tu: 5, quy_mo: 40, kich_hoat: false, nhom_menu: [] },
+  { id: 1, counterId: 1, name: "Sảnh chính",        description: "Tầng 1 — bàn thường",            displayOrder: 1, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2, counterId: 1, name: "Khu VIP",           description: "Tầng 1 — bàn VIP phụ thu 15%",  displayOrder: 2, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3, counterId: 2, name: "Khu quầy bar",      description: "Quầy bar — ghế cao",             displayOrder: 3, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 4, counterId: 3, name: "Phòng riêng Lầu 2", description: "Phòng riêng nhóm 8-12 khách",   displayOrder: 4, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 5, counterId: 4, name: "Sân vườn",          description: "Ngoài trời, mùa nắng",          displayOrder: 5, isActive: false, createdAt: now, updatedAt: now },
+];
+
+export const mockTables: RestaurantTable[] = [
+  { id: 1,  areaId: 1, code: "T01",  seatCount: 4,  description: "Bàn cạnh cửa sổ",  status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2,  areaId: 1, code: "T02",  seatCount: 4,  description: null,               status: "OCCUPIED",  isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3,  areaId: 1, code: "T03",  seatCount: 6,  description: "Bàn dài 6 chỗ",    status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 4,  areaId: 1, code: "T04",  seatCount: 2,  description: "Bàn 2 chỗ góc",    status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 5,  areaId: 2, code: "VIP1", seatCount: 8,  description: "VIP cửa kính",     status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 6,  areaId: 2, code: "VIP2", seatCount: 10, description: null,               status: "OCCUPIED",  isActive: true,  createdAt: now, updatedAt: now },
+  { id: 7,  areaId: 3, code: "B01",  seatCount: 1,  description: "Ghế bar 1",        status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 8,  areaId: 3, code: "B02",  seatCount: 1,  description: "Ghế bar 2",        status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 9,  areaId: 4, code: "PR1",  seatCount: 12, description: "Phòng riêng lớn",  status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 10, areaId: 5, code: "G01",  seatCount: 6,  description: "Bàn sân vườn 1",   status: "AVAILABLE", isActive: false, createdAt: now, updatedAt: now },
 ];

@@ -11,15 +11,12 @@ interface Props {
   onStartToggle: () => void;
   onFocus: (id: string) => void;
   onMin: (id: string) => void;
-  user: { name: string; role: string };
+  user: { username: string; roleCode: string };
   clock: Date;
 }
 
-const fmtClock = (d: Date) => {
-  const h = String(d.getHours()).padStart(2, "0");
-  const m = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
-};
+const fmtClock = (d: Date) =>
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
 export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, onMin, user, clock }: Props) {
   return (
@@ -31,7 +28,7 @@ export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, 
       <div className="task-divider" />
       <div className="taskbar-tabs">
         {windows.map(w => {
-          const Icon = SubsystemIcons[subsystemIconKey[w.def.id] ?? "fn"];
+          const Icon = SubsystemIcons[subsystemIconKey[w.def.id] ?? "generic"];
           const active = activeId === w.id && !w.minimized;
           return (
             <button
@@ -41,15 +38,15 @@ export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, 
             >
               {!w.minimized && <span className="dot" />}
               <Icon />
-              <span>{w.def.ten}</span>
+              <span>{w.def.label}</span>
             </button>
           );
         })}
       </div>
       <div className="taskbar-right">
         <span className="user-chip">
-          <span className="av">{user.name.charAt(0).toUpperCase()}</span>
-          <span>{user.name} · {user.role}</span>
+          <span className="av">{user.username.charAt(0).toUpperCase()}</span>
+          <span>{user.username} · {user.roleCode}</span>
         </span>
         <span className="clock-mini">{fmtClock(clock)}</span>
       </div>
