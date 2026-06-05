@@ -51,5 +51,5 @@ export interface AppWindowState {
 export interface SessionUser {
   username: string;
   fullName: string;
-  counterId: string;
+  role: "owner" | "manager" | "admin";
 }

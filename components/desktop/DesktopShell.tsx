@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AppWindowState, Counter, SessionUser, Subsystem } from "@/types/domain";
+import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
-import { mockCounters } from "@/data/mock";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
 import { StartMenu } from "./StartMenu";
@@ -29,8 +28,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  const counter: Counter | undefined = mockCounters.find(c => c.id === user.counterId);
 
   const launch = (def: Subsystem) => {
     if (!def.win) return;
@@ -99,8 +96,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         <div className="widget">
           <h4>Phiên làm việc</h4>
           <div className="session-row"><span className="k">Người dùng</span><span>{user.username}</span></div>
-          <div className="session-row"><span className="k">Quầy hiện tại</span><span>{counter?.ten}</span></div>
-          <div className="session-row"><span className="k">Ca làm việc</span><span>Sáng · 06:00 → 14:00</span></div>
+          <div className="session-row"><span className="k">Vai trò</span><span>{user.role}</span></div>
         </div>
         <div className="widget">
           <h4>Cảnh báo tồn kho</h4>
@@ -142,8 +138,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         onStartToggle={() => setStartOpen(o => !o)}
         onFocus={focus}
         onMin={min}
-        user={{ name: user.username }}
-        counter={counter}
+        user={{ name: user.username, role: user.role }}
         clock={clock}
       />
     </div>

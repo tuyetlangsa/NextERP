@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import type { AppWindowState, Counter } from "@/types/domain";
+import type { AppWindowState } from "@/types/domain";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 
 interface Props {
@@ -11,8 +11,7 @@ interface Props {
   onStartToggle: () => void;
   onFocus: (id: string) => void;
   onMin: (id: string) => void;
-  user: { name: string };
-  counter: Counter | undefined;
+  user: { name: string; role: string };
   clock: Date;
 }
 
@@ -22,7 +21,7 @@ const fmtClock = (d: Date) => {
   return `${h}:${m}`;
 };
 
-export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, onMin, user, counter, clock }: Props) {
+export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, onMin, user, clock }: Props) {
   return (
     <div className="taskbar">
       <button className={clsx("start-btn", startOpen && "open")} onClick={onStartToggle}>
@@ -50,7 +49,7 @@ export function Taskbar({ windows, activeId, startOpen, onStartToggle, onFocus, 
       <div className="taskbar-right">
         <span className="user-chip">
           <span className="av">{user.name.charAt(0).toUpperCase()}</span>
-          <span>{user.name} · {counter?.ten}</span>
+          <span>{user.name} · {user.role}</span>
         </span>
         <span className="clock-mini">{fmtClock(clock)}</span>
       </div>
