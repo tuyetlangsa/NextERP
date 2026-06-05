@@ -8,7 +8,7 @@ export const subsystems: Subsystem[] = [
   { id: "floorplan", label: "Sơ đồ bàn",       description: "Editor kéo-thả",                   group: "layout",  showOnDesktop: true, win: null },
   // Menu
   { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: null },
-  { id: "uom",     label: "Đơn vị tính",        description: "Count / Weight / Volume",         group: "menu",    showOnDesktop: true, win: null },
+  { id: "uom",     label: "Đơn vị tính",        description: "Phần / Tô / Chai / Kg / ...",     group: "menu",    showOnDesktop: true, win: "WinUom" },
   { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: null },
   { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: null },
   // Pricing

@@ -5,8 +5,19 @@
  * to live API is a 1-line change.
  */
 import type { Area, Counter, RestaurantTable } from "@/types/api/restaurant";
+import type { Uom } from "@/types/api/menu";
 
 const now = "2026-06-05T00:00:00Z";
+
+export const mockUoms: Uom[] = [
+  { id: 1, code: "phan", name: "Phần",    description: "Đơn vị bán theo phần", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2, code: "to",   name: "Tô",       description: "Đơn vị bán theo tô",   isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3, code: "dia",  name: "Đĩa",      description: "Đơn vị bán theo đĩa",  isActive: true,  createdAt: now, updatedAt: now },
+  { id: 4, code: "chai", name: "Chai",     description: "Đơn vị bán theo chai", isActive: true,  createdAt: now, updatedAt: now },
+  { id: 5, code: "lon",  name: "Lon",      description: null,                    isActive: true,  createdAt: now, updatedAt: now },
+  { id: 6, code: "ly",   name: "Ly",       description: null,                    isActive: true,  createdAt: now, updatedAt: now },
+  { id: 7, code: "kg",   name: "Kilogam",  description: "Khối lượng",            isActive: true,  createdAt: now, updatedAt: now },
+];
 
 export const mockCounters: Counter[] = [
   { id: 1, name: "Quầy chính",        note: "Tầng 1 sảnh",         displayOrder: 1, isActive: true,  createdAt: now, updatedAt: now },

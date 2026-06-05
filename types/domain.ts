@@ -15,6 +15,8 @@ export type {
   DenominationLookupItem,
 } from "./api/restaurant";
 
+export type { Uom } from "./api/menu";
+
 export type SubsystemGroup =
   | "layout"
   | "menu"
