@@ -87,17 +87,37 @@ Nếu chưa có key, dev vẫn chạy được nhưng có banner "Trial" trên S
 3. Update `data/subsystems.ts` — set `win: "Win<Name>"` cho row tương ứng (đổi từ `null`)
 4. Thêm icon mapping ở `components/desktop/icons.tsx` nếu cần
 
-## Backend wiring (chưa làm)
+## Backend wiring
 
-Hiện tại tất cả data là mock. Khi tích hợp Rpom-backend:
-- Login → `POST /api/auth/login` (BE đã có) — lưu JWT
-- Wrap fetch trong client với `Authorization: Bearer <token>`
-- Mỗi window tự gọi endpoint master data của mình
-
-Spec backend đầy đủ: `../docs/RPOM_Logical_ERD.md`, `../docs/RPOM_Pricing_Spec.md`.
+Tất cả master-data window đã kết nối Rpom-backend qua `lib/http/client.ts` (axios + `BaseResponse<T>` envelope + JWT). Spec backend đầy đủ ở `../docs/RPOM_Logical_ERD.md`, `../docs/RPOM_Pricing_Spec.md`, `../docs/RPOM_Versioning_Strategy.md`.
 
 ## Lưu ý quan trọng
 
 - **Next.js 16** có breaking changes so với 14/15. Đọc `node_modules/next/dist/docs/` trước khi viết route handler / server action.
-- **Syncfusion grid** dùng `actionBegin` / `actionComplete` cho validation. Async validation gọi BE: `args.cancel = true` rồi await fetch.
-- **CSS override** Syncfusion ở `app/globals.css` cuối file (`.e-grid` selectors). Sửa theme thì sửa ở đó, đừng đụng theme bootstrap5-dark gốc.
+- **CSS override** Syncfusion ở `app/globals.css` cuối file (`.e-grid`, `.e-treeview` selectors). Sửa theme thì sửa ở đó, đừng đụng theme bootstrap5 gốc.
+
+### Syncfusion Grid — 2 patterns đang dùng
+
+1. **DataManager + CustomDataAdaptor** *(canonical, dùng cho master-data CRUD chuẩn)*
+   - Helper: `lib/syncfusion/dataManager.ts` → `buildDataManager({ list, create, update, remove, toUpsert })`.
+   - Grid là source of truth. Add/Edit/Delete trên toolbar tự gọi BE qua adaptor; Grid tự refresh.
+   - Đang dùng: `WinPricing` PriceTable Grid.
+   - 3 lesson đào từ source `node_modules/@syncfusion/ej2-data/src/`:
+     * Callbacks trong `CustomDataAdaptor` là **`option.onSuccess` / `option.onFailure`** (không phải `success`/`fail`).
+     * `option.data` là **JSON string** wrap envelope `{ value: row, action, key, keyColumn }` — phải parse + extract `.value` cho create/update, `.key` cho delete.
+     * Không bao giờ truyền `null` vào `onSuccess` — Syncfusion `processResponse` deref `data.result` không guard sẽ crash âm thầm; truyền `{}` cho delete.
+
+2. **Hybrid `actionBegin` intercept + `useResource`** *(khi flow phức tạp, vd cần dialog cho field cấu trúc)*
+   - Đang dùng: PriceVariant Grid (Time/Day/Area scope phải mở dialog), pivot Item × Variant (Batch mode + bulk upsert).
+   - Pattern: `args.cancel = true` → gọi `priceXxxApi.create/update/delete` thủ công → `await tablesRes.reload()` → bump `key` Grid để remount.
+
+### TreeView
+
+- Dùng `nodeTemplate` (function trả JSX) để render custom icon — không xài `iconCss`. Pass thêm field như `count` vào data node nếu cần badge.
+- Stable `useCallback(nodeTemplate, [])` + stable `useMemo(treeFields, [data])` — pass fresh prop mỗi render sẽ làm tree re-mount → flicker.
+- CSS đã override `.e-fullrow { display: none }` để highlight không tràn pane (xem `globals.css`).
+
+### Error display
+
+- `lib/http/formatError.ts` → `formatApiError(res)` extract `extensions.errors[].description` cho validation, fallback `detail/title` cho conflict / business rule.
+- Mọi `setErrorMsg(...)` trong Win* nên gọi `formatApiError(res)` thay vì `res.detail || res.title`.

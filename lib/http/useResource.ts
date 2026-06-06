@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { BaseResponse } from "./types";
 
 export interface ResourceState<T> {
@@ -34,13 +34,20 @@ export function useResource<T>(
   const [isApiError, setIsApiError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
+  const requestIdRef = useRef(0);
+
   const load = useCallback(async () => {
+    const myRequestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     setIsApiError(false);
     setIsOffline(false);
 
     const res = await fetcher();
+
+    // Drop response if a newer request has been fired in the meantime.
+    if (myRequestId !== requestIdRef.current) return;
+
     if (res.isSuccess) {
       setData(res.data);
     } else if (res.statusCode === 0) {

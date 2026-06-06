@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -38,10 +38,16 @@ export function WinUom() {
 
   const sel = list.find(u => u.id === selectedId) ?? null;
 
-  if (selectedId === null && list.length > 0) {
-    setSelectedId(list[0].id);
-    setDraft({ ...list[0] });
-  }
+  // Auto-select first row ONCE when data arrives. Never re-runs after user
+  // clicks Create (which sets selectedId=null intentionally).
+  const initSelectedRef = useRef(false);
+  useEffect(() => {
+    if (!initSelectedRef.current && list.length > 0) {
+      initSelectedRef.current = true;
+      setSelectedId(list[0].id);
+      setDraft({ ...list[0] });
+    }
+  }, [list]);
 
   const sortSettings: SortSettingsModel = {
     columns: [{ field: "code", direction: "Ascending" }],
@@ -49,11 +55,10 @@ export function WinUom() {
 
   const handleRowSelected = (args: { data: Uom | Uom[] }) => {
     const row = Array.isArray(args.data) ? args.data[0] : args.data;
-    if (row?.id !== undefined) {
-      setSelectedId(row.id);
-      setDraft({ ...row });
-      setErrorMsg(null);
-    }
+    if (row?.id === undefined || row.id === selectedId) return;
+    setSelectedId(row.id);
+    setDraft({ ...row });
+    setErrorMsg(null);
   };
 
   const handleCreate = () => {
@@ -178,6 +183,7 @@ export function WinUom() {
             allowSorting
             allowPaging
             allowFiltering
+            filterSettings={{ type: "Menu" }}
             pageSettings={{ pageSize: 20 }}
             sortSettings={sortSettings}
             rowSelected={handleRowSelected}

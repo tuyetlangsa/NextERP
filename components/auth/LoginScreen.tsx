@@ -10,7 +10,7 @@ interface Props {
 
 export function LoginScreen({ onDone }: Props) {
   const [username, setUsername] = useState("owner");
-  const [password, setPassword] = useState("password");
+  const [password, setPassword] = useState("ChangeMe@2026");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 

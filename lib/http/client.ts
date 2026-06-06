@@ -68,6 +68,21 @@ function normalize<T>(statusCode: number, raw: unknown): BaseResponse<T> {
     } satisfies SuccessResponse<T>;
   }
 
+  // 2xx with empty body (eg. 204 No Content from DELETE) — success without data.
+  if (statusCode >= 200 && statusCode < 300) {
+    return {
+      isSuccess: true,
+      message: "",
+      data: null as unknown as T,
+      type: null,
+      title: null,
+      status: null,
+      detail: null,
+      extensions: null,
+      statusCode,
+    } satisfies SuccessResponse<T>;
+  }
+
   const pd = (raw ?? {}) as RpomProblemDetails;
   const extensions =
     pd.extensions ??

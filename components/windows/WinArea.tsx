@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -49,10 +49,14 @@ export function WinArea() {
 
   const sel = list.find(a => a.id === selectedId) ?? null;
 
-  if (selectedId === null && list.length > 0) {
-    setSelectedId(list[0].id);
-    setDraft({ ...list[0] });
-  }
+  const initSelectedRef = useRef(false);
+  useEffect(() => {
+    if (!initSelectedRef.current && list.length > 0) {
+      initSelectedRef.current = true;
+      setSelectedId(list[0].id);
+      setDraft({ ...list[0] });
+    }
+  }, [list]);
 
   const counterMap = useMemo(
     () => Object.fromEntries(counterList.map(c => [c.id, c])),
@@ -74,11 +78,10 @@ export function WinArea() {
 
   const handleRowSelected = (args: { data: Area | Area[] }) => {
     const row = Array.isArray(args.data) ? args.data[0] : args.data;
-    if (row?.id !== undefined) {
-      setSelectedId(row.id);
-      setDraft({ ...row });
-      setErrorMsg(null);
-    }
+    if (row?.id === undefined || row.id === selectedId) return;
+    setSelectedId(row.id);
+    setDraft({ ...row });
+    setErrorMsg(null);
   };
 
   const handleCreate = () => {
@@ -220,6 +223,7 @@ export function WinArea() {
             allowSorting
             allowPaging
             allowFiltering
+            filterSettings={{ type: "Menu" }}
             pageSettings={{ pageSize: 20 }}
             sortSettings={sortSettings}
             rowSelected={handleRowSelected}

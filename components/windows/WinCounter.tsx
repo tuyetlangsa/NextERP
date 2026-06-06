@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -39,11 +39,14 @@ export function WinCounter() {
 
   const sel = list.find(c => c.id === selectedId) ?? null;
 
-  // Initialize selection on first data arrival.
-  if (selectedId === null && list.length > 0) {
-    setSelectedId(list[0].id);
-    setDraft({ ...list[0] });
-  }
+  const initSelectedRef = useRef(false);
+  useEffect(() => {
+    if (!initSelectedRef.current && list.length > 0) {
+      initSelectedRef.current = true;
+      setSelectedId(list[0].id);
+      setDraft({ ...list[0] });
+    }
+  }, [list]);
 
   const areasOfSelected = useMemo(
     () => (areas.data ?? []).filter(a => a.counterId === selectedId),
@@ -56,11 +59,10 @@ export function WinCounter() {
 
   const handleRowSelected = (args: { data: Counter | Counter[] }) => {
     const row = Array.isArray(args.data) ? args.data[0] : args.data;
-    if (row?.id !== undefined) {
-      setSelectedId(row.id);
-      setDraft({ ...row });
-      setErrorMsg(null);
-    }
+    if (row?.id === undefined || row.id === selectedId) return;
+    setSelectedId(row.id);
+    setDraft({ ...row });
+    setErrorMsg(null);
   };
 
   const handleCreate = () => {
@@ -207,6 +209,7 @@ export function WinCounter() {
             allowSorting
             allowPaging
             allowFiltering
+            filterSettings={{ type: "Menu" }}
             pageSettings={{ pageSize: 20 }}
             sortSettings={sortSettings}
             rowSelected={handleRowSelected}
