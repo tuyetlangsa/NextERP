@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
-/* Syncfusion bootstrap5-dark theme */
-@import "@syncfusion/ej2-base/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-buttons/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-calendars/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-dropdowns/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-inputs/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-lists/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-navigations/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-popups/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-notifications/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-grids/styles/bootstrap5-dark.css";
-@import "@syncfusion/ej2-schedule/styles/bootstrap5-dark.css";
+/* Syncfusion bootstrap5 (light) theme — match white window content. Desktop
+   shell wallpaper stays dark via our own CSS variables (.desktop), Syncfusion
+   components inside windows render light. */
+@import "@syncfusion/ej2-base/styles/bootstrap5.css";
+@import "@syncfusion/ej2-buttons/styles/bootstrap5.css";
+@import "@syncfusion/ej2-calendars/styles/bootstrap5.css";
+@import "@syncfusion/ej2-dropdowns/styles/bootstrap5.css";
+@import "@syncfusion/ej2-inputs/styles/bootstrap5.css";
+@import "@syncfusion/ej2-lists/styles/bootstrap5.css";
+@import "@syncfusion/ej2-navigations/styles/bootstrap5.css";
+@import "@syncfusion/ej2-popups/styles/bootstrap5.css";
+@import "@syncfusion/ej2-notifications/styles/bootstrap5.css";
+@import "@syncfusion/ej2-grids/styles/bootstrap5.css";
+@import "@syncfusion/ej2-schedule/styles/bootstrap5.css";
 
 /* ============================================================
    RPOM ERP — Linear-style minimal mono (dark default)
@@ -25,8 +27,11 @@
   --border-strong: #d4d4d8;
   --fg: #18181b;
   --fg-muted: #71717a;
+  --fg-faint: #a1a1aa;
   --accent: #18181b;
   --accent-bg: #f4f4f5;
+  --info: #1d4ed8;
+  --bg-grid: #fafaf9;
   --row-hover: #fafaf9;
   --row-selected: #1f1f23;
   --row-selected-fg: #fafafa;
@@ -41,8 +46,10 @@
   --font-sans: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", monospace;
 
+  --t-11: 10.5px;
   --t-12: 11.5px;
   --t-13: 12.5px;
+  --t-14: 13.5px;
   --t-16: 15px;
   --t-20: 19px;
   --t-24: 23px;
@@ -369,47 +376,39 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
 /* ============ DATA LIST ============ */
 .data-list { flex: 1; display: flex; flex-direction: column; background: var(--panel-bg); overflow: hidden; }
 
-/* ============ SYNCFUSION GRID — Linear-mono override (light theme inside window) ============ */
-.e-grid {
-  border-color: var(--border) !important;
-  font-family: var(--font-sans) !important;
-  font-size: var(--t-13) !important;
-  background: var(--panel-bg) !important;
-  color: var(--fg) !important;
-}
-.e-grid .e-gridheader {
-  background: var(--window-chrome) !important;
-  border-color: var(--border) !important;
-}
+/* ============ SYNCFUSION GRID — minimal Linear-mono tweaks ============ */
+/* Theme bootstrap5 (light) match nền trắng window. Chỉ tinh chỉnh:
+   - Font system thay vì bootstrap default
+   - Header uppercase + bớt chiều cao (32px) cho dense look
+   - Row height 36px
+   - Viền cột + row đậm hơn (theme mặc định quá nhạt trên nền trắng) */
+.e-grid { font-family: var(--font-sans); font-size: var(--t-13); }
 .e-grid .e-headercell {
-  background: var(--window-chrome) !important;
-  color: var(--fg) !important;
-  border-color: var(--border) !important;
-  font-weight: 500 !important;
-  font-size: var(--t-12) !important;
+  font-weight: 500;
+  font-size: var(--t-12);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  height: 32px !important;
-  padding: 0 12px !important;
+  height: 32px;
+  padding: 0 12px;
+  border-color: var(--border-strong) !important;
 }
-.e-grid .e-row { height: 36px !important; }
+.e-grid .e-row { height: 36px; }
 .e-grid .e-rowcell {
-  color: var(--fg) !important;
+  padding: 0 12px;
+  font-size: var(--t-13);
   border-color: var(--border) !important;
-  padding: 0 12px !important;
-  font-size: var(--t-13) !important;
-  background: #fff !important;
+  border-right-width: 1px;
+  border-right-style: solid;
+  border-right-color: var(--border-strong) !important;
 }
-.e-grid .e-row:hover .e-rowcell { background: var(--row-hover) !important; }
-.e-grid .e-row.e-selectionbackground .e-rowcell,
-.e-grid .e-row.e-active .e-rowcell {
-  background: var(--row-selected) !important;
-  color: var(--row-selected-fg) !important;
+.e-grid .e-rowcell:last-child { border-right: none !important; }
+.e-grid .e-headercell {
+  border-right-width: 1px !important;
+  border-right-style: solid !important;
+  border-right-color: var(--border-strong) !important;
 }
-.e-grid .e-pager {
-  background: var(--window-chrome) !important;
-  border-color: var(--border) !important;
-}
+.e-grid .e-gridheader,
+.e-grid .e-gridcontent { border-color: var(--border-strong) !important; }
 
 /* ============ LOGIN ============ */
 .login {
@@ -491,3 +490,248 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
   margin-bottom: 4px; color: var(--fg);
 }
 svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
+
+/* ============================================================
+   F2-style window primitives — ported from
+   restaurant erp web application/styles.css (sections 540–865).
+   Used by Win* windows for filter bars, dgrid tables, trees,
+   tabs, segments, chips.
+   ============================================================ */
+
+/* Filter bar (top of grid panes) */
+.grid-filterbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--window-bg);
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; align-items: center; gap: 6px; }
+.filter-group label { color: var(--fg-muted); font-size: var(--t-12);}
+.filter-group select,
+.filter-group input {
+  padding: 5px 8px;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font: inherit;
+  outline: none;
+  min-width: 120px;
+}
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #18181b;
+  box-shadow: 0 0 0 2px rgba(24,24,27,0.06);
+}
+
+/* Segmented switch (e.g. Chưa SD / Tất cả / Đang SD) */
+.seg {
+  display: inline-flex; border: 1px solid var(--border-strong); border-radius: 4px;
+  background: var(--window-chrome); padding: 2px;
+}
+.seg button {
+  border: 0; background: transparent; padding: 4px 12px;
+  font: inherit; color: var(--fg-muted); cursor: pointer;
+  border-radius: 3px;
+}
+.seg button.on {
+  background: #fff; color: var(--fg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* HTML-table-based dgrid (alternative to Syncfusion GridComponent
+   when reference UX requires dynamic columns / inline-edit cells). */
+.dgrid-wrap { flex: 1; overflow: auto; background: var(--panel-bg); }
+.dgrid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--t-13);
+}
+.dgrid thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--window-chrome);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 500;
+  font-size: var(--t-12);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  user-select: none;
+}
+.dgrid tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dgrid tbody tr { cursor: pointer; }
+.dgrid tbody tr:hover { background: var(--row-hover); }
+.dgrid tbody tr.selected { background: var(--row-selected); color: var(--row-selected-fg); }
+.dgrid tbody tr.selected td { color: var(--row-selected-fg); border-bottom-color: #2a2a2e; }
+.dgrid tbody tr.selected .mute { color: #a1a1aa; }
+.dgrid .stt { color: var(--fg-faint); width: 36px; text-align: right; }
+
+/* Checkbox — replaces the native one to match the F2 look */
+.cbx {
+  appearance: none;
+  width: 14px; height: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.cbx:checked { background: #18181b; border-color: #18181b; }
+.cbx:checked::after {
+  content: "";
+  position: absolute; left: 4px; top: 1px;
+  width: 4px; height: 8px;
+  border-right: 1.5px solid #fafafa;
+  border-bottom: 1.5px solid #fafafa;
+  transform: rotate(45deg);
+}
+.cbx:disabled { opacity: 0.5; cursor: default; }
+
+/* Tabs at bottom of window (Chi tiết / Điều kiện / Lịch sử ...) */
+.cc-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  background: var(--window-bg);
+  flex-shrink: 0;
+}
+.cc-tab {
+  background: transparent;
+  border: 0;
+  padding: 9px 12px;
+  font-size: var(--t-13);
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.cc-tab:hover { color: var(--fg); }
+.cc-tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+
+/* Category tree pane (left side of "Chi tiết giá") */
+.tree { padding: 2px 0; }
+.tree-node {
+  display: flex; align-items: center; gap: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 11.5px;
+  line-height: 1.25;
+  height: 18px;
+  user-select: none;
+}
+.tree-node:hover { background: var(--row-hover); }
+.tree-node.selected { background: var(--row-selected); color: var(--row-selected-fg); }
+.tree-node.selected .tree-caret { color: #a1a1aa; }
+.tree-node.selected .ico { color: #fde68a; opacity: 1; }
+.tree-node .tree-caret {
+  width: 10px; height: 10px;
+  display: grid; place-items: center;
+  color: var(--fg-faint);
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+.tree-node .tree-caret svg { width: 8px; height: 8px; }
+.tree-node .tree-caret.open { transform: rotate(90deg); }
+.tree-node .tree-caret.empty { visibility: hidden; }
+.tree-node .ico {
+  width: 12px; height: 12px;
+  color: #eab308; opacity: 0.95; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.tree-node .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-node .count { font-family: var(--font-mono); font-size: 10px; color: var(--fg-faint); }
+.tree-node.selected .count { color: #d4d4d8; }
+.tree-section-title {
+  padding: 8px 10px 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+}
+
+/* Chips (Khu pickers, Day-of-week pills) */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: var(--t-12);
+}
+.chip button {
+  border: 0; background: transparent;
+  padding: 0 2px; cursor: pointer;
+  color: var(--fg-muted); font-size: 13px; line-height: 1;
+}
+.chip button:hover { color: var(--danger); }
+.chip-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px;
+  min-height: 28px; padding: 2px;
+}
+.chip-add {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--t-12);
+}
+.chip-add:hover { color: var(--fg); background: var(--accent-bg); }
+
+/* ============================================================
+   Syncfusion TreeView — compact F2-style spacing + selection.
+   Overrides bootstrap5 defaults (loose padding + full-pane blue
+   active state) to match the reference dense look.
+   ============================================================ */
+.e-treeview .e-ul { padding: 0; }
+.e-treeview .e-list-item {
+  padding: 0;
+  line-height: 1.2;
+}
+.e-treeview .e-list-item > .e-text-content {
+  padding: 2px 6px;
+  min-height: 24px;
+}
+.e-treeview .e-list-item > .e-text-content > .e-list-text {
+  padding: 0;
+  font-size: var(--t-13);
+}
+.e-treeview .e-list-item .e-icons { font-size: 10px; }
+
+/* Bootstrap5 fullrow stretches to the whole TreeView container, which leaks
+   the highlight beyond the tree pane. Disable the fullrow background entirely
+   and paint only `.e-text-content` — that node hugs the actual node width. */
+.e-treeview .e-list-item .e-fullrow {
+  background: transparent !important;
+  display: none;
+}
+.e-treeview .e-list-item > .e-text-content {
+  background: transparent;
+  color: var(--fg);
+  border-radius: 3px;
+}
+.e-treeview .e-list-item.e-hover > .e-text-content {
+  background: var(--row-hover);
+}
+.e-treeview .e-list-item.e-active > .e-text-content {
+  background: var(--row-selected) !important;
+  color: var(--row-selected-fg) !important;
+}
+.e-treeview .e-list-item.e-active > .e-text-content .e-list-text,
+.e-treeview .e-list-item.e-active > .e-text-content .count {
+  color: var(--row-selected-fg) !important;
+}

@@ -6,6 +6,8 @@ import type { Area, Counter, RestaurantTable } from "@/types/api/restaurant";
 export interface ListQuery {
   search?: string;
   isActive?: boolean;
+  /** Optional canonical Category root code (eg "HANG_BAN"). Only used by categoriesApi. */
+  rootCode?: string;
 }
 
 export interface CounterUpsert {
@@ -31,6 +33,21 @@ export interface TableUpsert {
   isActive: boolean;
 }
 
+export interface TableBatchCreate {
+  areaId: number;
+  codePrefix: string;
+  startNumber: number;
+  count: number;
+  seatCount: number;
+  description?: string | null;
+  isActive: boolean;
+}
+
+export interface TableBatchResult {
+  createdCount: number;
+  createdIds: number[];
+}
+
 export const countersApi = {
   list: (q: ListQuery = {}) => http.get<Counter[]>("/api/counters", { params: q }),
   get: (id: number) => http.get<Counter>(`/api/counters/${id}`),
@@ -54,5 +71,6 @@ export const tablesApi = {
   get: (id: number) => http.get<RestaurantTable>(`/api/tables/${id}`),
   create: (body: TableUpsert) => http.post<RestaurantTable>("/api/tables", body),
   update: (id: number, body: TableUpsert) => http.put<RestaurantTable>(`/api/tables/${id}`, body),
+  batchCreate: (body: TableBatchCreate) => http.post<TableBatchResult>("/api/tables/batch", body),
   remove: (id: number) => http.delete<null>(`/api/tables/${id}`),
 };

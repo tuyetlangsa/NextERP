@@ -1,7 +1,8 @@
 import {
   LayoutGrid, Building2, MapPin, Utensils, ListOrdered, Layers, Tags,
   Users, CalendarClock, Settings, BarChart3, Sparkles,
-  Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download,
+  Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download, Upload,
+  Search, Settings2, Pencil,
   HelpCircle, ChevronDown, ChevronRight, Folder,
   PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
@@ -44,7 +45,8 @@ export const subsystemIconKey: Record<string, SubsystemIconKey> = {
 
 export const ChromeIcons = {
   Min: Minus, Max: Square, Close: X, Restore: Maximize2,
-  Plus, Save, Trash: Trash2, Refresh: RefreshCw, Export: Download,
+  Plus, Save, Trash: Trash2, Refresh: RefreshCw, Export: Download, Import: Upload,
+  Search, Fn: Settings2, Edit: Pencil,
   Help: HelpCircle, ChevronDown, ChevronRight, Folder,
   CollapseLeft: PanelLeftClose, OpenLeft: PanelLeftOpen,
 };

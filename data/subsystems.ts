@@ -7,12 +7,12 @@ export const subsystems: Subsystem[] = [
   { id: "table",   label: "Bàn / Phòng / Máy", description: "Cấu hình bàn",                     group: "layout",  showOnDesktop: true, win: "WinTable" },
   { id: "floorplan", label: "Sơ đồ bàn",       description: "Editor kéo-thả",                   group: "layout",  showOnDesktop: true, win: null },
   // Menu
-  { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: null },
+  { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: "WinItem" },
   { id: "uom",     label: "Đơn vị tính",        description: "Phần / Tô / Chai / Kg / ...",     group: "menu",    showOnDesktop: true, win: "WinUom" },
   { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: null },
   { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: null },
   // Pricing
-  { id: "pricing",  label: "Bảng giá bán",     description: "Variant Time/Day/Area",            group: "pricing", showOnDesktop: true, win: null },
+  { id: "pricing",  label: "Bảng giá bán",     description: "Variant Time/Day/Area",            group: "pricing", showOnDesktop: true, win: "WinPricing" },
   { id: "discount", label: "Khuyến mãi",        description: "Bill & Quantity-based",           group: "pricing", win: null },
   { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: null },
   // System

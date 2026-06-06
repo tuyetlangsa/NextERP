@@ -11,12 +11,16 @@ import { WinCounter } from "@/components/windows/WinCounter";
 import { WinArea } from "@/components/windows/WinArea";
 import { WinTable } from "@/components/windows/WinTable";
 import { WinUom } from "@/components/windows/WinUom";
+import { WinItem } from "@/components/windows/WinItem";
+import { WinPricing } from "@/components/windows/WinPricing";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
   WinArea,
   WinTable,
   WinUom,
+  WinItem,
+  WinPricing,
 };
 
 const fmtClock = (d: Date) =>
