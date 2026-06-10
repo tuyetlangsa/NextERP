@@ -47,6 +47,7 @@ export interface ItemListRow {
   isStockable: boolean;
   hasRecipe: boolean;
   isActive: boolean;
+  isSetMenu: boolean;
   categoryNames: string[];
   primaryCategoryId: number | null;
   primaryCategoryName: string | null;

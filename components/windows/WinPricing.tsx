@@ -11,7 +11,7 @@
  *                         via Grid toolbar; actionBegin intercepts save/delete
  *                         to call our REST API).
  *   - Category tree    → Syncfusion TreeViewComponent + nodeTemplate (Lucide
- *                         Folder icon + count badge).
+ *                         Folder icon).
  *   - Variant list     → Syncfusion Grid, inline `Normal` edit for simple
  *                         fields (code/name/isActive). Time/Day/Area scope edit
  *                         + variant creation → Syncfusion DialogComponent
@@ -242,7 +242,7 @@ export function WinPricing() {
   const [catId, setCatId] = useState<number | null>(null);
 
   // TreeView data — root "Tất cả" + children of HANG_BAN treo dưới root ảo
-  type TreeNode = { id: string; text: string; count: number; expanded?: boolean; child?: TreeNode[] };
+  type TreeNode = { id: string; text: string; expanded?: boolean; child?: TreeNode[] };
   const treeData = useMemo<TreeNode[]>(() => {
     if (!salesRoot) return [];
     const byParent = new Map<number | null, Category[]>();
@@ -261,15 +261,12 @@ export function WinPricing() {
       return {
         id: `c-${cat.id}`,
         text: cat.name,
-        count: cat.itemCount,
         expanded: true,
         child: kids.map(build),
       };
     };
     const level1 = (byParent.get(null) ?? []).map(build);
-    const allCount = categories.filter(c => c.parentId === salesRoot.id)
-      .reduce((sum, c) => sum + c.itemCount, 0);
-    return [{ id: "all", text: "Tất cả", count: allCount, expanded: true, child: level1 }];
+    return [{ id: "all", text: "Tất cả", expanded: true, child: level1 }];
   }, [categories, salesRoot]);
 
   // Memoize fields — recreating this object every render makes TreeView think
@@ -295,19 +292,14 @@ export function WinPricing() {
   // Stable nodeTemplate — passing a fresh function every render causes the
   // tree to recompute templates for every visible node and visually "reload".
   const renderTreeNode = useCallback(
-    (d: { text: string; count?: number }) => (
+    (d: { text: string }) => (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, width: "100%" }}>
-        <span style={{ display: "inline-flex", color: "#eab308", width: 12, height: 12 }}>
+        <span className="ico">
           <ChromeIcons.Folder />
         </span>
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {d.text}
         </span>
-        {d.count !== undefined && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-faint)" }}>
-            {d.count}
-          </span>
-        )}
       </span>
     ),
     []

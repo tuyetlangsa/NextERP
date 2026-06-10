@@ -9,18 +9,26 @@ import { StartMenu } from "./StartMenu";
 import { Taskbar } from "./Taskbar";
 import { WinCounter } from "@/components/windows/WinCounter";
 import { WinArea } from "@/components/windows/WinArea";
+import { WinAreaMenuCategory } from "@/components/windows/WinAreaMenuCategory";
 import { WinTable } from "@/components/windows/WinTable";
 import { WinUom } from "@/components/windows/WinUom";
 import { WinItem } from "@/components/windows/WinItem";
 import { WinPricing } from "@/components/windows/WinPricing";
+import { WinChoice } from "@/components/windows/WinChoice";
+import { WinSetMenu } from "@/components/windows/WinSetMenu";
+import { WinDiscountPolicy } from "@/components/windows/WinDiscountPolicy";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
   WinArea,
+  WinAreaMenuCategory,
   WinTable,
   WinUom,
   WinItem,
   WinPricing,
+  WinChoice,
+  WinSetMenu,
+  WinDiscountPolicy,
 };
 
 const fmtClock = (d: Date) =>

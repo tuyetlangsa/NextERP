@@ -39,6 +39,31 @@ export interface RestaurantTable {
   updatedAt: string;
 }
 
+/** GET /api/areas/{areaId}/menu-categories — direct assignments only (no subtree expansion). */
+export interface AreaMenuCategoryItem {
+  categoryId: number;
+  code: string;
+  name: string;
+  path: string;
+  level: number;
+}
+
+export interface AreaMenuCategoriesResponse {
+  areaId: number;
+  categories: AreaMenuCategoryItem[];
+}
+
+export interface AreaMenuCategoriesReplaceRequest {
+  categoryIds: number[];
+}
+
+export interface AreaMenuCategoriesReplaceResult {
+  areaId: number;
+  inserted: number;
+  deleted: number;
+  total: number;
+}
+
 /* Lookup item shapes (BE already implements these) — see
    `src/Rpom.Application/Lookups/`. */
 

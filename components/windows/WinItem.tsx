@@ -430,7 +430,7 @@ export function WinItem() {
   const renderTreeNode = useCallback(
     (data: { text: string }) => (
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span className="ico" style={{ color: "#eab308" }}>
+        <span className="ico">
           <ChromeIcons.Folder />
         </span>
         <span style={{ flex: 1 }}>{data.text}</span>

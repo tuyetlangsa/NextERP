@@ -4,16 +4,17 @@ export const subsystems: Subsystem[] = [
   // Layout (Counter → Area → Table)
   { id: "counter", label: "Quầy",              description: "Top-level: Quầy → Khu → Bàn",      group: "layout",  showOnDesktop: true, win: "WinCounter" },
   { id: "area",    label: "Khu",               description: "Quản lý khu vực bàn",              group: "layout",  showOnDesktop: true, win: "WinArea" },
+  { id: "area-menu-category", label: "Menu theo Khu", description: "Gán Category cho Khu vực (Area Menu Category)", group: "layout", showOnDesktop: true, win: "WinAreaMenuCategory" },
   { id: "table",   label: "Bàn / Phòng / Máy", description: "Cấu hình bàn",                     group: "layout",  showOnDesktop: true, win: "WinTable" },
   { id: "floorplan", label: "Sơ đồ bàn",       description: "Editor kéo-thả",                   group: "layout",  showOnDesktop: true, win: null },
   // Menu
   { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: "WinItem" },
   { id: "uom",     label: "Đơn vị tính",        description: "Phần / Tô / Chai / Kg / ...",     group: "menu",    showOnDesktop: true, win: "WinUom" },
-  { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: null },
-  { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: null },
+  { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: "WinChoice" },
+  { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: "WinSetMenu" },
   // Pricing
   { id: "pricing",  label: "Bảng giá bán",     description: "Variant Time/Day/Area",            group: "pricing", showOnDesktop: true, win: "WinPricing" },
-  { id: "discount", label: "Khuyến mãi",        description: "Bill & Quantity-based",           group: "pricing", win: null },
+  { id: "discount", label: "Chính sách giảm giá", description: "Bill & Quantity-based", group: "pricing", showOnDesktop: true, win: "WinDiscountPolicy" },
   { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: null },
   // System
   { id: "users",     label: "Người dùng",      description: "Vai trò, ma trận quyền",           group: "system",  showOnDesktop: true, win: null },

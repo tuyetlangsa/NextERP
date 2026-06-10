@@ -1,7 +1,14 @@
 "use client";
 
 import { http } from "@/lib/http/client";
-import type { Area, Counter, RestaurantTable } from "@/types/api/restaurant";
+import type {
+  Area,
+  AreaMenuCategoriesReplaceRequest,
+  AreaMenuCategoriesReplaceResult,
+  AreaMenuCategoriesResponse,
+  Counter,
+  RestaurantTable,
+} from "@/types/api/restaurant";
 
 export interface ListQuery {
   search?: string;
@@ -63,6 +70,13 @@ export const areasApi = {
   create: (body: AreaUpsert) => http.post<Area>("/api/areas", body),
   update: (id: number, body: AreaUpsert) => http.put<Area>(`/api/areas/${id}`, body),
   remove: (id: number) => http.delete<null>(`/api/areas/${id}`),
+};
+
+export const areaMenuCategoriesApi = {
+  get: (areaId: number) =>
+    http.get<AreaMenuCategoriesResponse>(`/api/areas/${areaId}/menu-categories`),
+  replace: (areaId: number, body: AreaMenuCategoriesReplaceRequest) =>
+    http.put<AreaMenuCategoriesReplaceResult>(`/api/areas/${areaId}/menu-categories`, body),
 };
 
 export const tablesApi = {

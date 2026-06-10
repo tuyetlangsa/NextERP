@@ -624,11 +624,11 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
 .tree { padding: 2px 0; }
 .tree-node {
   display: flex; align-items: center; gap: 3px;
-  padding: 1px 6px;
+  padding: 2px 6px;
   cursor: pointer;
-  font-size: 11.5px;
-  line-height: 1.25;
-  height: 18px;
+  font-size: var(--t-13);
+  line-height: 1.2;
+  min-height: 24px;
   user-select: none;
 }
 .tree-node:hover { background: var(--row-hover); }
@@ -650,6 +650,7 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
   color: #eab308; opacity: 0.95; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
 }
+.tree-node .ico svg { width: 12px; height: 12px; }
 .tree-node .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-node .count { font-family: var(--font-mono); font-size: 10px; color: var(--fg-faint); }
 .tree-node.selected .count { color: #d4d4d8; }
@@ -692,6 +693,36 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
 }
 .chip-add:hover { color: var(--fg); background: var(--accent-bg); }
 
+/* Vertical split pane (list top / detail bottom) */
+.grid-area { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.vsplit { display: flex; flex-direction: column; min-height: 0; flex: 1; overflow: hidden; height: 100%; }
+.vsplit > .vtop { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.vsplit > .vbot {
+  flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+/* Fixed 50/50 vertical split (e.g. WinChoice modifiers) — equal flex, not % height */
+.vsplit-half {
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+}
+.vsplit-half > .vtop,
+.vsplit-half > .vbot {
+  flex: 1 1 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.vsplit-half > .vbot {
+  border-top: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+.user-tree {
+  width: 240px; flex-shrink: 0;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  padding: 6px 0;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+
 /* ============================================================
    Syncfusion TreeView — compact F2-style spacing + selection.
    Overrides bootstrap5 defaults (loose padding + full-pane blue
@@ -711,6 +742,29 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
   font-size: var(--t-13);
 }
 .e-treeview .e-list-item .e-icons { font-size: 10px; }
+
+/* Folder icon — match WinItem (Hàng hoá dịch vụ) tree standard */
+.e-treeview .ico {
+  width: 12px; height: 12px;
+  color: #eab308; opacity: 0.95; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.e-treeview .ico svg { width: 12px; height: 12px; }
+
+/* Checkbox category rows (Area Menu Category) — same row metrics as tree-node */
+.category-tree-row {
+  min-height: 24px;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  font-size: var(--t-13) !important;
+  line-height: 1.2;
+}
+.category-tree-row .ico {
+  width: 12px; height: 12px;
+  color: #eab308; opacity: 0.95; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.category-tree-row .ico svg { width: 12px; height: 12px; }
 
 /* Bootstrap5 fullrow stretches to the whole TreeView container, which leaks
    the highlight beyond the tree pane. Disable the fullrow background entirely

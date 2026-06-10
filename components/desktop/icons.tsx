@@ -2,13 +2,13 @@ import {
   LayoutGrid, Building2, MapPin, Utensils, ListOrdered, Layers, Tags,
   Users, CalendarClock, Settings, BarChart3, Sparkles,
   Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download, Upload,
-  Search, Settings2, Pencil,
+  Search, Settings2, Pencil, Check,
   HelpCircle, ChevronDown, ChevronRight, Folder,
   PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
 
 export type SubsystemIconKey =
-  | "counter" | "area" | "table" | "floorplan"
+  | "counter" | "area" | "area-menu-category" | "table" | "floorplan"
   | "items"   | "uom"  | "choice" | "setmenu"
   | "pricing" | "discount" | "service-charge"
   | "users"   | "shifts" | "schedule" | "config"
@@ -17,6 +17,7 @@ export type SubsystemIconKey =
 export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
   counter:         Building2,
   area:            MapPin,
+  "area-menu-category": Tags,
   table:           LayoutGrid,
   floorplan:       Layers,
   items:           Utensils,
@@ -36,7 +37,7 @@ export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
 };
 
 export const subsystemIconKey: Record<string, SubsystemIconKey> = {
-  counter: "counter", area: "area", table: "table", floorplan: "floorplan",
+  counter: "counter", area: "area", "area-menu-category": "area-menu-category", table: "table", floorplan: "floorplan",
   items: "items", uom: "uom", choice: "choice", setmenu: "setmenu",
   pricing: "pricing", discount: "discount", "service-charge": "service-charge",
   users: "users", shifts: "shifts", schedule: "schedule", config: "config",
@@ -46,7 +47,7 @@ export const subsystemIconKey: Record<string, SubsystemIconKey> = {
 export const ChromeIcons = {
   Min: Minus, Max: Square, Close: X, Restore: Maximize2,
   Plus, Save, Trash: Trash2, Refresh: RefreshCw, Export: Download, Import: Upload,
-  Search, Fn: Settings2, Edit: Pencil,
+  Search, Fn: Settings2, Edit: Pencil, Check,
   Help: HelpCircle, ChevronDown, ChevronRight, Folder,
   CollapseLeft: PanelLeftClose, OpenLeft: PanelLeftOpen,
 };
