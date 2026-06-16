@@ -32,6 +32,8 @@ import {
 import { lookupsApi } from "@/lib/api/lookups";
 import { useResource } from "@/lib/http/useResource";
 import { uploadToCloudinary, isCloudinaryConfigured } from "@/lib/upload/cloudinary";
+import { ItemUomConversionTab } from "@/components/inventory/ItemUomConversionTab";
+import { ItemBomTab } from "@/components/inventory/ItemBomTab";
 import type { Category, ItemListRow } from "@/types/api/menu";
 
 ensureSyncfusionLicense();
@@ -356,7 +358,7 @@ export function WinItem() {
   const [catEditingId, setCatEditingId] = useState<number | null>(null);
   const [catSaving, setCatSaving] = useState(false);
   const [catErrorMsg, setCatErrorMsg] = useState<string | null>(null);
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("info");
   const [catParentPickerOpen, setCatParentPickerOpen] = useState(false);
 
   const categoryListDfs = useMemo(() => {
@@ -458,7 +460,7 @@ export function WinItem() {
     setDraft(null);
     setEditingId(null);
     setErrorMsg(null);
-    setSelectedTab(0);
+    setSelectedTab("info");
   };
 
   const openCreate = () => {
@@ -483,14 +485,14 @@ export function WinItem() {
     });
     setEditingId(null);
     setErrorMsg(null);
-    setSelectedTab(0);
+    setSelectedTab("info");
     setDialogOpen(true);
   };
 
   const openEdit = async (id: number) => {
     setEditingId(id);
     setErrorMsg(null);
-    setSelectedTab(0);
+    setSelectedTab("info");
     setDialogOpen(true);
     setDraft(null);
     const res = await itemsApi.get(id);
@@ -724,6 +726,21 @@ export function WinItem() {
 
   const mainCategoryId = draft?.categories.find(c => c.isMain)?.categoryId ?? null;
 
+  const itemTabs = useMemo(() => {
+    const tabs = [
+      { id: "info", label: "Thông tin" },
+      { id: "image", label: "Hình ảnh" },
+      { id: "subcat", label: "Nhóm phụ" },
+    ];
+    if (editingId && draft?.isStockable) {
+      tabs.push({ id: "uom-conv", label: "Quy đổi đơn vị" });
+    }
+    if (editingId && draft?.hasRecipe) {
+      tabs.push({ id: "bom", label: "Công thức (BOM)" });
+    }
+    return tabs;
+  }, [editingId, draft?.isStockable, draft?.hasRecipe]);
+
   return (
     <>
       <WinToolbar
@@ -885,35 +902,45 @@ export function WinItem() {
         ) : (
           <div style={{ padding: 8 }}>
             <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", marginBottom: 8 }}>
-              {["Thông tin", "Hình ảnh", "Nhóm phụ"].map((label, idx) => (
+              {itemTabs.map(tab => (
                 <button
-                  key={label}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setSelectedTab(idx)}
+                  onClick={() => setSelectedTab(tab.id)}
                   style={{
                     padding: "8px 16px",
                     fontSize: 13,
                     background: "transparent",
                     border: 0,
-                    borderBottom: selectedTab === idx ? "2px solid var(--accent)" : "2px solid transparent",
-                    color: selectedTab === idx ? "var(--accent)" : "var(--fg)",
-                    fontWeight: selectedTab === idx ? 600 : 400,
+                    borderBottom: selectedTab === tab.id ? "2px solid var(--accent)" : "2px solid transparent",
+                    color: selectedTab === tab.id ? "var(--accent)" : "var(--fg)",
+                    fontWeight: selectedTab === tab.id ? 600 : 400,
                     cursor: "pointer",
                   }}
                 >
-                  {label}
+                  {tab.label}
                 </button>
               ))}
             </div>
-            <div style={{ display: selectedTab === 0 ? "block" : "none" }}>
+            <div style={{ display: selectedTab === "info" ? "block" : "none" }}>
               {renderInfoTab(draft, setDraft, uomList, stationList, categoryListDfs, mainCategoryId, setMainCategoryOnly)}
             </div>
-            <div style={{ display: selectedTab === 1 ? "block" : "none" }}>
+            <div style={{ display: selectedTab === "image" ? "block" : "none" }}>
               {renderImageTab(draft, setDraft, uploading, handleFileUpload)}
             </div>
-            <div style={{ display: selectedTab === 2 ? "block" : "none" }}>
+            <div style={{ display: selectedTab === "subcat" ? "block" : "none" }}>
               {renderSubCategoryTab(draft, categoryListDfs, mainCategoryId, toggleSubCategory)}
             </div>
+            {editingId && draft.isStockable && (
+              <div style={{ display: selectedTab === "uom-conv" ? "block" : "none" }}>
+                <ItemUomConversionTab itemId={editingId} baseUomId={draft.baseUomId} uomList={uomList} />
+              </div>
+            )}
+            {editingId && draft.hasRecipe && (
+              <div style={{ display: selectedTab === "bom" ? "block" : "none" }}>
+                <ItemBomTab itemId={editingId} />
+              </div>
+            )}
 
             {errorMsg && (
               <div style={{ padding: "8px 12px", color: "var(--danger)", fontSize: 12 }}>{errorMsg}</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -8,13 +8,14 @@ import {
   GridComponent,
   Inject,
   Sort,
+  type SelectionSettingsModel,
   type SortSettingsModel,
 } from "@syncfusion/ej2-react-grids";
 import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
 import { WinToolbar, TB } from "@/components/ui/WinToolbar";
 import { Field } from "@/components/ui/DetailPanel";
 import { StatusBar } from "@/components/ui/StatusBar";
-import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
+import { ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { ItemPickerDialog } from "@/components/menu/ItemPickerDialog";
 import { discountPoliciesApi } from "@/lib/api/discount";
@@ -256,6 +257,10 @@ export function WinDiscountPolicy() {
   const [itemPickTargetKey, setItemPickTargetKey] = useState<string | null>(null);
 
   const initRef = useRef(false);
+  const loadSeqRef = useRef(0);
+  const gridRef = useRef<GridComponent>(null);
+  const selectedIdRef = useRef<number | null>(null);
+  selectedIdRef.current = selectedId;
   const isNew = selectedId === null && header !== null;
 
   useEffect(() => {
@@ -264,21 +269,17 @@ export function WinDiscountPolicy() {
     return () => window.clearTimeout(t);
   }, [successMsg]);
 
-  useEffect(() => {
-    if (!initRef.current && list.length > 0 && selectedId === null && header === null) {
-      initRef.current = true;
-      void loadDetail(list[0].id);
-    }
-  }, [list, selectedId, header]);
-
-  const loadDetail = async (id: number) => {
+  const loadDetail = useCallback(async (id: number) => {
+    // Sync selection immediately so list highlight stays on the clicked row.
+    const seq = ++loadSeqRef.current;
+    setSelectedId(id);
     setLoadingDetail(true);
     setErrorMsg(null);
     setSuccessMsg(null);
     const res = await discountPoliciesApi.get(id);
+    if (seq !== loadSeqRef.current) return;
     if (res.isSuccess) {
       const d = res.data;
-      setSelectedId(d.id);
       setHeader({
         code: d.code,
         name: d.name,
@@ -297,16 +298,29 @@ export function WinDiscountPolicy() {
     } else {
       setErrorMsg(formatApiError(res));
     }
-    setLoadingDetail(false);
-  };
+    if (seq === loadSeqRef.current) setLoadingDetail(false);
+  }, []);
 
-  const handleRowSelected = (args: { data: DiscountPolicyListRow | DiscountPolicyListRow[] }) => {
-    const row = Array.isArray(args.data) ? args.data[0] : args.data;
-    if (!row?.id || row.id === selectedId) return;
-    void loadDetail(row.id);
-  };
+  useEffect(() => {
+    if (!initRef.current && list.length > 0 && selectedId === null && header === null) {
+      initRef.current = true;
+      void loadDetail(list[0].id);
+    }
+  }, [list, selectedId, header, loadDetail]);
+
+  const handleRowSelected = useCallback(
+    (args: { data: DiscountPolicyListRow | DiscountPolicyListRow[] }) => {
+      const row = Array.isArray(args.data) ? args.data[0] : args.data;
+      if (!row?.id || row.id === selectedIdRef.current) return;
+      void loadDetail(row.id);
+    },
+    [loadDetail]
+  );
 
   const handleCreate = () => {
+    loadSeqRef.current += 1;
+    setLoadingDetail(false);
+    gridRef.current?.clearSelection();
     setSelectedId(null);
     setHeader(defaultHeader());
     setConditions([emptyCondition("TICKET_THRESHOLD", 1)]);
@@ -400,7 +414,6 @@ export function WinDiscountPolicy() {
         : await discountPoliciesApi.update(selectedId, body);
     if (res.isSuccess) {
       await listRes.reload();
-      setSelectedId(res.data.id);
       setSuccessMsg(
         selectedId === null
           ? `Đã tạo chính sách "${res.data.name}".`
@@ -434,10 +447,25 @@ export function WinDiscountPolicy() {
     setSaving(false);
   };
 
-  const busy = saving || loadingDetail;
-  const sortSettings: SortSettingsModel = {
-    columns: [{ field: "code", direction: "Ascending" }],
-  };
+  const busy = saving;
+  const toolbarBusy = saving || loadingDetail;
+  const sortSettings: SortSettingsModel = useMemo(
+    () => ({ columns: [{ field: "code", direction: "Ascending" }] }),
+    []
+  );
+  const selectionSettings: SelectionSettingsModel = useMemo(
+    () => ({ type: "Single", mode: "Row", persistSelection: true }),
+    []
+  );
+
+  const gridList = useMemo(
+    () =>
+      list.map(p => ({
+        ...p,
+        discountTypeLabel: DISCOUNT_TYPE_LABEL[p.discountType],
+      })),
+    [list]
+  );
 
   const areaOptions = useMemo(
     () => [{ id: null as number | null, name: "Mọi khu" }, ...areaList.map(a => ({ id: a.id, name: a.name }))],
@@ -449,14 +477,14 @@ export function WinDiscountPolicy() {
       <WinToolbar
         left={
           <>
-            <TB icon={ChromeIcons.Plus} onClick={handleCreate} disabled={listRes.loading || busy}>
+            <TB icon={ChromeIcons.Plus} onClick={handleCreate} disabled={listRes.loading || toolbarBusy}>
               Tạo mới
             </TB>
             <TB
               icon={ChromeIcons.Save}
               onClick={handleSave}
               kind="primary"
-              disabled={!header || busy}
+              disabled={!header || toolbarBusy}
             >
               {saving ? "Đang lưu..." : "Lưu"}
             </TB>
@@ -464,12 +492,12 @@ export function WinDiscountPolicy() {
               icon={ChromeIcons.Trash}
               onClick={handleDelete}
               kind="danger"
-              disabled={selectedId === null || busy}
+              disabled={selectedId === null || toolbarBusy}
             >
               Xoá
             </TB>
             <div className="tb-divider" />
-            <TB icon={ChromeIcons.Refresh} onClick={handleRefresh} disabled={busy}>
+            <TB icon={ChromeIcons.Refresh} onClick={handleRefresh} disabled={toolbarBusy}>
               Làm mới
             </TB>
           </>
@@ -527,49 +555,76 @@ export function WinDiscountPolicy() {
               </select>
             </div>
           </div>
-          {listRes.loading && <LoadingBar text="Đang tải..." />}
           {listRes.isApiError && (
             <ErrorBar text={listRes.error ?? ""} onRetry={() => listRes.reload()} />
           )}
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+            {listRes.loading && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 2,
+                  background: "rgba(255,255,255,0.55)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  color: "var(--fg-muted)",
+                  pointerEvents: "none",
+                }}
+              >
+                Đang tải...
+              </div>
+            )}
             <GridComponent
-              dataSource={list}
+              ref={gridRef}
+              dataSource={gridList}
               allowSorting
               allowFiltering
               filterSettings={{ type: "Menu" }}
               sortSettings={sortSettings}
+              selectionSettings={selectionSettings}
               rowSelected={handleRowSelected}
-              selectedRowIndex={
-                selectedId !== null ? list.findIndex(p => p.id === selectedId) : -1
-              }
               height="100%"
             >
               <ColumnsDirective>
-                <ColumnDirective field="code" headerText="Mã" width="90" />
-                <ColumnDirective field="name" headerText="Tên" width="160" />
-                <ColumnDirective
-                  field="discountType"
-                  headerText="Loại"
-                  width="110"
-                  template={(row: DiscountPolicyListRow) => (
-                    <span>{DISCOUNT_TYPE_LABEL[row.discountType]}</span>
-                  )}
-                />
+                <ColumnDirective field="code" headerText="Mã" width="100" />
+                <ColumnDirective field="name" headerText="Tên" width="170" />
+                <ColumnDirective field="discountTypeLabel" headerText="Loại" width="115" />
                 <ColumnDirective
                   field="isAutoApply"
                   headerText="Tự áp dụng"
-                  width="90"
+                  width="105"
                   displayAsCheckBox
                 />
-                <ColumnDirective field="conditionCount" headerText="ĐK" width="50" textAlign="Right" />
-                <ColumnDirective field="isActive" headerText="KH" width="60" displayAsCheckBox />
+                <ColumnDirective field="conditionCount" headerText="ĐK" width="55" textAlign="Right" />
+                <ColumnDirective field="isActive" headerText="Kích hoạt" width="95" displayAsCheckBox />
               </ColumnsDirective>
               <Inject services={[Sort, Filter]} />
             </GridComponent>
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          {loadingDetail && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 2,
+                background: "rgba(255,255,255,0.55)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                color: "var(--fg-muted)",
+                pointerEvents: "none",
+              }}
+            >
+              Đang tải chi tiết...
+            </div>
+          )}
           {!header ? (
             <div className="empty" style={{ flex: 1 }}>
               <div>
@@ -584,6 +639,7 @@ export function WinDiscountPolicy() {
                   padding: "12px 16px",
                   borderBottom: "1px solid var(--border)",
                   overflowY: "auto",
+                  minHeight: 260,
                   maxHeight: "42%",
                   flexShrink: 0,
                 }}
@@ -698,8 +754,7 @@ export function WinDiscountPolicy() {
                     Xoá dòng
                   </TB>
                 </div>
-                {loadingDetail && <LoadingBar text="Đang tải chi tiết..." />}
-                <div className="dgrid-wrap" style={{ flex: 1, minHeight: 0 }}>
+                <div className="dgrid-wrap" style={{ flex: 1, minHeight: 180 }}>
                   <table className="dgrid">
                     <thead>
                       <tr>

@@ -6,8 +6,42 @@
  */
 import type { Area, Counter, RestaurantTable } from "@/types/api/restaurant";
 import type { Uom } from "@/types/api/menu";
+import type {
+  CancellationReason,
+  KitchenStation,
+  Shift,
+} from "@/types/api/masterData";
+import type {
+  BomLine,
+  ItemUomConversion,
+  StockLevel,
+  StockMovement,
+} from "@/types/api/inventory";
 
 const now = "2026-06-05T00:00:00Z";
+
+export const mockKitchenStations: KitchenStation[] = [
+  { id: 1, code: "BEP_CHINH", name: "Bếp chính",     description: "Bếp nấu món chính", displayOrder: 1, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2, code: "BAR",       name: "Bar & Pha chế", description: "Quầy pha chế đồ uống", displayOrder: 2, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3, code: "BEP_NUONG", name: "Bếp nướng",     description: null, displayOrder: 3, isActive: true,  createdAt: now, updatedAt: now },
+  { id: 4, code: "BEP_TRA",   name: "Bếp tráng miệng", description: null, displayOrder: 4, isActive: false, createdAt: now, updatedAt: now },
+];
+
+export const mockCancellationReasons: CancellationReason[] = [
+  { id: 1, code: "CUS_CHANGE_MIND", name: "Khách đổi ý",        displayOrder: 1, isActive: true, createdAt: now, updatedAt: now },
+  { id: 2, code: "OUT_OF_STOCK",    name: "Hết hàng",             displayOrder: 2, isActive: true, createdAt: now, updatedAt: now },
+  { id: 3, code: "WRONG_DISH",      name: "Gọi nhầm món",         displayOrder: 3, isActive: true, createdAt: now, updatedAt: now },
+  { id: 4, code: "FOREIGN_OBJECT",  name: "Dị vật trong món",     displayOrder: 4, isActive: true, createdAt: now, updatedAt: now },
+  { id: 5, code: "QUALITY",         name: "Chất lượng không đạt", displayOrder: 5, isActive: true, createdAt: now, updatedAt: now },
+  { id: 6, code: "OTHER",           name: "Lý do khác",           displayOrder: 6, isActive: true, createdAt: now, updatedAt: now },
+  { id: 7, code: "ALLERGY",         name: "Dị ứng thực phẩm",     displayOrder: 7, isActive: true, createdAt: now, updatedAt: now },
+];
+
+export const mockShifts: Shift[] = [
+  { id: 1, code: "S_MORNING", name: "Ca sáng",  beginTime: "06:00:00", endTime: "14:00:00", isNextDay: false, note: null,           isActive: true,  createdAt: now, updatedAt: now },
+  { id: 2, code: "S_AFTERNOON", name: "Ca chiều", beginTime: "14:00:00", endTime: "22:00:00", isNextDay: false, note: null,           isActive: true,  createdAt: now, updatedAt: now },
+  { id: 3, code: "S_NIGHT",   name: "Ca đêm",   beginTime: "22:00:00", endTime: "06:00:00", isNextDay: true,  note: "Ca đêm khuya", isActive: true,  createdAt: now, updatedAt: now },
+];
 
 export const mockUoms: Uom[] = [
   { id: 1, code: "phan", name: "Phần",    description: "Đơn vị bán theo phần", isActive: true,  createdAt: now, updatedAt: now },
@@ -45,4 +79,102 @@ export const mockTables: RestaurantTable[] = [
   { id: 8,  areaId: 3, code: "B02",  seatCount: 1,  description: "Ghế bar 2",        status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
   { id: 9,  areaId: 4, code: "PR1",  seatCount: 12, description: "Phòng riêng lớn",  status: "AVAILABLE", isActive: true,  createdAt: now, updatedAt: now },
   { id: 10, areaId: 5, code: "G01",  seatCount: 6,  description: "Bàn sân vườn 1",   status: "AVAILABLE", isActive: false, createdAt: now, updatedAt: now },
+];
+
+export const mockItemUomConversions: ItemUomConversion[] = [
+  {
+    id: 1,
+    itemId: 10,
+    uomId: 3,
+    uomCode: "gam",
+    uomName: "Gam",
+    factorToBase: 0.001,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+
+export const mockBomLines: BomLine[] = [
+  {
+    id: 1,
+    sellableItemId: 5,
+    materialItemId: 10,
+    materialItemCode: "NL_BO",
+    materialItemName: "Thịt bò",
+    quantity: 0.2,
+    uomId: 7,
+    uomCode: "kg",
+    uomName: "Kilogam",
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+
+export const mockStockLevels: StockLevel[] = [
+  {
+    itemId: 199,
+    itemCode: "DOUONG_BIA_199",
+    itemName: "Bia Heineken lon",
+    baseUomCode: "lon",
+    baseUomName: "Lon",
+    currentQty: 50,
+    reservedQty: 0,
+    lowStockThreshold: 10,
+    lastMovementAt: "2026-06-16T10:00:00",
+    updatedAt: "2026-06-16T10:00:00",
+  },
+  {
+    itemId: 10,
+    itemCode: "NL_BO",
+    itemName: "Thịt bò",
+    baseUomCode: "kg",
+    baseUomName: "Kilogam",
+    currentQty: 8,
+    reservedQty: 1.5,
+    lowStockThreshold: 10,
+    lastMovementAt: "2026-06-15T18:30:00",
+    updatedAt: "2026-06-15T18:30:00",
+  },
+];
+
+export const mockStockMovements: StockMovement[] = [
+  {
+    id: 1,
+    itemId: 199,
+    itemCode: "DOUONG_BIA_199",
+    itemName: "Bia Heineken lon",
+    movementType: "STOCK_IN",
+    inputQty: 2,
+    uomId: 3,
+    uomCode: "thung",
+    baseUomCode: "lon",
+    qtyInBase: 50,
+    balanceAfter: 50,
+    referenceType: null,
+    referenceId: null,
+    reason: "2 thung = 50 lon",
+    createdByStaffId: 1,
+    createdByStaffName: "Chủ nhà hàng",
+    createdAt: "2026-06-16T09:00:00",
+  },
+  {
+    id: 2,
+    itemId: 199,
+    itemCode: "DOUONG_BIA_199",
+    itemName: "Bia Heineken lon",
+    movementType: "DEDUCT",
+    inputQty: 1,
+    uomCode: "lon",
+    baseUomCode: "lon",
+    qtyInBase: -1,
+    balanceAfter: 49,
+    referenceType: "ORDER_DISH",
+    referenceId: 42,
+    reason: null,
+    createdByStaffId: 1,
+    createdByStaffName: "Chủ nhà hàng",
+    createdAt: "2026-06-16T10:00:00",
+  },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -8,6 +8,7 @@ import {
   GridComponent,
   Inject,
   Sort,
+  type SelectionSettingsModel,
 } from "@syncfusion/ej2-react-grids";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
 import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
@@ -84,7 +85,7 @@ export function WinSetMenu() {
   const [description, setDescription] = useState<string | null>(null);
   const [components, setComponents] = useState<ComponentDraft[]>([]);
   const [choiceCats, setChoiceCats] = useState<ChoiceCatDraft[]>([]);
-  const [hasSetMenu, setHasSetMenu] = useState(false);
+  const [isSetMenuDraft, setIsSetMenuDraft] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -96,6 +97,9 @@ export function WinSetMenu() {
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
   const [selectedCompKeys, setSelectedCompKeys] = useState<Set<string>>(new Set());
   const [selectedCcKeys, setSelectedCcKeys] = useState<Set<string>>(new Set());
+
+  const loadSeqRef = useRef(0);
+  const skipRowSelectRef = useRef(false);
 
   const compPickerExcludeIds = useMemo(
     () => [
@@ -167,15 +171,31 @@ export function WinSetMenu() {
     });
   }, [itemRows, itemTab, setMenuKnown]);
 
+  /** Grid rows carry a derived checkbox value so Syncfusion repaints when draft changes. */
+  const gridItems = useMemo(
+    () =>
+      filteredItems.map(row => ({
+        ...row,
+        setMenuChecked:
+          row.id === selectedItemId
+            ? isSetMenuDraft
+            : !!(setMenuKnown.get(row.id) ?? row.isSetMenu),
+      })),
+    [filteredItems, selectedItemId, isSetMenuDraft, setMenuKnown]
+  );
+
   const loadSetMenuConfig = useCallback(async (item: ItemListRow) => {
+    const seq = ++loadSeqRef.current;
     setLoadingConfig(true);
     setErrorMsg(null);
     setSelectedItem(item);
     setSelectedItemId(item.id);
 
     const res = await setMenuApi.get(item.id);
+    if (seq !== loadSeqRef.current) return;
+
     if (res.isSuccess) {
-      setHasSetMenu(true);
+      setIsSetMenuDraft(true);
       setSetMenuKnown(prev => new Map(prev).set(item.id, true));
       setDescription(res.data.description);
       const comps: ComponentDraft[] = [];
@@ -203,35 +223,57 @@ export function WinSetMenu() {
       setComponents(comps);
       setChoiceCats(ccs);
     } else if (res.title === "SetMenu.NotASetMenu") {
-      setHasSetMenu(false);
+      setIsSetMenuDraft(false);
       setSetMenuKnown(prev => new Map(prev).set(item.id, false));
       setDescription(null);
       setComponents([]);
       setChoiceCats([]);
     } else {
       setErrorMsg(formatApiError(res));
-      setHasSetMenu(false);
+      setIsSetMenuDraft(false);
       setDescription(null);
       setComponents([]);
       setChoiceCats([]);
     }
-    setLoadingConfig(false);
+    if (seq === loadSeqRef.current) setLoadingConfig(false);
   }, []);
 
   const handleItemSelect = (args: { data: ItemListRow | ItemListRow[] }) => {
+    if (skipRowSelectRef.current) return;
     const row = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!row?.id || row.id === selectedItemId) return;
     void loadSetMenuConfig(row);
   };
 
-  const beginCreateSetMenu = () => {
-    if (!selectedItem) return;
-    setHasSetMenu(false);
-    setDescription(null);
-    setComponents([]);
-    setChoiceCats([]);
-    setSuccessMsg(null);
-    setErrorMsg(null);
+  const handleSetMenuDraftToggle = (item: ItemListRow, checked: boolean) => {
+    // Checkbox sits inside a grid row — block the rowSelected handler that would
+    // fire loadSetMenuConfig and overwrite the draft we are about to set.
+    skipRowSelectRef.current = true;
+    window.setTimeout(() => {
+      skipRowSelectRef.current = false;
+    }, 200);
+
+    const switching = item.id !== selectedItemId;
+    if (switching) {
+      setSelectedItem(item);
+      setSelectedItemId(item.id);
+    }
+
+    // Apply draft immediately so Lưu sees the user's intent.
+    setIsSetMenuDraft(checked);
+
+    if (switching) {
+      const wasSet = !!(setMenuKnown.get(item.id) ?? item.isSetMenu);
+      if (checked && wasSet) {
+        void loadSetMenuConfig(item);
+      } else {
+        loadSeqRef.current += 1;
+        setLoadingConfig(false);
+        setDescription(null);
+        setComponents([]);
+        setChoiceCats([]);
+      }
+    }
   };
 
   const buildDetailsPayload = (): SetMenuDetailInput[] => {
@@ -254,36 +296,38 @@ export function WinSetMenu() {
     if (!selectedItem) return;
     setSaving(true);
     setErrorMsg(null);
+
+    const wasSetMenu = setMenuKnown.get(selectedItem.id) ?? selectedItem.isSetMenu;
+
+    if (!isSetMenuDraft) {
+      if (!wasSetMenu) {
+        setSuccessMsg("Không có thay đổi.");
+        setSaving(false);
+        return;
+      }
+      const res = await setMenuApi.remove(selectedItem.id);
+      if (res.isSuccess) {
+        setIsSetMenuDraft(false);
+        setSetMenuKnown(prev => new Map(prev).set(selectedItem.id, false));
+        setDescription(null);
+        setComponents([]);
+        setChoiceCats([]);
+        setSuccessMsg(`Đã gỡ Set Menu khỏi "${selectedItem.name}".`);
+      } else {
+        setErrorMsg(formatApiError(res));
+      }
+      setSaving(false);
+      return;
+    }
+
     const res = await setMenuApi.upsert(selectedItem.id, {
       description: description?.trim() || null,
       details: buildDetailsPayload(),
     });
     if (res.isSuccess) {
-      setHasSetMenu(true);
       setSetMenuKnown(prev => new Map(prev).set(selectedItem.id, true));
       setSuccessMsg(`Đã lưu Set Menu (${res.data.detailCount} dòng cấu hình)`);
       await loadSetMenuConfig(selectedItem);
-    } else {
-      setErrorMsg(formatApiError(res));
-    }
-    setSaving(false);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedItem || !hasSetMenu) return;
-    if (!window.confirm(`Gỡ cấu hình Set Menu của "${selectedItem.name}"? (Món master không bị xoá)`)) {
-      return;
-    }
-    setSaving(true);
-    setErrorMsg(null);
-    const res = await setMenuApi.remove(selectedItem.id);
-    if (res.isSuccess) {
-      setHasSetMenu(false);
-      setSetMenuKnown(prev => new Map(prev).set(selectedItem.id, false));
-      setDescription(null);
-      setComponents([]);
-      setChoiceCats([]);
-      setSuccessMsg("Đã gỡ Set Menu");
     } else {
       setErrorMsg(formatApiError(res));
     }
@@ -367,6 +411,10 @@ export function WinSetMenu() {
   };
 
   const busy = saving || loadingConfig;
+  const selectionSettings: SelectionSettingsModel = useMemo(
+    () => ({ type: "Single", mode: "Row", persistSelection: true }),
+    []
+  );
   const choiceList = choiceCatsRes.data ?? [];
   const setMenuCount = [...setMenuKnown.values()].filter(Boolean).length;
 
@@ -375,24 +423,8 @@ export function WinSetMenu() {
       <WinToolbar
         left={
           <>
-            <TB
-              icon={ChromeIcons.Plus}
-              onClick={beginCreateSetMenu}
-              kind="primary"
-              disabled={!selectedItem || busy || hasSetMenu}
-            >
-              Tạo Set Menu
-            </TB>
             <TB icon={ChromeIcons.Save} onClick={handleSave} kind="primary" disabled={!selectedItem || busy}>
-              Lưu
-            </TB>
-            <TB
-              icon={ChromeIcons.Trash}
-              onClick={handleDelete}
-              kind="danger"
-              disabled={!selectedItem || !hasSetMenu || busy}
-            >
-              Gỡ Set Menu
+              {saving ? "Đang lưu..." : "Lưu"}
             </TB>
             <div className="tb-divider" />
             <TB
@@ -498,10 +530,11 @@ export function WinSetMenu() {
             </div>
             {itemsLoading && <LoadingBar text="Đang tải món..." />}
             <GridComponent
-              dataSource={filteredItems}
+              dataSource={gridItems}
               allowSorting
               allowFiltering
               filterSettings={{ type: "Menu" }}
+              selectionSettings={selectionSettings}
               rowSelected={handleItemSelect}
               rowDataBound={(args: { data: ItemListRow; row: HTMLTableRowElement }) => {
                 const known = setMenuKnown.get(args.data.id);
@@ -509,11 +542,6 @@ export function WinSetMenu() {
                   args.row.style.fontWeight = "bold";
                 }
               }}
-              selectedRowIndex={
-                selectedItemId !== null
-                  ? filteredItems.findIndex(i => i.id === selectedItemId)
-                  : -1
-              }
               height="100%"
             >
               <ColumnsDirective>
@@ -521,31 +549,17 @@ export function WinSetMenu() {
                   headerText="Set Menu"
                   width="80"
                   textAlign="Center"
-                  template={(props: ItemListRow) => {
-                    const known = setMenuKnown.get(props.id);
-                    const isSet = known ?? props.isSetMenu;
-                    return (
+                  template={(props: ItemListRow & { setMenuChecked?: boolean }) => (
                       <input
                         type="checkbox"
                         className="cbx"
-                        checked={isSet}
-                        disabled={busy}
-                        onChange={async () => {
-                          if (isSet) {
-                            const res = await setMenuApi.remove(props.id);
-                            if (res.isSuccess) {
-                              setSetMenuKnown(prev => new Map(prev).set(props.id, false));
-                            }
-                          } else {
-                            const res = await setMenuApi.upsert(props.id, { details: [] });
-                            if (res.isSuccess) {
-                              setSetMenuKnown(prev => new Map(prev).set(props.id, true));
-                            }
-                          }
-                        }}
+                        checked={!!props.setMenuChecked}
+                        disabled={saving}
+                        onMouseDown={e => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => handleSetMenuDraftToggle(props, e.target.checked)}
                       />
-                    );
-                  }}
+                    )}
                 />
                 <ColumnDirective field="code" headerText="Mã" width="100" />
                 <ColumnDirective field="name" headerText="Tên" width="220" />
@@ -566,9 +580,9 @@ export function WinSetMenu() {
               {selectedItem && (
                 <div style={{ padding: "4px 12px", fontSize: 12 }}>
                   <span className="mute">Đang xem:</span> <strong>{selectedItem.name}</strong>
-                  {!hasSetMenu && (
-                    <span style={{ marginLeft: 8, color: "var(--warning)" }}>(chưa là Set Menu)</span>
-                  )}
+                  <span style={{ marginLeft: 8, color: isSetMenuDraft ? "var(--positive)" : "var(--fg-muted)" }}>
+                    {isSetMenuDraft ? "· Set Menu" : "· Không phải Set Menu"}
+                  </span>
                 </div>
               )}
             </div>
@@ -585,6 +599,17 @@ export function WinSetMenu() {
             ) : (
               <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
                 <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
+                  <div className="field-checkbox" style={{ marginBottom: 12 }}>
+                    <label className="field-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={isSetMenuDraft}
+                        disabled={saving}
+                        onChange={e => handleSetMenuDraftToggle(selectedItem, e.target.checked)}
+                      />
+                      Là Set Menu
+                    </label>
+                  </div>
                   <Field label="Mô tả Set Menu">
                     <textarea
                       rows={2}
@@ -805,7 +830,7 @@ export function WinSetMenu() {
             <span>{totalCount} món Hàng bán (trang)</span>
           </>
         }
-        right={<span>PUT replace-all details · Item picker = Hàng bán</span>}
+        right={<span>Tick Set Menu → cấu hình → Lưu · Bỏ tick → Lưu để gỡ</span>}
       />
 
       <ItemPickerDialog

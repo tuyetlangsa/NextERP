@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
@@ -17,6 +17,12 @@ import { WinPricing } from "@/components/windows/WinPricing";
 import { WinChoice } from "@/components/windows/WinChoice";
 import { WinSetMenu } from "@/components/windows/WinSetMenu";
 import { WinDiscountPolicy } from "@/components/windows/WinDiscountPolicy";
+import { WinKitchenStation } from "@/components/windows/WinKitchenStation";
+import { WinCancellationReason } from "@/components/windows/WinCancellationReason";
+import { WinShift } from "@/components/windows/WinShift";
+import { WinStock } from "@/components/windows/WinStock";
+import { WinStockMovement } from "@/components/windows/WinStockMovement";
+import { WinUomConversion } from "@/components/windows/WinUomConversion";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -29,6 +35,12 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinChoice,
   WinSetMenu,
   WinDiscountPolicy,
+  WinKitchenStation,
+  WinCancellationReason,
+  WinShift,
+  WinStock,
+  WinStockMovement,
+  WinUomConversion,
 };
 
 const fmtClock = (d: Date) =>
@@ -84,6 +96,19 @@ export function DesktopShell({ user }: { user: SessionUser }) {
   const close = (id: string) => setWindows(ws => ws.filter(w => w.id !== id));
   const min = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, minimized: true } : w)));
   const max = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, maximized: !w.maximized } : w)));
+
+  const launchRef = useRef(launch);
+  launchRef.current = launch;
+
+  useEffect(() => {
+    const onOpenSubsystem = (e: Event) => {
+      const detail = (e as CustomEvent<{ subsystemId: string }>).detail;
+      const def = subsystems.find(s => s.id === detail?.subsystemId);
+      if (def?.win) launchRef.current(def);
+    };
+    window.addEventListener("nextErp:openSubsystem", onOpenSubsystem);
+    return () => window.removeEventListener("nextErp:openSubsystem", onOpenSubsystem);
+  }, []);
 
   const desktopIcons = subsystems.filter(s => s.showOnDesktop);
 

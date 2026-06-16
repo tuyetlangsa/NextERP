@@ -362,15 +362,36 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .field label { font-size: var(--t-12); color: var(--fg-muted); font-weight: 500; }
 .field label .required { color: var(--danger); margin-left: 2px; }
-.field input, .field select, .field textarea {
+.field input:not([type="checkbox"]):not([type="radio"]), .field select, .field textarea {
   padding: 6px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
   background: #fff; color: var(--fg);
   font-size: var(--t-13); font-family: inherit;
 }
-.field input:focus, .field select:focus, .field textarea:focus {
+.field input:not([type="checkbox"]):not([type="radio"]):focus, .field select:focus, .field textarea:focus {
   outline: none; border-color: var(--accent);
+}
+.field-checkbox { margin-bottom: 12px; }
+.field-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-12);
+  color: var(--fg-muted);
+  font-weight: 500;
+  cursor: pointer;
+  width: fit-content;
+}
+.field-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* ============ DATA LIST ============ */
@@ -388,9 +409,17 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
   font-size: var(--t-12);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  height: 32px;
-  padding: 0 12px;
+  height: auto;
+  min-height: 32px;
+  padding: 6px 12px;
   border-color: var(--border-strong) !important;
+}
+.e-grid .e-headercelldiv,
+.e-grid .e-headertext {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.25;
 }
 .e-grid .e-row { height: 36px; }
 .e-grid .e-rowcell {
@@ -409,6 +438,22 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
 }
 .e-grid .e-gridheader,
 .e-grid .e-gridcontent { border-color: var(--border-strong) !important; }
+
+/* List-pane grids: fixed header row height so headers/cells don't reflow on re-render */
+.data-list .e-grid .e-headercell {
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.data-list .e-grid .e-headercelldiv,
+.data-list .e-grid .e-headertext {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 32px;
+}
 
 /* ============ LOGIN ============ */
 .login {

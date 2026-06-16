@@ -20,6 +20,7 @@ export type { Uom } from "./api/menu";
 export type SubsystemGroup =
   | "layout"
   | "menu"
+  | "inventory"
   | "pricing"
   | "system"
   | "reports";
