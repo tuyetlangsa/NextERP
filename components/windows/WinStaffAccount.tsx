@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -13,14 +13,19 @@ import {
   TreeViewComponent,
   type FieldsSettingsModel,
 } from "@syncfusion/ej2-react-navigations";
+import { DialogComponent } from "@syncfusion/ej2-react-popups";
+import { DropDownListComponent } from "@syncfusion/ej2-react-dropdowns";
+import type { ChangeEventArgs as DropDownChangeEventArgs } from "@syncfusion/ej2-dropdowns";
 import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
 import { WinToolbar, TB } from "@/components/ui/WinToolbar";
+import { Field } from "@/components/ui/DetailPanel";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { accessApi } from "@/lib/api/access";
 import { useResource } from "@/lib/http/useResource";
-import type { StaffAccountRow } from "@/types/api/access";
+import { formatApiError } from "@/lib/http/formatError";
+import type { StaffAccountRow, StaffAccountDetail } from "@/types/api/access";
 
 ensureSyncfusionLicense();
 
@@ -100,6 +105,100 @@ export function WinStaffAccount() {
     },
     []
   );
+
+  // ── Dialog state ──────────────────────────────────────────────────────────
+  const isCreate = selectedAccountId === 0;
+  const dialogOpen = selectedAccountId !== null;
+
+  const [form, setForm] = useState<{
+    username: string;
+    password: string;
+    fullName: string;
+    phone: string;
+    email: string;
+    roleId: number | null;
+    isActive: boolean;
+    isLocked: boolean;
+  }>({
+    username: "",
+    password: "",
+    fullName: "",
+    phone: "",
+    email: "",
+    roleId: null,
+    isActive: true,
+    isLocked: false,
+  });
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const currentIndex = useMemo(
+    () => accounts.findIndex((a) => a.id === selectedAccountId),
+    [accounts, selectedAccountId]
+  );
+
+  useEffect(() => {
+    if (selectedAccountId === null) return;
+    if (selectedAccountId === 0) {
+      setForm({
+        username: "",
+        password: "",
+        fullName: "",
+        phone: "",
+        email: "",
+        roleId: roleId ?? roles[0]?.id ?? null,
+        isActive: true,
+        isLocked: false,
+      });
+      return;
+    }
+    let active = true;
+    accessApi.getAccount(selectedAccountId).then((res) => {
+      if (!active || !res.isSuccess || !res.data) return;
+      const d: StaffAccountDetail = res.data;
+      setForm({
+        username: d.username,
+        password: "",
+        fullName: d.fullName,
+        phone: d.phone ?? "",
+        email: d.email ?? "",
+        roleId: d.roleId,
+        isActive: d.isActive,
+        isLocked: d.isLocked,
+      });
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccountId]);
+
+  const gotoIndex = useCallback(
+    (i: number) => {
+      if (i >= 0 && i < accounts.length) setSelectedAccountId(accounts[i].id);
+    },
+    [accounts]
+  );
+
+  const closeDialog = useCallback(() => {
+    setSelectedAccountId(null);
+    setSaveError(null);
+  }, []);
+
+  const handleResetPassword = useCallback(async () => {
+    if (selectedAccountId === null || selectedAccountId === 0) return;
+    const pwd = window.prompt("Mật khẩu mới (≥ 6 ký tự):");
+    if (!pwd) return;
+    const res = await accessApi.resetPassword(selectedAccountId, pwd);
+    if (!res.isSuccess) {
+      setSaveError(formatApiError(res));
+      return;
+    }
+    window.alert("Đã đặt lại mật khẩu.");
+  }, [selectedAccountId]);
+
+  const handleSave = useCallback(async () => {
+    setSaveError("Save sẽ hoàn thiện ở task kế tiếp");
+  }, []);
 
   // ── Toolbar handlers ──────────────────────────────────────────────────────
   const handleAdd = useCallback(() => {
@@ -258,7 +357,170 @@ export function WinStaffAccount() {
         </div>
       </div>
 
-      {/* Detail dialog — mounted in Task 13 when selectedAccountId !== null */}
+      {/* Detail dialog */}
+      {dialogOpen && (
+        <DialogComponent
+          width="760px"
+          header={
+            isCreate
+              ? "Tạo tài khoản mới"
+              : `Chi tiết người dùng: ${form.fullName}`
+          }
+          visible={dialogOpen}
+          showCloseIcon
+          beforeClose={closeDialog}
+          isModal
+        >
+          {/* Dialog toolbar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 0",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <button className="tb-btn" onClick={handleSave}>
+              💾 Lưu
+            </button>
+            <button className="tb-btn" onClick={closeDialog}>
+              ↩ Bỏ qua
+            </button>
+            {!isCreate && (
+              <button className="tb-btn" onClick={handleResetPassword}>
+                🔑 Reset mật khẩu
+              </button>
+            )}
+            {!isCreate && currentIndex >= 0 && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <button
+                  className="tb-btn"
+                  disabled={currentIndex <= 0}
+                  onClick={() => gotoIndex(currentIndex - 1)}
+                >
+                  ◀
+                </button>
+                <span>
+                  {currentIndex + 1} / {accounts.length}
+                </span>
+                <button
+                  className="tb-btn"
+                  disabled={currentIndex >= accounts.length - 1}
+                  onClick={() => gotoIndex(currentIndex + 1)}
+                >
+                  ▶
+                </button>
+              </span>
+            )}
+          </div>
+
+          {/* Form body */}
+          <div style={{ display: "flex", gap: 16, padding: "12px 0" }}>
+            {/* Left — fields */}
+            <div style={{ flex: 1 }}>
+              <Field label="Họ tên *">
+                <input
+                  value={form.fullName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, fullName: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Tên đăng nhập *">
+                <input
+                  value={form.username}
+                  disabled={!isCreate}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, username: e.target.value }))
+                  }
+                />
+              </Field>
+              {isCreate && (
+                <Field label="Mật khẩu *">
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                  />
+                </Field>
+              )}
+              <Field label="Điện thoại">
+                <input
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </Field>
+              <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isActive: e.target.checked }))
+                    }
+                  />{" "}
+                  Kích hoạt
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.isLocked}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isLocked: e.target.checked }))
+                    }
+                  />{" "}
+                  Khoá
+                </label>
+              </div>
+            </div>
+
+            {/* Right — role selector */}
+            <div
+              style={{
+                width: 220,
+                borderLeft: "1px solid var(--border)",
+                paddingLeft: 16,
+              }}
+            >
+              <div className="label">VAI TRÒ</div>
+              <DropDownListComponent
+                dataSource={roles.map((r) => ({ text: r.name, value: r.id }))}
+                fields={{ text: "text", value: "value" }}
+                value={form.roleId ?? undefined}
+                change={(e: DropDownChangeEventArgs) =>
+                  setForm((f) => ({ ...f, roleId: e.value as number }))
+                }
+              />
+            </div>
+          </div>
+
+          {saveError && (
+            <ErrorBar text={saveError} onRetry={() => setSaveError(null)} />
+          )}
+
+          {/* Permission tabs injected in the next task */}
+        </DialogComponent>
+      )}
     </div>
   );
 }
