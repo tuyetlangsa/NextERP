@@ -66,6 +66,11 @@ export interface PageModuleGroup { code: string; name: string; pages: PageRow[];
 export interface StaffPageAccessResponse { modules: PageModuleGroup[]; }
 export interface RolePageDefaultResponse { roleCode: string; pageCodes: string[]; }
 
+// Current account's accessible navigation tree (GET /api/access/my-menu)
+export interface MyMenuPage { code: string; name: string; displayOrder: number; }
+export interface MyMenuModule { code: string; name: string; displayOrder: number; pages: MyMenuPage[]; }
+export interface MyMenuResponse { modules: MyMenuModule[]; }
+
 // Permissions (Quyền chức năng tab)
 export interface PermissionRow { code: string; name: string; granted: boolean; }
 export interface PermissionGroupRow { code: string; name: string; permissions: PermissionRow[]; }

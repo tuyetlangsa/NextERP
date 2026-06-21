@@ -11,9 +11,13 @@ import type {
   RolePageDefaultResponse,
   StaffPermissionsResponse,
   RolePermissionDefaultResponse,
+  MyMenuResponse,
 } from "@/types/api/access";
 
 export const accessApi = {
+  // current account's accessible navigation tree (Start Menu / desktop guard)
+  myMenu: () => http.get<MyMenuResponse>("/api/access/my-menu"),
+
   // roles + accounts
   listRoles: () => http.get<ListRolesResponse>("/api/access/roles"),
   listAccounts: (params: { roleId?: number; search?: string; pageNumber?: number; pageSize?: number }) =>
