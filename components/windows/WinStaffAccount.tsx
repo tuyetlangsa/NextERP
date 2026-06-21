@@ -98,11 +98,14 @@ export function WinStaffAccount() {
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
     null
   );
+  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
 
   const handleRowSelected = useCallback(
     (args: { data: StaffAccountRow | StaffAccountRow[] }) => {
       const row = Array.isArray(args.data) ? args.data[0] : args.data;
-      if (row?.id) setSelectedAccountId(row.id);
+      if (row?.id) {
+        setLastSelectedId(row.id);
+      }
     },
     []
   );
@@ -135,6 +138,8 @@ export function WinStaffAccount() {
   type CheckTree = { nodes: { id: string; text: string; child?: { id: string; text: string }[] }[]; checked: string[] };
   const [pageTree, setPageTree] = useState<CheckTree>({ nodes: [], checked: [] });
   const [permTree, setPermTree] = useState<CheckTree>({ nodes: [], checked: [] });
+  const [pageTreeVersion, setPageTreeVersion] = useState(0);
+  const [permTreeVersion, setPermTreeVersion] = useState(0);
   const [bottomTab, setBottomTab] = useState<"menu" | "perm">("menu");
   const pageTreeRef = useRef<TreeViewComponent | null>(null);
   const permTreeRef = useRef<TreeViewComponent | null>(null);
@@ -183,7 +188,9 @@ export function WinStaffAccount() {
   useEffect(() => {
     if (selectedAccountId === null || selectedAccountId === 0) {
       setPageTree({ nodes: [], checked: [] });
+      setPageTreeVersion(v => v + 1);
       setPermTree({ nodes: [], checked: [] });
+      setPermTreeVersion(v => v + 1);
       return;
     }
     let active = true;
@@ -195,6 +202,7 @@ export function WinStaffAccount() {
         child: m.pages.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
       }));
       setPageTree({ nodes, checked });
+      setPageTreeVersion(v => v + 1);
     });
     accessApi.getPermissions(selectedAccountId).then(res => {
       if (!active || !res.isSuccess || !res.data) return;
@@ -204,6 +212,7 @@ export function WinStaffAccount() {
         child: g.permissions.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
       }));
       setPermTree({ nodes, checked });
+      setPermTreeVersion(v => v + 1);
     });
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,10 +235,16 @@ export function WinStaffAccount() {
     if (!role) return;
     if (bottomTab === "menu") {
       const res = await accessApi.getRolePageDefault(role.code);
-      if (res.isSuccess && res.data) setPageTree(t => ({ ...t, checked: res.data!.pageCodes }));
+      if (res.isSuccess && res.data) {
+        setPageTree(t => ({ ...t, checked: res.data!.pageCodes }));
+        setPageTreeVersion(v => v + 1);
+      }
     } else {
       const res = await accessApi.getRolePermissionDefault(role.code);
-      if (res.isSuccess && res.data) setPermTree(t => ({ ...t, checked: res.data!.permissionCodes }));
+      if (res.isSuccess && res.data) {
+        setPermTree(t => ({ ...t, checked: res.data!.permissionCodes }));
+        setPermTreeVersion(v => v + 1);
+      }
     }
   }, [roles, form.roleId, bottomTab]);
 
@@ -290,8 +305,11 @@ export function WinStaffAccount() {
   }, []);
 
   const handleEdit = useCallback(() => {
-    // selectedAccountId is already set via rowSelected; no-op if nothing selected
-  }, []);
+    // Re-open the detail dialog for the last grid row the user selected.
+    if (lastSelectedId) {
+      setSelectedAccountId(lastSelectedId);
+    }
+  }, [lastSelectedId]);
 
   const handleRefresh = useCallback(() => {
     rolesRes.reload();
@@ -312,13 +330,13 @@ export function WinStaffAccount() {
       <WinToolbar
         left={
           <>
-            <TB icon={ChromeIcons.Plus} onClick={handleAdd}>
+            <TB icon={ChromeIcons.Plus} onClick={handleAdd} disabled={roles.length === 0}>
               Thêm
             </TB>
             <TB
               icon={ChromeIcons.Edit}
               onClick={handleEdit}
-              disabled={!selectedAccountId}
+              disabled={!lastSelectedId}
             >
               Sửa
             </TB>
@@ -611,7 +629,7 @@ export function WinStaffAccount() {
           <div style={{ maxHeight: 240, overflow: "auto" }}>
             {bottomTab === "menu" ? (
               <TreeViewComponent
-                key={`pagetree-${selectedAccountId}-${pageTree.nodes.length}`}
+                key={`pagetree-${selectedAccountId}-${pageTreeVersion}`}
                 ref={pageTreeRef}
                 fields={{ dataSource: pageTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
                 showCheckBox
@@ -620,7 +638,7 @@ export function WinStaffAccount() {
               />
             ) : (
               <TreeViewComponent
-                key={`permtree-${selectedAccountId}-${permTree.nodes.length}`}
+                key={`permtree-${selectedAccountId}-${permTreeVersion}`}
                 ref={permTreeRef}
                 fields={{ dataSource: permTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
                 showCheckBox
