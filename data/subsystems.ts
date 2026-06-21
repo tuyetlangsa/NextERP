@@ -22,7 +22,7 @@ export const subsystems: Subsystem[] = [
   { id: "discount", label: "Chính sách giảm giá", description: "Bill & Quantity-based", group: "pricing", showOnDesktop: true, win: "WinDiscountPolicy" },
   { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: null },
   // System
-  { id: "users",     label: "Người dùng",      description: "Vai trò, ma trận quyền",           group: "system",  showOnDesktop: true, win: null },
+  { id: "users",     label: "Quản lý tài khoản", description: "Vai trò, ma trận quyền",           group: "system",  showOnDesktop: true, win: "WinStaffAccount" },
   { id: "shifts",    label: "Danh sách ca",    description: "Khung giờ làm theo ngày",          group: "system",  showOnDesktop: true, win: "WinShift" },
   { id: "cancellation-reason", label: "Lý do huỷ/trả", description: "Lý do huỷ món / trả món", group: "system", showOnDesktop: true, win: "WinCancellationReason" },
   { id: "schedule",  label: "Lịch làm việc tháng", description: "Manager · calendar + day detail", group: "system", showOnDesktop: true, win: null },
