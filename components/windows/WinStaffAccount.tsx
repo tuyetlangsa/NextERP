@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -131,6 +132,13 @@ export function WinStaffAccount() {
   });
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  type CheckTree = { nodes: { id: string; text: string; child?: { id: string; text: string }[] }[]; checked: string[] };
+  const [pageTree, setPageTree] = useState<CheckTree>({ nodes: [], checked: [] });
+  const [permTree, setPermTree] = useState<CheckTree>({ nodes: [], checked: [] });
+  const [bottomTab, setBottomTab] = useState<"menu" | "perm">("menu");
+  const pageTreeRef = useRef<TreeViewComponent | null>(null);
+  const permTreeRef = useRef<TreeViewComponent | null>(null);
+
   const currentIndex = useMemo(
     () => accounts.findIndex((a) => a.id === selectedAccountId),
     [accounts, selectedAccountId]
@@ -172,6 +180,35 @@ export function WinStaffAccount() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccountId]);
 
+  useEffect(() => {
+    if (selectedAccountId === null || selectedAccountId === 0) {
+      setPageTree({ nodes: [], checked: [] });
+      setPermTree({ nodes: [], checked: [] });
+      return;
+    }
+    let active = true;
+    accessApi.getPageAccess(selectedAccountId).then(res => {
+      if (!active || !res.isSuccess || !res.data) return;
+      const checked: string[] = [];
+      const nodes = res.data.modules.map(m => ({
+        id: `m-${m.code}`, text: m.name,
+        child: m.pages.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
+      }));
+      setPageTree({ nodes, checked });
+    });
+    accessApi.getPermissions(selectedAccountId).then(res => {
+      if (!active || !res.isSuccess || !res.data) return;
+      const checked: string[] = [];
+      const nodes = res.data.groups.map(g => ({
+        id: `g-${g.code}`, text: g.name,
+        child: g.permissions.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
+      }));
+      setPermTree({ nodes, checked });
+    });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccountId]);
+
   const gotoIndex = useCallback(
     (i: number) => {
       if (i >= 0 && i < accounts.length) setSelectedAccountId(accounts[i].id);
@@ -183,6 +220,18 @@ export function WinStaffAccount() {
     setSelectedAccountId(null);
     setSaveError(null);
   }, []);
+
+  const handleApplyRoleDefault = useCallback(async () => {
+    const role = roles.find(r => r.id === form.roleId);
+    if (!role) return;
+    if (bottomTab === "menu") {
+      const res = await accessApi.getRolePageDefault(role.code);
+      if (res.isSuccess && res.data) setPageTree(t => ({ ...t, checked: res.data!.pageCodes }));
+    } else {
+      const res = await accessApi.getRolePermissionDefault(role.code);
+      if (res.isSuccess && res.data) setPermTree(t => ({ ...t, checked: res.data!.permissionCodes }));
+    }
+  }, [roles, form.roleId, bottomTab]);
 
   const handleResetPassword = useCallback(async () => {
     if (selectedAccountId === null || selectedAccountId === 0) return;
@@ -196,9 +245,44 @@ export function WinStaffAccount() {
     window.alert("Đã đặt lại mật khẩu.");
   }, [selectedAccountId]);
 
+  const collectCheckedCodes = (ref: React.RefObject<TreeViewComponent | null>): string[] => {
+    const ids = (ref.current?.getAllCheckedNodes() ?? []) as string[];
+    return ids.filter(id => !id.startsWith("m-") && !id.startsWith("g-")); // leaf codes only
+  };
+
   const handleSave = useCallback(async () => {
-    setSaveError("Save sẽ hoàn thiện ở task kế tiếp");
-  }, []);
+    setSaveError(null);
+    if (!form.fullName.trim() || !form.roleId) { setSaveError("Họ tên và vai trò là bắt buộc."); return; }
+    if (isCreate && (!form.username.trim() || form.password.length < 6)) {
+      setSaveError("Tên đăng nhập bắt buộc và mật khẩu ≥ 6 ký tự."); return;
+    }
+
+    let accountId = selectedAccountId!;
+    if (isCreate) {
+      const res = await accessApi.createAccount({
+        username: form.username.trim(), password: form.password, fullName: form.fullName.trim(),
+        phone: form.phone || null, email: form.email || null, roleId: form.roleId,
+      });
+      if (!res.isSuccess || !res.data) { setSaveError(formatApiError(res)); return; }
+      accountId = res.data.id;
+    } else {
+      const res = await accessApi.updateAccount(accountId, {
+        fullName: form.fullName.trim(), phone: form.phone || null, email: form.email || null,
+        roleId: form.roleId, isActive: form.isActive, isLocked: form.isLocked,
+      });
+      if (!res.isSuccess) { setSaveError(formatApiError(res)); return; }
+    }
+
+    const pageRes = await accessApi.setPageAccess(accountId, collectCheckedCodes(pageTreeRef));
+    if (!pageRes.isSuccess) { setSaveError(formatApiError(pageRes)); return; }
+
+    const permRes = await accessApi.setPermissions(accountId, collectCheckedCodes(permTreeRef));
+    if (!permRes.isSuccess) { setSaveError(formatApiError(permRes)); return; }
+
+    closeDialog();
+    accountsRes.reload();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, isCreate, selectedAccountId, closeDialog, accountsRes]);
 
   // ── Toolbar handlers ──────────────────────────────────────────────────────
   const handleAdd = useCallback(() => {
@@ -518,7 +602,33 @@ export function WinStaffAccount() {
             <ErrorBar text={saveError} onRetry={() => setSaveError(null)} />
           )}
 
-          {/* Permission tabs injected in the next task */}
+          <div style={{ display: "flex", gap: 2, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
+            <button className={bottomTab === "menu" ? "tab-active" : "tab"} onClick={() => setBottomTab("menu")}>Menu — Module/Page</button>
+            <button className={bottomTab === "perm" ? "tab-active" : "tab"} onClick={() => setBottomTab("perm")}>Quyền chức năng</button>
+            <button className="tb-btn" style={{ marginLeft: "auto" }} onClick={handleApplyRoleDefault}>⟳ Áp dụng mặc định theo role</button>
+          </div>
+
+          <div style={{ maxHeight: 240, overflow: "auto" }}>
+            {bottomTab === "menu" ? (
+              <TreeViewComponent
+                key={`pagetree-${selectedAccountId}-${pageTree.nodes.length}`}
+                ref={pageTreeRef}
+                fields={{ dataSource: pageTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
+                showCheckBox
+                autoCheck
+                checkedNodes={pageTree.checked}
+              />
+            ) : (
+              <TreeViewComponent
+                key={`permtree-${selectedAccountId}-${permTree.nodes.length}`}
+                ref={permTreeRef}
+                fields={{ dataSource: permTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
+                showCheckBox
+                autoCheck
+                checkedNodes={permTree.checked}
+              />
+            )}
+          </div>
         </DialogComponent>
       )}
     </div>
