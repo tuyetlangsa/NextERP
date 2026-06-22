@@ -45,7 +45,7 @@ export function LoginScreen({ onDone }: Props) {
   return (
     <div className="login">
       <div className="login-card">
-        <h1>RPOM ERP</h1>
+        <h1>RPOM Quản trị</h1>
         <div className="sub">Đăng nhập web quản trị</div>
         <form onSubmit={submit}>
           <div className="field-group">

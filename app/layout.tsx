@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RPOM ERP",
-  description: "Restaurant POS & Operations Management — Admin Console",
+  title: "RPOM Quản trị",
+  description: "Hệ thống quản trị nhà hàng — RPOM",
 };
 
 export default function RootLayout({

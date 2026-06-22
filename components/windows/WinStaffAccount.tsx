@@ -24,9 +24,15 @@ import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { accessApi } from "@/lib/api/access";
+import { authApi } from "@/lib/api/auth";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
-import type { StaffAccountRow, StaffAccountDetail } from "@/types/api/access";
+import type {
+  StaffAccountRow,
+  StaffAccountDetail,
+  PageModuleGroup,
+  PermissionGroupRow,
+} from "@/types/api/access";
 
 ensureSyncfusionLicense();
 
@@ -35,6 +41,63 @@ type TreeNode = {
   text: string;
   expanded?: boolean;
   child?: TreeNode[];
+};
+
+type CheckTreeNode = {
+  id: string;
+  text: string;
+  expanded?: boolean;
+  child: { id: string; text: string }[];
+};
+
+type CheckTree = { nodes: CheckTreeNode[]; checked: string[] };
+
+function buildPageTree(modules: PageModuleGroup[], useGrants: boolean): CheckTree {
+  const checked: string[] = [];
+  const nodes = modules.map((m) => ({
+    id: `m-${m.code}`,
+    text: m.name,
+    expanded: false,
+    child: m.pages.map((p) => {
+      if (useGrants && p.granted) checked.push(p.code);
+      return { id: p.code, text: p.name };
+    }),
+  }));
+  return { nodes, checked };
+}
+
+function buildPermTree(groups: PermissionGroupRow[], useGrants: boolean): CheckTree {
+  const checked: string[] = [];
+  const nodes = groups.map((g) => ({
+    id: `g-${g.code}`,
+    text: g.name,
+    expanded: false,
+    child: g.permissions.map((p) => {
+      if (useGrants && p.granted) checked.push(p.code);
+      return { id: p.code, text: p.name };
+    }),
+  }));
+  return { nodes, checked };
+}
+
+/** Apply leaf codes to a checkbox tree without remounting (preserves expand/collapse). */
+function applyCheckedLeaves(
+  ref: React.RefObject<TreeViewComponent | null>,
+  leafCodes: string[]
+) {
+  requestAnimationFrame(() => {
+    const tree = ref.current;
+    if (!tree) return;
+    tree.uncheckAll();
+    if (leafCodes.length > 0) tree.checkAll(leafCodes);
+  });
+}
+
+const CHECK_TREE_FIELDS: FieldsSettingsModel = {
+  id: "id",
+  text: "text",
+  child: "child" as never,
+  expanded: "expanded",
 };
 
 export function WinStaffAccount() {
@@ -60,38 +123,61 @@ export function WinStaffAccount() {
   const accounts = accountsRes.data?.items ?? [];
   const totalCount = accountsRes.data?.totalCount ?? 0;
 
-  // ── Role tree data ────────────────────────────────────────────────────────
-  const treeData = useMemo<TreeNode[]>(
-    () => [
-      {
-        id: "all",
-        text: `Tất cả (${roles.reduce((s, r) => s + r.accountCount, 0)})`,
-        expanded: true,
-        child: roles.map((r) => ({
-          id: `r-${r.id}`,
-          text: `${r.name} (${r.accountCount})`,
-        })),
-      },
-    ],
-    [roles]
+  const selectedRole = useMemo(
+    () => (roleId != null ? roles.find((r) => r.id === roleId) ?? null : null),
+    [roles, roleId]
   );
+
+  // Client-side fallback when API returns unfiltered rows.
+  const displayAccounts = useMemo(() => {
+    if (!selectedRole) return accounts;
+    return accounts.filter((a) => a.roleCode === selectedRole.code);
+  }, [accounts, selectedRole]);
+
+  const displayCount = selectedRole ? displayAccounts.length : totalCount;
+
+  // ── Role tree data (flat list — reliable click/select vs nested under "Tất cả") ──
+  const treeData = useMemo<TreeNode[]>(() => {
+    const total = roles.reduce((s, r) => s + r.accountCount, 0);
+    return [
+      { id: "all", text: `Tất cả (${total})` },
+      ...roles.map((r) => ({
+        id: `r-${r.id}`,
+        text: `${r.name} (${r.accountCount})`,
+      })),
+    ];
+  }, [roles]);
 
   const treeFields: FieldsSettingsModel = useMemo(
     () => ({
       dataSource: treeData as unknown as { [key: string]: object }[],
       id: "id",
       text: "text",
-      child: "child" as never,
     }),
     [treeData]
   );
 
+  const roleTreeRef = useRef<TreeViewComponent | null>(null);
+
+  const applyRoleFilter = useCallback((raw: string | number | undefined | null) => {
+    if (raw === undefined || raw === null || raw === "") return;
+    const id = String(raw);
+    setRoleId(id === "all" ? null : Number(id.replace(/^r-/, "")));
+  }, []);
+
   const handleTreeSelect = useCallback(
-    (args: { nodeData: { id: string | number } }) => {
-      const raw = String(args.nodeData.id);
-      setRoleId(raw === "all" ? null : Number(raw.replace("r-", "")));
+    (args: { nodeData?: { id?: string | number }; node?: HTMLElement }) => {
+      if (args.nodeData?.id != null) {
+        applyRoleFilter(args.nodeData.id);
+        return;
+      }
+      const tree = roleTreeRef.current;
+      if (tree && args.node) {
+        const data = tree.getNode(args.node) as { id?: string | number } | undefined;
+        applyRoleFilter(data?.id);
+      }
     },
-    []
+    [applyRoleFilter]
   );
 
   // ── Grid selection ────────────────────────────────────────────────────────
@@ -134,20 +220,61 @@ export function WinStaffAccount() {
     isLocked: false,
   });
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  type CheckTree = { nodes: { id: string; text: string; expanded?: boolean; child?: { id: string; text: string }[] }[]; checked: string[] };
-  const [pageTree, setPageTree] = useState<CheckTree>({ nodes: [], checked: [] });
-  const [permTree, setPermTree] = useState<CheckTree>({ nodes: [], checked: [] });
-  const [pageTreeVersion, setPageTreeVersion] = useState(0);
-  const [permTreeVersion, setPermTreeVersion] = useState(0);
+  const [resetPwdOpen, setResetPwdOpen] = useState(false);
+  const [resetPwdForm, setResetPwdForm] = useState({ password: "", confirm: "" });
+  const [resetPwdError, setResetPwdError] = useState<string | null>(null);
+  const [resetPwdSubmitting, setResetPwdSubmitting] = useState(false);
+
+  type CheckTreeState = CheckTree;
+  const [pageTree, setPageTree] = useState<CheckTreeState>({ nodes: [], checked: [] });
+  const [permTree, setPermTree] = useState<CheckTreeState>({ nodes: [], checked: [] });
   const [bottomTab, setBottomTab] = useState<"menu" | "perm">("menu");
   const pageTreeRef = useRef<TreeViewComponent | null>(null);
   const permTreeRef = useRef<TreeViewComponent | null>(null);
 
   const currentIndex = useMemo(
-    () => accounts.findIndex((a) => a.id === selectedAccountId),
-    [accounts, selectedAccountId]
+    () => displayAccounts.findIndex((a) => a.id === selectedAccountId),
+    [displayAccounts, selectedAccountId]
   );
+
+  const pageTreeFields = useMemo<FieldsSettingsModel>(
+    () => ({
+      ...CHECK_TREE_FIELDS,
+      dataSource: pageTree.nodes as unknown as { [key: string]: object }[],
+    }),
+    [pageTree.nodes]
+  );
+
+  const permTreeFields = useMemo<FieldsSettingsModel>(
+    () => ({
+      ...CHECK_TREE_FIELDS,
+      dataSource: permTree.nodes as unknown as { [key: string]: object }[],
+    }),
+    [permTree.nodes]
+  );
+
+  const loadAccessTrees = useCallback(async (catalogAccountId: number, useGrants: boolean) => {
+    const [pageRes, permRes] = await Promise.all([
+      accessApi.getPageAccess(catalogAccountId),
+      accessApi.getPermissions(catalogAccountId),
+    ]);
+    if (pageRes.isSuccess && pageRes.data) {
+      setPageTree(buildPageTree(pageRes.data.modules, useGrants));
+    }
+    if (permRes.isSuccess && permRes.data) {
+      setPermTree(buildPermTree(permRes.data.groups, useGrants));
+    }
+  }, []);
+
+  const resolveCatalogAccountId = useCallback(async (): Promise<number | null> => {
+    if (lastSelectedId) return lastSelectedId;
+    if (accounts[0]?.id) return accounts[0].id;
+    const meRes = await authApi.me();
+    if (meRes.isSuccess && meRes.data?.staffAccountId) return meRes.data.staffAccountId;
+    return null;
+  }, [lastSelectedId, accounts]);
 
   useEffect(() => {
     if (selectedAccountId === null) return;
@@ -186,48 +313,44 @@ export function WinStaffAccount() {
   }, [selectedAccountId]);
 
   useEffect(() => {
-    if (selectedAccountId === null || selectedAccountId === 0) {
-      setPageTree({ nodes: [], checked: [] });
-      setPageTreeVersion(v => v + 1);
-      setPermTree({ nodes: [], checked: [] });
-      setPermTreeVersion(v => v + 1);
-      return;
+    if (selectedAccountId === null) return;
+
+    if (selectedAccountId === 0) {
+      let active = true;
+      (async () => {
+        const catalogId = await resolveCatalogAccountId();
+        if (!active || catalogId == null) {
+          setPageTree({ nodes: [], checked: [] });
+          setPermTree({ nodes: [], checked: [] });
+          return;
+        }
+        await loadAccessTrees(catalogId, false);
+      })();
+      return () => {
+        active = false;
+      };
     }
+
     let active = true;
-    accessApi.getPageAccess(selectedAccountId).then(res => {
-      if (!active || !res.isSuccess || !res.data) return;
-      const checked: string[] = [];
-      const nodes = res.data.modules.map(m => ({
-        id: `m-${m.code}`, text: m.name, expanded: true,
-        child: m.pages.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
-      }));
-      setPageTree({ nodes, checked });
-      setPageTreeVersion(v => v + 1);
-    });
-    accessApi.getPermissions(selectedAccountId).then(res => {
-      if (!active || !res.isSuccess || !res.data) return;
-      const checked: string[] = [];
-      const nodes = res.data.groups.map(g => ({
-        id: `g-${g.code}`, text: g.name, expanded: true,
-        child: g.permissions.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
-      }));
-      setPermTree({ nodes, checked });
-      setPermTreeVersion(v => v + 1);
-    });
-    return () => { active = false; };
+    loadAccessTrees(selectedAccountId, true);
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAccountId]);
+  }, [selectedAccountId, loadAccessTrees, resolveCatalogAccountId]);
 
   const gotoIndex = useCallback(
     (i: number) => {
-      if (i >= 0 && i < accounts.length) setSelectedAccountId(accounts[i].id);
+      if (i >= 0 && i < displayAccounts.length) setSelectedAccountId(displayAccounts[i].id);
     },
-    [accounts]
+    [displayAccounts]
   );
 
   const closeDialog = useCallback(() => {
     setSelectedAccountId(null);
     setSaveError(null);
+    setSaveSuccess(null);
+    setResetPwdOpen(false);
   }, []);
 
   const handleApplyRoleDefault = useCallback(async () => {
@@ -236,29 +359,57 @@ export function WinStaffAccount() {
     if (bottomTab === "menu") {
       const res = await accessApi.getRolePageDefault(role.code);
       if (res.isSuccess && res.data) {
-        setPageTree(t => ({ ...t, checked: res.data!.pageCodes }));
-        setPageTreeVersion(v => v + 1);
+        const codes = res.data.pageCodes;
+        setPageTree(t => ({ ...t, checked: codes }));
+        applyCheckedLeaves(pageTreeRef, codes);
       }
     } else {
       const res = await accessApi.getRolePermissionDefault(role.code);
       if (res.isSuccess && res.data) {
-        setPermTree(t => ({ ...t, checked: res.data!.permissionCodes }));
-        setPermTreeVersion(v => v + 1);
+        const codes = res.data.permissionCodes;
+        setPermTree(t => ({ ...t, checked: codes }));
+        applyCheckedLeaves(permTreeRef, codes);
       }
     }
   }, [roles, form.roleId, bottomTab]);
 
-  const handleResetPassword = useCallback(async () => {
+  const openResetPassword = useCallback(() => {
+    setResetPwdForm({ password: "", confirm: "" });
+    setResetPwdError(null);
+    setSaveSuccess(null);
+    setResetPwdOpen(true);
+  }, []);
+
+  const closeResetPassword = useCallback(() => {
+    setResetPwdOpen(false);
+    setResetPwdForm({ password: "", confirm: "" });
+    setResetPwdError(null);
+    setResetPwdSubmitting(false);
+  }, []);
+
+  const submitResetPassword = useCallback(async () => {
     if (selectedAccountId === null || selectedAccountId === 0) return;
-    const pwd = window.prompt("Mật khẩu mới (≥ 6 ký tự):");
-    if (!pwd) return;
-    const res = await accessApi.resetPassword(selectedAccountId, pwd);
-    if (!res.isSuccess) {
-      setSaveError(formatApiError(res));
+    setResetPwdError(null);
+    const pwd = resetPwdForm.password;
+    const confirm = resetPwdForm.confirm;
+    if (pwd.length < 6) {
+      setResetPwdError("Mật khẩu mới phải có ít nhất 6 ký tự.");
       return;
     }
-    window.alert("Đã đặt lại mật khẩu.");
-  }, [selectedAccountId]);
+    if (pwd !== confirm) {
+      setResetPwdError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    setResetPwdSubmitting(true);
+    const res = await accessApi.resetPassword(selectedAccountId, pwd);
+    setResetPwdSubmitting(false);
+    if (!res.isSuccess) {
+      setResetPwdError(formatApiError(res));
+      return;
+    }
+    closeResetPassword();
+    setSaveSuccess(`Đã đặt lại mật khẩu cho tài khoản ${form.username}.`);
+  }, [selectedAccountId, resetPwdForm, form.username, closeResetPassword]);
 
   const collectCheckedCodes = (ref: React.RefObject<TreeViewComponent | null>): string[] => {
     const ids = (ref.current?.getAllCheckedNodes() ?? []) as string[];
@@ -267,6 +418,7 @@ export function WinStaffAccount() {
 
   const handleSave = useCallback(async () => {
     setSaveError(null);
+    setSaveSuccess(null);
     if (!form.fullName.trim() || !form.roleId) { setSaveError("Họ tên và vai trò là bắt buộc."); return; }
     if (isCreate && (!form.username.trim() || form.password.length < 6)) {
       setSaveError("Tên đăng nhập bắt buộc và mật khẩu ≥ 6 ký tự."); return;
@@ -296,8 +448,9 @@ export function WinStaffAccount() {
 
     closeDialog();
     accountsRes.reload();
+    rolesRes.reload();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, isCreate, selectedAccountId, closeDialog, accountsRes]);
+  }, [form, isCreate, selectedAccountId, closeDialog, accountsRes, rolesRes]);
 
   // ── Toolbar handlers ──────────────────────────────────────────────────────
   const handleAdd = useCallback(() => {
@@ -382,9 +535,11 @@ export function WinStaffAccount() {
             />
           )}
           <TreeViewComponent
+            ref={roleTreeRef}
             key={`roles-tree-${roles.length}`}
             fields={treeFields}
             nodeSelected={handleTreeSelect}
+            nodeClicked={handleTreeSelect}
           />
         </div>
 
@@ -401,8 +556,8 @@ export function WinStaffAccount() {
           )}
           <div style={{ flex: 1, overflow: "hidden" }}>
             <GridComponent
-              key={`accounts-${roleId}-${accounts.length}`}
-              dataSource={accounts}
+              key={`accounts-${roleId}-${displayAccounts.length}`}
+              dataSource={displayAccounts}
               allowSorting
               allowFiltering
               filterSettings={{ type: "Menu" }}
@@ -451,83 +606,99 @@ export function WinStaffAccount() {
           <StatusBar
             left={
               <>
-                <span>{totalCount} tài khoản</span>
-                {!roleId && <span>· tất cả vai trò</span>}
+                <span>{displayCount} tài khoản</span>
+                {selectedRole ? (
+                  <span>· {selectedRole.name}</span>
+                ) : (
+                  <span>· tất cả vai trò</span>
+                )}
               </>
             }
           />
         </div>
       </div>
 
-      {/* Detail dialog */}
-      {dialogOpen && (
-        <DialogComponent
-          width="760px"
-          header={
-            isCreate
-              ? "Tạo tài khoản mới"
-              : `Chi tiết người dùng: ${form.fullName}`
-          }
-          visible={dialogOpen}
-          showCloseIcon
-          beforeClose={closeDialog}
-          isModal
-        >
-          {/* Dialog toolbar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 0",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <button className="tb-btn" onClick={handleSave}>
-              💾 Lưu
+      {/* Detail dialog — always mounted; Syncfusion breaks if wrapped in {open && ...} */}
+      <DialogComponent
+        width="760px"
+        cssClass="staff-account-dialog"
+        header={
+          isCreate
+            ? "Tạo tài khoản mới"
+            : `Chi tiết người dùng: ${form.fullName}`
+        }
+        visible={dialogOpen}
+        showCloseIcon
+        beforeClose={closeDialog}
+        isModal
+      >
+        {dialogOpen ? (
+          <div className="staff-account-dialog-body">
+          <div className="staff-account-dialog-toolbar">
+            <button type="button" className="tb-btn primary" onClick={handleSave}>
+              Lưu
             </button>
-            <button className="tb-btn" onClick={closeDialog}>
-              ↩ Bỏ qua
+            <button type="button" className="tb-btn" onClick={closeDialog}>
+              Bỏ qua
             </button>
             {!isCreate && (
-              <button className="tb-btn" onClick={handleResetPassword}>
-                🔑 Reset mật khẩu
+              <button type="button" className="tb-btn" onClick={openResetPassword}>
+                Reset mật khẩu
               </button>
             )}
             {!isCreate && currentIndex >= 0 && (
-              <span
-                style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
+              <div className="staff-account-dialog-nav" style={{ marginLeft: "auto" }}>
                 <button
+                  type="button"
                   className="tb-btn"
                   disabled={currentIndex <= 0}
                   onClick={() => gotoIndex(currentIndex - 1)}
                 >
-                  ◀
+                  Trước
                 </button>
                 <span>
-                  {currentIndex + 1} / {accounts.length}
+                  {currentIndex + 1} / {displayAccounts.length}
                 </span>
                 <button
+                  type="button"
                   className="tb-btn"
-                  disabled={currentIndex >= accounts.length - 1}
+                  disabled={currentIndex >= displayAccounts.length - 1}
                   onClick={() => gotoIndex(currentIndex + 1)}
                 >
-                  ▶
+                  Sau
                 </button>
-              </span>
+              </div>
             )}
           </div>
 
-          {/* Form body */}
-          <div style={{ display: "flex", gap: 16, padding: "12px 0" }}>
-            {/* Left — fields */}
-            <div style={{ flex: 1 }}>
+          {saveSuccess && (
+            <div className="staff-account-dialog-alert success">
+              <span>{saveSuccess}</span>
+              <button
+                type="button"
+                className="staff-account-dialog-alert-dismiss"
+                onClick={() => setSaveSuccess(null)}
+              >
+                Đóng
+              </button>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="staff-account-dialog-alert error">
+              <span>{saveError}</span>
+              <button
+                type="button"
+                className="staff-account-dialog-alert-dismiss"
+                onClick={() => setSaveError(null)}
+              >
+                Đóng
+              </button>
+            </div>
+          )}
+
+          <div className="staff-account-dialog-form">
+            <div className="staff-account-dialog-form-main">
               <Field label="Họ tên *">
                 <input
                   value={form.fullName}
@@ -572,7 +743,7 @@ export function WinStaffAccount() {
                   }
                 />
               </Field>
-              <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
+              <div className="staff-account-dialog-checks">
                 <label>
                   <input
                     type="checkbox"
@@ -580,7 +751,7 @@ export function WinStaffAccount() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, isActive: e.target.checked }))
                     }
-                  />{" "}
+                  />
                   Kích hoạt
                 </label>
                 <label>
@@ -590,95 +761,209 @@ export function WinStaffAccount() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, isLocked: e.target.checked }))
                     }
-                  />{" "}
+                  />
                   Khoá
                 </label>
               </div>
             </div>
 
-            {/* Right — role selector */}
-            <div
-              style={{
-                width: 220,
-                borderLeft: "1px solid var(--border)",
-                paddingLeft: 16,
-              }}
-            >
-              <div className="label">VAI TRÒ</div>
-              <DropDownListComponent
-                dataSource={roles.map((r) => ({ text: r.name, value: r.id }))}
-                fields={{ text: "text", value: "value" }}
-                value={form.roleId ?? undefined}
-                change={(e: DropDownChangeEventArgs) =>
-                  setForm((f) => ({ ...f, roleId: e.value as number }))
-                }
-              />
+            <div className="staff-account-dialog-form-side">
+              <Field label="Vai trò">
+                <DropDownListComponent
+                  dataSource={roles.map((r) => ({ text: r.name, value: r.id }))}
+                  fields={{ text: "text", value: "value" }}
+                  value={form.roleId ?? undefined}
+                  change={(e: DropDownChangeEventArgs) =>
+                    setForm((f) => ({ ...f, roleId: e.value as number }))
+                  }
+                />
+              </Field>
             </div>
           </div>
 
-          {saveError && (
-            <ErrorBar text={saveError} onRetry={() => setSaveError(null)} />
-          )}
-
-          {/* Phân quyền — 2 tab tách rõ */}
-          <div style={{ marginTop: 12, border: "1px solid var(--border-strong)", borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "stretch", background: "var(--accent-bg)", borderBottom: "1px solid var(--border-strong)" }}>
+          <div className="staff-account-dialog-perms">
+            <div className="staff-account-dialog-perms-tabs">
               {([
-                { key: "menu", label: "Truy cập trang (Module / Page)" },
-                { key: "perm", label: "Quyền chức năng (Permission)" },
+                { key: "menu", label: "Truy cập trang" },
+                { key: "perm", label: "Quyền chức năng" },
               ] as const).map(t => {
                 const on = bottomTab === t.key;
                 return (
                   <button
                     key={t.key}
+                    type="button"
+                    className={`staff-account-dialog-perms-tab${on ? " active" : ""}`}
                     onClick={() => setBottomTab(t.key)}
-                    style={{
-                      padding: "8px 16px", fontSize: 13, cursor: "pointer", border: "none",
-                      background: on ? "#fff" : "transparent",
-                      color: on ? "var(--accent)" : "#71717a",
-                      fontWeight: on ? 700 : 500,
-                      borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent",
-                    }}
                   >
                     {t.label}
                   </button>
                 );
               })}
-              <button className="tb-btn" style={{ marginLeft: "auto", alignSelf: "center", marginRight: 8 }} onClick={handleApplyRoleDefault}>
-                ⟳ Áp dụng mặc định theo vai trò
+              <div className="staff-account-dialog-toolbar-spacer" />
+              <button
+                type="button"
+                className="tb-btn"
+                style={{ alignSelf: "center", marginRight: 8 }}
+                onClick={handleApplyRoleDefault}
+              >
+                Áp dụng mặc định theo vai trò
               </button>
             </div>
 
-            <div style={{ padding: "6px 12px", fontSize: 11, color: "#71717a", background: "#fafafa", borderBottom: "1px solid var(--border)" }}>
+            <div className="staff-account-dialog-perms-hint">
               {bottomTab === "menu"
                 ? "Tick cả module để cấp toàn bộ trang trong đó, hoặc mở module ra tick từng trang. Dấu − = cấp một phần."
                 : "Tick cả nhóm để cấp toàn bộ quyền trong nhóm, hoặc mở nhóm ra tick từng quyền. Dấu − = cấp một phần."}
             </div>
 
-            <div style={{ maxHeight: 260, overflow: "auto", padding: 8 }}>
+            <div className="staff-account-dialog-perms-tree">
               {bottomTab === "menu" ? (
-                <TreeViewComponent
-                  key={`pagetree-${selectedAccountId}-${pageTreeVersion}`}
-                  ref={pageTreeRef}
-                  fields={{ dataSource: pageTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", expanded: "expanded", child: "child" as never }}
-                  showCheckBox
-                  autoCheck
-                  checkedNodes={pageTree.checked}
-                />
+                pageTree.nodes.length === 0 ? (
+                  <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
+                    {isCreate ? "Đang tải danh mục trang..." : "Không có dữ liệu trang."}
+                  </div>
+                ) : (
+                  <TreeViewComponent
+                    key={`pagetree-${selectedAccountId}-${pageTree.nodes.length}`}
+                    ref={pageTreeRef}
+                    cssClass="access-check-tree"
+                    fields={pageTreeFields}
+                    showCheckBox
+                    autoCheck
+                    loadOnDemand={false}
+                    fullRowSelect={false}
+                    checkedNodes={pageTree.checked}
+                  />
+                )
+              ) : permTree.nodes.length === 0 ? (
+                <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
+                  {isCreate ? "Đang tải danh mục quyền..." : "Không có dữ liệu quyền."}
+                </div>
               ) : (
                 <TreeViewComponent
-                  key={`permtree-${selectedAccountId}-${permTreeVersion}`}
+                  key={`permtree-${selectedAccountId}-${permTree.nodes.length}`}
                   ref={permTreeRef}
-                  fields={{ dataSource: permTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", expanded: "expanded", child: "child" as never }}
+                  cssClass="access-check-tree"
+                  fields={permTreeFields}
                   showCheckBox
                   autoCheck
+                  loadOnDemand={false}
+                  fullRowSelect={false}
                   checkedNodes={permTree.checked}
                 />
               )}
             </div>
           </div>
-        </DialogComponent>
-      )}
+
+          {resetPwdOpen && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100001,
+                background: "rgba(0,0,0,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onClick={closeResetPassword}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="reset-pwd-title"
+                style={{
+                  background: "#fff",
+                  borderRadius: 8,
+                  padding: "16px 20px",
+                  width: 400,
+                  maxWidth: "92vw",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                  border: "1px solid var(--border-strong)",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  id="reset-pwd-title"
+                  style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}
+                >
+                  Đặt lại mật khẩu
+                </div>
+                <p style={{ fontSize: 12, color: "var(--fg-muted)", margin: "0 0 12px" }}>
+                  Tài khoản: <strong>{form.username}</strong>
+                  {form.fullName ? ` — ${form.fullName}` : ""}
+                </p>
+                <Field label="Mật khẩu mới *">
+                  <input
+                    type="password"
+                    value={resetPwdForm.password}
+                    autoFocus
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    onChange={(e) =>
+                      setResetPwdForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                    placeholder="Tối thiểu 6 ký tự"
+                  />
+                </Field>
+                <Field label="Xác nhận mật khẩu *">
+                  <input
+                    type="password"
+                    value={resetPwdForm.confirm}
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    onChange={(e) =>
+                      setResetPwdForm((f) => ({ ...f, confirm: e.target.value }))
+                    }
+                    placeholder="Nhập lại mật khẩu mới"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !resetPwdSubmitting) {
+                        e.preventDefault();
+                        void submitResetPassword();
+                      }
+                    }}
+                  />
+                </Field>
+                {resetPwdError && (
+                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>
+                    {resetPwdError}
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    justifyContent: "flex-end",
+                    marginTop: 16,
+                    paddingTop: 12,
+                    borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="tb-btn"
+                    onClick={closeResetPassword}
+                    disabled={resetPwdSubmitting}
+                  >
+                    Huỷ
+                  </button>
+                  <button
+                    type="button"
+                    className="tb-btn primary"
+                    disabled={resetPwdSubmitting}
+                    onClick={() => void submitResetPassword()}
+                  >
+                    {resetPwdSubmitting ? "Đang lưu..." : "Xác nhận"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
+        ) : null}
+      </DialogComponent>
     </div>
   );
 }

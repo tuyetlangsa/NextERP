@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -64,6 +64,7 @@ export function WinTable() {
   const sel = list.find(t => t.id === selectedId) ?? null;
 
   const initSelectedRef = useRef(false);
+  const gridRef = useRef<GridComponent | null>(null);
   useEffect(() => {
     if (!initSelectedRef.current && list.length > 0) {
       initSelectedRef.current = true;
@@ -121,6 +122,21 @@ export function WinTable() {
     setBatchDraft(null);
     setErrorMsg(null);
   };
+
+  const syncGridSelection = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    if (selectedId === null) {
+      grid.clearSelection();
+      return;
+    }
+    const rowIndex = grid.getRowIndexByPrimaryKey(selectedId);
+    if (rowIndex >= 0) grid.selectRow(rowIndex);
+  }, [selectedId]);
+
+  useEffect(() => {
+    syncGridSelection();
+  }, [syncGridSelection, dataView]);
 
   const handleCreate = () => {
     const fallbackAreaId =
@@ -395,6 +411,7 @@ export function WinTable() {
           {tables.isOffline && <OfflineBar onRetry={() => tables.reload()} />}
           {tables.isApiError && <ErrorBar text={tables.error ?? ""} onRetry={() => tables.reload()} />}
           <GridComponent
+            ref={(g: GridComponent | null) => { gridRef.current = g; }}
             dataSource={dataView}
             allowSorting
             allowPaging
@@ -404,12 +421,12 @@ export function WinTable() {
             pageSettings={{ pageSize: 20 }}
             sortSettings={sortSettings}
             groupSettings={groupSettings}
+            dataBound={syncGridSelection}
             rowSelected={handleRowSelected}
-            selectedRowIndex={selectedId !== null ? dataView.findIndex(t => t.id === selectedId) : -1}
             height="100%"
           >
             <ColumnsDirective>
-              <ColumnDirective field="id" headerText="ID" width="70" textAlign="Right" />
+              <ColumnDirective field="id" headerText="ID" width="70" textAlign="Right" isPrimaryKey />
               <ColumnDirective field="code" headerText="Mã bàn" width="110" />
               <ColumnDirective field="seatCount" headerText="Số ghế" width="90" textAlign="Right" />
               <ColumnDirective field="counterName" headerText="Quầy" width="150" />
