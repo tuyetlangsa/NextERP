@@ -135,7 +135,7 @@ export function WinStaffAccount() {
   });
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  type CheckTree = { nodes: { id: string; text: string; child?: { id: string; text: string }[] }[]; checked: string[] };
+  type CheckTree = { nodes: { id: string; text: string; expanded?: boolean; child?: { id: string; text: string }[] }[]; checked: string[] };
   const [pageTree, setPageTree] = useState<CheckTree>({ nodes: [], checked: [] });
   const [permTree, setPermTree] = useState<CheckTree>({ nodes: [], checked: [] });
   const [pageTreeVersion, setPageTreeVersion] = useState(0);
@@ -198,7 +198,7 @@ export function WinStaffAccount() {
       if (!active || !res.isSuccess || !res.data) return;
       const checked: string[] = [];
       const nodes = res.data.modules.map(m => ({
-        id: `m-${m.code}`, text: m.name,
+        id: `m-${m.code}`, text: m.name, expanded: true,
         child: m.pages.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
       }));
       setPageTree({ nodes, checked });
@@ -208,7 +208,7 @@ export function WinStaffAccount() {
       if (!active || !res.isSuccess || !res.data) return;
       const checked: string[] = [];
       const nodes = res.data.groups.map(g => ({
-        id: `g-${g.code}`, text: g.name,
+        id: `g-${g.code}`, text: g.name, expanded: true,
         child: g.permissions.map(p => { if (p.granted) checked.push(p.code); return { id: p.code, text: p.name }; }),
       }));
       setPermTree({ nodes, checked });
@@ -620,32 +620,62 @@ export function WinStaffAccount() {
             <ErrorBar text={saveError} onRetry={() => setSaveError(null)} />
           )}
 
-          <div style={{ display: "flex", gap: 2, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
-            <button className={bottomTab === "menu" ? "tab-active" : "tab"} onClick={() => setBottomTab("menu")}>Menu — Module/Page</button>
-            <button className={bottomTab === "perm" ? "tab-active" : "tab"} onClick={() => setBottomTab("perm")}>Quyền chức năng</button>
-            <button className="tb-btn" style={{ marginLeft: "auto" }} onClick={handleApplyRoleDefault}>⟳ Áp dụng mặc định theo role</button>
-          </div>
+          {/* Phân quyền — 2 tab tách rõ */}
+          <div style={{ marginTop: 12, border: "1px solid var(--border-strong)", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "stretch", background: "var(--accent-bg)", borderBottom: "1px solid var(--border-strong)" }}>
+              {([
+                { key: "menu", label: "Truy cập trang (Module / Page)" },
+                { key: "perm", label: "Quyền chức năng (Permission)" },
+              ] as const).map(t => {
+                const on = bottomTab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setBottomTab(t.key)}
+                    style={{
+                      padding: "8px 16px", fontSize: 13, cursor: "pointer", border: "none",
+                      background: on ? "#fff" : "transparent",
+                      color: on ? "var(--accent)" : "#71717a",
+                      fontWeight: on ? 700 : 500,
+                      borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+              <button className="tb-btn" style={{ marginLeft: "auto", alignSelf: "center", marginRight: 8 }} onClick={handleApplyRoleDefault}>
+                ⟳ Áp dụng mặc định theo vai trò
+              </button>
+            </div>
 
-          <div style={{ maxHeight: 240, overflow: "auto" }}>
-            {bottomTab === "menu" ? (
-              <TreeViewComponent
-                key={`pagetree-${selectedAccountId}-${pageTreeVersion}`}
-                ref={pageTreeRef}
-                fields={{ dataSource: pageTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
-                showCheckBox
-                autoCheck
-                checkedNodes={pageTree.checked}
-              />
-            ) : (
-              <TreeViewComponent
-                key={`permtree-${selectedAccountId}-${permTreeVersion}`}
-                ref={permTreeRef}
-                fields={{ dataSource: permTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", child: "child" as never }}
-                showCheckBox
-                autoCheck
-                checkedNodes={permTree.checked}
-              />
-            )}
+            <div style={{ padding: "6px 12px", fontSize: 11, color: "#71717a", background: "#fafafa", borderBottom: "1px solid var(--border)" }}>
+              {bottomTab === "menu"
+                ? "Tick cả module để cấp toàn bộ trang trong đó, hoặc mở module ra tick từng trang. Dấu − = cấp một phần."
+                : "Tick cả nhóm để cấp toàn bộ quyền trong nhóm, hoặc mở nhóm ra tick từng quyền. Dấu − = cấp một phần."}
+            </div>
+
+            <div style={{ maxHeight: 260, overflow: "auto", padding: 8 }}>
+              {bottomTab === "menu" ? (
+                <TreeViewComponent
+                  key={`pagetree-${selectedAccountId}-${pageTreeVersion}`}
+                  ref={pageTreeRef}
+                  fields={{ dataSource: pageTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", expanded: "expanded", child: "child" as never }}
+                  showCheckBox
+                  autoCheck
+                  checkedNodes={pageTree.checked}
+                />
+              ) : (
+                <TreeViewComponent
+                  key={`permtree-${selectedAccountId}-${permTreeVersion}`}
+                  ref={permTreeRef}
+                  fields={{ dataSource: permTree.nodes as unknown as { [k: string]: object }[], id: "id", text: "text", expanded: "expanded", child: "child" as never }}
+                  showCheckBox
+                  autoCheck
+                  checkedNodes={permTree.checked}
+                />
+              )}
+            </div>
           </div>
         </DialogComponent>
       )}
