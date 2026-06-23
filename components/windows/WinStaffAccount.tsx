@@ -100,7 +100,17 @@ const CHECK_TREE_FIELDS: FieldsSettingsModel = {
   expanded: "expanded",
 };
 
+const EMPTY_ACCOUNTS: StaffAccountRow[] = [];
+
 export function WinStaffAccount() {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [dialogTarget, setDialogTarget] = useState<HTMLElement | null>(null);
+  const gridRef = useRef<GridComponent | null>(null);
+
+  const bindHostRef = useCallback((node: HTMLDivElement | null) => {
+    hostRef.current = node;
+    if (node) setDialogTarget(node);
+  }, []);
   // ── Resources ────────────────────────────────────────────────────────────
   const rolesRes = useResource(() => accessApi.listRoles());
   const roles = rolesRes.data?.roles ?? [];
@@ -120,7 +130,7 @@ export function WinStaffAccount() {
       }),
     { deps: [roleId, search] }
   );
-  const accounts = accountsRes.data?.items ?? [];
+  const accountItems = accountsRes.data?.items;
   const totalCount = accountsRes.data?.totalCount ?? 0;
 
   const selectedRole = useMemo(
@@ -130,9 +140,10 @@ export function WinStaffAccount() {
 
   // Client-side fallback when API returns unfiltered rows.
   const displayAccounts = useMemo(() => {
-    if (!selectedRole) return accounts;
-    return accounts.filter((a) => a.roleCode === selectedRole.code);
-  }, [accounts, selectedRole]);
+    if (!accountItems) return EMPTY_ACCOUNTS;
+    if (!selectedRole) return accountItems;
+    return accountItems.filter((a) => a.roleCode === selectedRole.code);
+  }, [accountItems, selectedRole]);
 
   const displayCount = selectedRole ? displayAccounts.length : totalCount;
 
@@ -270,11 +281,17 @@ export function WinStaffAccount() {
 
   const resolveCatalogAccountId = useCallback(async (): Promise<number | null> => {
     if (lastSelectedId) return lastSelectedId;
-    if (accounts[0]?.id) return accounts[0].id;
+    if (accountItems?.[0]?.id) return accountItems[0].id;
     const meRes = await authApi.me();
     if (meRes.isSuccess && meRes.data?.staffAccountId) return meRes.data.staffAccountId;
     return null;
-  }, [lastSelectedId, accounts]);
+  }, [lastSelectedId, accountItems]);
+
+  // Syncfusion modal on document.body collapses %-height grids behind it — refresh after overlay toggles.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => gridRef.current?.refresh());
+    return () => cancelAnimationFrame(id);
+  }, [dialogOpen, resetPwdOpen, displayAccounts]);
 
   useEffect(() => {
     if (selectedAccountId === null) return;
@@ -352,6 +369,14 @@ export function WinStaffAccount() {
     setSaveSuccess(null);
     setResetPwdOpen(false);
   }, []);
+
+  const handleDialogBeforeClose = useCallback(
+    (args: { cancel?: boolean }) => {
+      args.cancel = true;
+      closeDialog();
+    },
+    [closeDialog]
+  );
 
   const handleApplyRoleDefault = useCallback(async () => {
     const role = roles.find(r => r.id === form.roleId);
@@ -478,7 +503,7 @@ export function WinStaffAccount() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div ref={bindHostRef} style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* Toolbar */}
       <WinToolbar
         left={
@@ -554,9 +579,9 @@ export function WinStaffAccount() {
               onRetry={accountsRes.reload}
             />
           )}
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ flex: 1, overflow: "hidden", minHeight: 120 }}>
             <GridComponent
-              key={`accounts-${roleId}-${displayAccounts.length}`}
+              ref={gridRef}
               dataSource={displayAccounts}
               allowSorting
               allowFiltering
@@ -622,6 +647,7 @@ export function WinStaffAccount() {
       <DialogComponent
         width="760px"
         cssClass="staff-account-dialog"
+        target={dialogTarget ?? undefined}
         header={
           isCreate
             ? "Tạo tài khoản mới"
@@ -629,11 +655,11 @@ export function WinStaffAccount() {
         }
         visible={dialogOpen}
         showCloseIcon
-        beforeClose={closeDialog}
+        beforeClose={handleDialogBeforeClose}
         isModal
       >
         {dialogOpen ? (
-          <div className="staff-account-dialog-body">
+          <div className="staff-account-dialog-body" style={{ position: "relative" }}>
           <div className="staff-account-dialog-toolbar">
             <button type="button" className="tb-btn primary" onClick={handleSave}>
               Lưu
@@ -858,9 +884,9 @@ export function WinStaffAccount() {
           {resetPwdOpen && (
             <div
               style={{
-                position: "fixed",
+                position: "absolute",
                 inset: 0,
-                zIndex: 100001,
+                zIndex: 10,
                 background: "rgba(0,0,0,0.45)",
                 display: "flex",
                 alignItems: "center",
