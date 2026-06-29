@@ -20,6 +20,7 @@ const groupIconKey = (id: SubsystemGroup | "all") =>
   : id === "menu" ? "items"
   : id === "pricing" ? "pricing"
   : id === "system" ? "config"
+  : id === "reports" ? "reports" as const
   : "reports" as const;
 
 export function StartMenu({ open, onClose, onLaunch, accessiblePages }: Props) {

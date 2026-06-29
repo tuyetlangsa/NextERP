@@ -26,6 +26,7 @@ import { WinStock } from "@/components/windows/WinStock";
 import { WinStockMovement } from "@/components/windows/WinStockMovement";
 import { WinUomConversion } from "@/components/windows/WinUomConversion";
 import { WinStaffAccount } from "@/components/windows/WinStaffAccount";
+import { WinReports } from "@/components/windows/WinReports";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -45,6 +46,7 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinStockMovement,
   WinUomConversion,
   WinStaffAccount,
+  WinReports,
 };
 
 const fmtClock = (d: Date) =>

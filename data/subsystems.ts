@@ -28,7 +28,7 @@ export const subsystems: Subsystem[] = [
   { id: "schedule",  label: "Lịch làm việc tháng", description: "Manager · calendar + day detail", group: "system", showOnDesktop: true, win: null },
   { id: "config",    label: "Cấu hình nhà hàng", description: "Restaurant Profile",             group: "system",  win: null },
   // Reports
-  { id: "reports", label: "Báo cáo & Phân tích", description: "Doanh thu / Top bán",            group: "reports", win: null },
+  { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
   { id: "ai",      label: "AI Conversational",   description: "Chart-bound chat",               group: "reports", win: null },
 ];
 
