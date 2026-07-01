@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
+import { canSeeSubsystem } from "@/data/pageAccess";
+import { accessApi } from "@/lib/api/access";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
 import { StartMenu } from "./StartMenu";
@@ -23,6 +25,8 @@ import { WinShift } from "@/components/windows/WinShift";
 import { WinStock } from "@/components/windows/WinStock";
 import { WinStockMovement } from "@/components/windows/WinStockMovement";
 import { WinUomConversion } from "@/components/windows/WinUomConversion";
+import { WinStaffAccount } from "@/components/windows/WinStaffAccount";
+import { WinReports } from "@/components/windows/WinReports";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -41,6 +45,8 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinStock,
   WinStockMovement,
   WinUomConversion,
+  WinStaffAccount,
+  WinReports,
 };
 
 const fmtClock = (d: Date) =>
@@ -55,9 +61,23 @@ export function DesktopShell({ user }: { user: SessionUser }) {
   const [startOpen, setStartOpen] = useState(false);
   const [clock, setClock] = useState(new Date());
 
+  // Page-access: which subsystems this account may open. null = not loaded yet.
+  const [accessiblePages, setAccessiblePages] = useState<Set<string> | null>(null);
+
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    accessApi.myMenu().then(res => {
+      if (!active || !res.isSuccess || !res.data) return;
+      const pages = new Set<string>();
+      for (const m of res.data.modules) for (const p of m.pages) pages.add(p.code);
+      setAccessiblePages(pages);
+    });
+    return () => { active = false; };
   }, []);
 
   const launch = (def: Subsystem) => {
@@ -110,7 +130,12 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     return () => window.removeEventListener("nextErp:openSubsystem", onOpenSubsystem);
   }, []);
 
-  const desktopIcons = subsystems.filter(s => s.showOnDesktop);
+  // Real windows appear only once my-menu grants them; coming-soon teasers
+  // (win === null) always show. Empty set before load → real windows hidden.
+  const pageSet = accessiblePages ?? new Set<string>();
+  const desktopIcons = subsystems.filter(
+    s => s.showOnDesktop && canSeeSubsystem(s, pageSet),
+  );
 
   return (
     <div className="desktop">
@@ -167,7 +192,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         );
       })}
 
-      <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} />
+      <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} accessiblePages={pageSet} />
 
       <Taskbar
         windows={windows}

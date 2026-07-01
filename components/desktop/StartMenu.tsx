@@ -4,12 +4,14 @@ import { useState } from "react";
 import clsx from "clsx";
 import type { Subsystem, SubsystemGroup } from "@/types/domain";
 import { subsystems, subsystemGroups } from "@/data/subsystems";
+import { canSeeSubsystem } from "@/data/pageAccess";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onLaunch: (def: Subsystem) => void;
+  accessiblePages: Set<string>;
 }
 
 const groupIconKey = (id: SubsystemGroup | "all") =>
@@ -18,14 +20,16 @@ const groupIconKey = (id: SubsystemGroup | "all") =>
   : id === "menu" ? "items"
   : id === "pricing" ? "pricing"
   : id === "system" ? "config"
+  : id === "reports" ? "reports" as const
   : "reports" as const;
 
-export function StartMenu({ open, onClose, onLaunch }: Props) {
+export function StartMenu({ open, onClose, onLaunch, accessiblePages }: Props) {
   const [group, setGroup] = useState<SubsystemGroup | "all">("all");
   const [query, setQuery] = useState("");
   if (!open) return null;
 
   const items = subsystems.filter(s =>
+    canSeeSubsystem(s, accessiblePages) &&
     (group === "all" || s.group === group) &&
     (!query || s.label.toLowerCase().includes(query.toLowerCase()))
   );
