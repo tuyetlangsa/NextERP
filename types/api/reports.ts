@@ -113,6 +113,7 @@ export interface ShiftReportRow {
   actualClosingCash: number | null; variance: number | null;
   totalBills: number; totalRevenue: number;
   cashRevenue: number; qrRevenue: number;
+  totalReceive: number; totalPayment: number;
 }
 
 // ─── Ingredient Consumption (Tab 8) ───

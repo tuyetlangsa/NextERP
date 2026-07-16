@@ -53,23 +53,25 @@ export function DetailedRevenueTab({
 
   const data = revenueDetail.data;
 
-  if (!data) return null;
-
+  // All hooks run every render — guard on nullable `data`, early-return only afterwards.
   const cards: MetricCard[] = useMemo(
-    () => [
-      {
-        label: "Tổng hóa đơn",
-        value: data.summary.totalBills.toLocaleString("vi-VN"),
-      },
-      {
-        label: "Tổng doanh thu",
-        value: fmt(data.summary.totalRevenue) + "đ",
-      },
-      {
-        label: "TB / bill",
-        value: fmt(data.summary.averageBill) + "đ",
-      },
-    ],
+    () =>
+      data
+        ? [
+            {
+              label: "Tổng hóa đơn",
+              value: data.summary.totalBills.toLocaleString("vi-VN"),
+            },
+            {
+              label: "Tổng doanh thu",
+              value: fmt(data.summary.totalRevenue) + "đ",
+            },
+            {
+              label: "TB / bill",
+              value: fmt(data.summary.averageBill) + "đ",
+            },
+          ]
+        : [],
     [data],
   );
 
@@ -87,6 +89,8 @@ export function DetailedRevenueTab({
       setPageSize(args.pageSize);
     }
   }, []);
+
+  if (!data) return null;
 
   const isEmpty = !data.bills || data.bills.length === 0;
 

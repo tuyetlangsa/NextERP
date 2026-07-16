@@ -71,19 +71,23 @@ export function ItemSalesDetailTab({
     setPage((p) => p + 1);
   }, []);
 
+  // useMemo must run every render — keep it above the early return and guard on `data`.
+  const cards: MetricCard[] = useMemo(
+    () =>
+      data
+        ? [
+            { label: "Tổng hóa đơn", value: fmt(data.summary.totalBills) },
+            { label: "Mặt hàng đã bán", value: fmt(data.summary.totalItems) },
+            { label: "Tổng doanh thu", value: fmt(data.summary.totalRevenue) + "đ" },
+          ]
+        : [],
+    [data],
+  );
+
   if (!data) return null;
 
   const totalPages = Math.ceil(data.totalCount / pageSize);
   const isEmpty = !data.bills || data.bills.length === 0;
-
-  const cards: MetricCard[] = useMemo(
-    () => [
-      { label: "Tổng hóa đơn", value: fmt(data.summary.totalBills) },
-      { label: "Mặt hàng đã bán", value: fmt(data.summary.totalItems) },
-      { label: "Tổng doanh thu", value: fmt(data.summary.totalRevenue) + "đ" },
-    ],
-    [data],
-  );
 
   return (
     <div className="p-4 space-y-4">

@@ -54,41 +54,46 @@ export function RevenueTab({
 
   const data = revenue.data;
 
-  // Show nothing until loaded
-  if (!data) return null;
-
+  // Hooks must run every render — compute from a nullable `data` and guard the value,
+  // never place an early `return` before a hook (React 19 throws on hook-count changes).
   const cards: MetricCard[] = useMemo(
-    () => [
-      {
-        label: "Tổng doanh thu",
-        value: fmt(data.totalRevenue) + "đ",
-      },
-      {
-        label: "Tổng hóa đơn",
-        value: data.billCount.toLocaleString("vi-VN"),
-      },
-      {
-        label: "TB / bill",
-        value: fmt(data.averageBill) + "đ",
-      },
-      {
-        label: "TB / khách",
-        value: fmt(data.revenuePerGuest) + "đ",
-      },
-      {
-        label: "Tiền mặt / QR",
-        value:
-          data.cashRate.toFixed(0) + "% / " + data.qrRate.toFixed(0) + "%",
-        color: data.cashRate > 80 ? "amber" : undefined,
-      },
-      {
-        label: "Tỉ lệ giảm giá",
-        value: data.discountRate.toFixed(1) + "%",
-        color: data.discountRate > 15 ? "amber" : undefined,
-      },
-    ],
+    () =>
+      data
+        ? [
+            {
+              label: "Tổng doanh thu",
+              value: fmt(data.totalRevenue) + "đ",
+            },
+            {
+              label: "Tổng hóa đơn",
+              value: data.billCount.toLocaleString("vi-VN"),
+            },
+            {
+              label: "TB / bill",
+              value: fmt(data.averageBill) + "đ",
+            },
+            {
+              label: "TB / khách",
+              value: fmt(data.revenuePerGuest) + "đ",
+            },
+            {
+              label: "Tiền mặt / QR",
+              value:
+                data.cashRate.toFixed(0) + "% / " + data.qrRate.toFixed(0) + "%",
+              color: data.cashRate > 80 ? "amber" : undefined,
+            },
+            {
+              label: "Tỉ lệ giảm giá",
+              value: data.discountRate.toFixed(1) + "%",
+              color: data.discountRate > 15 ? "amber" : undefined,
+            },
+          ]
+        : [],
     [data],
   );
+
+  // Show nothing until loaded
+  if (!data) return null;
 
   const signPrefix = data.prevPeriodChangePct >= 0 ? "+" : "";
   const comparisonText = [

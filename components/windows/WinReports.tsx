@@ -9,6 +9,7 @@ import {
 import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { ReportToolbar } from "@/components/reports/ReportToolbar";
 import {
   ReportFilterBar,
@@ -94,6 +95,7 @@ export function WinReports() {
       <div className="flex-1 overflow-auto">
         {error && <ErrorBar text={error} onRetry={() => setError(null)} />}
         {loading && <LoadingBar text="Đang tải..." />}
+        <ErrorBoundary resetKey={activeTab}>
         {activeTab === 0 && (
           <RevenueTab filters={filterParams} onLoading={setLoading} onError={setError} />
         )}
@@ -134,6 +136,7 @@ export function WinReports() {
         {activeTab === 8 && (
           <StockAlertTab onLoading={setLoading} onError={setError} />
         )}
+        </ErrorBoundary>
       </div>
       <StatusBar left={<span>Sẵn sàng</span>} />
     </div>

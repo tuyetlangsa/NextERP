@@ -160,6 +160,20 @@ export function ShiftTab({
           textAlign="Right"
           format="N0"
         />
+        <ColumnDirective
+          field="totalReceive"
+          headerText="Phiếu thu"
+          width="110"
+          textAlign="Right"
+          format="N0"
+        />
+        <ColumnDirective
+          field="totalPayment"
+          headerText="Phiếu chi"
+          width="110"
+          textAlign="Right"
+          format="N0"
+        />
       </ColumnsDirective>
       <Inject services={[Page, Sort]} />
     </GridComponent>
