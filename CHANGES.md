@@ -4,6 +4,20 @@ Branch: `main`
 
 ---
 
+## 0. Service Charge per Area (`WinServiceCharge`) — 2026-07-19
+
+- **File**: `components/windows/WinServiceCharge.tsx` — window RIÊNG (không nhét vào WinArea).
+- Grid liệt kê mọi khu, **group theo Quầy** (counterName), cột Phí PV (%) + VAT phí (%) + Kích hoạt.
+- Panel phải: chỉnh 2 số cho khu đang chọn, validate `0..100`, Lưu → `PUT /api/areas/{id}/service-charge`.
+- Load: `GET /api/areas/service-charges`.
+- Đăng ký: `data/subsystems.ts` (`service-charge` → `win: "WinServiceCharge"`), `DesktopShell` WIN_REGISTRY. Page code `nexterp.service_charge` (đã bật seed ở BE).
+
+### Types & API
+- **Types**: `types/api/restaurant.ts` — `AreaServiceCharge`.
+- **Service**: `lib/api/restaurant.ts` — `areaServiceChargesApi.list()`, `.update()`; `ServiceChargeUpdate`, `ServiceChargeUpdateResult`.
+
+---
+
 ## 1. Set Menu Management (`WinSetMenu`)
 
 - **File**: `components/windows/WinSetMenu.tsx`

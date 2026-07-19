@@ -25,6 +25,18 @@ export interface Area {
   updatedAt: string;
 }
 
+/** GET /api/areas/service-charges — one row per area for the SC-per-area window. */
+export interface AreaServiceCharge {
+  areaId: number;
+  areaName: string;
+  counterId: number;
+  counterName: string;
+  displayOrder: number;
+  isActive: boolean;
+  serviceChargePercent: number;
+  serviceChargeVatPercent: number;
+}
+
 export type TableStatus = "AVAILABLE" | "OCCUPIED";
 
 export interface RestaurantTable {
