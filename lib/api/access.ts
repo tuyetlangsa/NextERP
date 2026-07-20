@@ -20,6 +20,13 @@ export const accessApi = {
 
   // roles + accounts
   listRoles: () => http.get<ListRolesResponse>("/api/access/roles"),
+  createRole: (body: { code: string; name: string; description?: string | null }) =>
+    http.post<{ id: number; code: string; name: string; description: string | null; isActive: boolean }>(
+      "/api/access/roles", body),
+  updateRole: (id: number, body: { name: string; description?: string | null }) =>
+    http.put<{ id: number; code: string; name: string; description: string | null; isActive: boolean }>(
+      `/api/access/roles/${id}`, body),
+  deleteRole: (id: number) => http.delete<null>(`/api/access/roles/${id}`),
   listAccounts: (params: { roleId?: number; search?: string; pageNumber?: number; pageSize?: number }) =>
     http.get<PagedStaffAccounts>("/api/access/staff-accounts", { params }),
   getAccount: (id: number) => http.get<StaffAccountDetail>(`/api/access/staff-accounts/${id}`),

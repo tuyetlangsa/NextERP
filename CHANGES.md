@@ -4,6 +4,15 @@ Branch: `main`
 
 ---
 
+## 0a. Custom-role CRUD in `WinStaffAccount` — 2026-07-20
+
+- Role panel (thanh trái) thêm mini-toolbar **+ Tạo / Sửa / Xoá** vai trò + dialog Mã/Tên/Mô tả.
+- System role bị **khoá**: nút Sửa/Xoá `disabled` khi role đang chọn là system (`isSystemRole`). Mã (Code) chỉ nhập lúc Tạo, khoá khi Sửa.
+- Xoá chặn client nếu `accountCount > 0` (nhắc chuyển tài khoản trước); BE cũng chặn (`Role.InUse`).
+- API: `accessApi.createRole/updateRole/deleteRole`; `RoleRow` thêm `description`.
+
+---
+
 ## 0. Service Charge per Area (`WinServiceCharge`) — 2026-07-19
 
 - **File**: `components/windows/WinServiceCharge.tsx` — window RIÊNG (không nhét vào WinArea).
