@@ -50,6 +50,7 @@ type ItemDraft = {
   hasRecipe: boolean;
   lowStockThreshold: number | null;
   kitchenStationId: number | null;
+  prepMinutes: number;
   isActive: boolean;
   categories: ItemCategoryInput[];
 };
@@ -135,6 +136,16 @@ function renderInfoTab(
             </option>
           ))}
         </select>
+      </Field>
+      <Field label="Thời gian nấu (phút)" required>
+        <input
+          type="number"
+          min={1}
+          max={600}
+          step={1}
+          value={draft.prepMinutes}
+          onChange={e => setDraft({ ...draft, prepMinutes: Number(e.target.value) })}
+        />
       </Field>
       <Field label="Quản kho">
         <input
@@ -480,6 +491,7 @@ export function WinItem() {
       hasRecipe: false,
       lowStockThreshold: null,
       kitchenStationId: null,
+      prepMinutes: 15,
       isActive: true,
       categories: categoryFilter ? [{ categoryId: categoryFilter, isMain: true }] : [],
     });
@@ -510,6 +522,7 @@ export function WinItem() {
         hasRecipe: d.hasRecipe,
         lowStockThreshold: d.lowStockThreshold,
         kitchenStationId: d.kitchenStationId,
+        prepMinutes: d.prepMinutes ?? 15,
         isActive: d.isActive,
         categories: d.categories.map(c => ({ categoryId: c.categoryId, isMain: c.isMain })),
       });
@@ -546,6 +559,7 @@ export function WinItem() {
       hasRecipe: draft.hasRecipe,
       lowStockThreshold: draft.isStockable ? draft.lowStockThreshold : null,
       kitchenStationId: draft.kitchenStationId,
+      prepMinutes: draft.prepMinutes,
       isActive: draft.isActive,
       categories: draft.categories,
     };
