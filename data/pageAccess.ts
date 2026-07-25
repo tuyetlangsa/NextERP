@@ -64,3 +64,26 @@ export function canSeeSubsystem(
   if (!code) return false;
   return accessiblePages.has(code);
 }
+
+/** Backend page `nexterp.schedule` is still commented out in AccessSeeder — grant
+ *  navigation when the account clearly manages shifts/staff or is Owner/Manager. */
+const SCHEDULE_NAV_FALLBACK_PAGES = ["nexterp.shifts", "nexterp.staff_accounts"] as const;
+const SCHEDULE_NAV_FALLBACK_ROLES = new Set(["OWNER", "MANAGER"]);
+
+export function augmentAccessiblePages(
+  pages: Set<string>,
+  roleCode?: string,
+): Set<string> {
+  const scheduleCode = SUBSYSTEM_PAGE_CODE.schedule;
+  if (!scheduleCode || pages.has(scheduleCode)) return pages;
+
+  const role = roleCode?.toUpperCase() ?? "";
+  const canSee =
+    SCHEDULE_NAV_FALLBACK_ROLES.has(role) ||
+    SCHEDULE_NAV_FALLBACK_PAGES.some(code => pages.has(code));
+  if (!canSee) return pages;
+
+  const next = new Set(pages);
+  next.add(scheduleCode);
+  return next;
+}

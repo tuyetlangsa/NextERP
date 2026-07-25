@@ -3,7 +3,7 @@ import {
   Users, CalendarClock, Settings, BarChart3, Sparkles, ChefHat, Ban,
   Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download, Upload,
   Search, Settings2, Pencil, Check,
-  HelpCircle, ChevronDown, ChevronRight, Folder, Package, ArrowLeftRight, Repeat,
+  HelpCircle, ChevronDown, ChevronRight, Folder, Package, ArrowLeftRight, Repeat, ArrowLeft, Copy,
   PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
 
@@ -60,4 +60,5 @@ export const ChromeIcons = {
   Search, Fn: Settings2, Edit: Pencil, Check,
   Help: HelpCircle, ChevronDown, ChevronRight, Folder,
   CollapseLeft: PanelLeftClose, OpenLeft: PanelLeftOpen,
+  Back: ArrowLeft, Copy,
 };

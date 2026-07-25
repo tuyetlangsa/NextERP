@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
-import { canSeeSubsystem } from "@/data/pageAccess";
+import { augmentAccessiblePages, canSeeSubsystem } from "@/data/pageAccess";
 import { accessApi } from "@/lib/api/access";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
@@ -27,6 +27,7 @@ import { WinStockMovement } from "@/components/windows/WinStockMovement";
 import { WinUomConversion } from "@/components/windows/WinUomConversion";
 import { WinStaffAccount } from "@/components/windows/WinStaffAccount";
 import { WinReports } from "@/components/windows/WinReports";
+import { WinSchedule } from "@/components/windows/WinSchedule";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -47,6 +48,7 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinUomConversion,
   WinStaffAccount,
   WinReports,
+  WinSchedule,
 };
 
 const fmtClock = (d: Date) =>
@@ -72,13 +74,15 @@ export function DesktopShell({ user }: { user: SessionUser }) {
   useEffect(() => {
     let active = true;
     accessApi.myMenu().then(res => {
-      if (!active || !res.isSuccess || !res.data) return;
-      const pages = new Set<string>();
-      for (const m of res.data.modules) for (const p of m.pages) pages.add(p.code);
-      setAccessiblePages(pages);
+      if (!active) return;
+      if (res.isSuccess && res.data) {
+        const pages = new Set<string>();
+        for (const m of res.data.modules) for (const p of m.pages) pages.add(p.code);
+        setAccessiblePages(augmentAccessiblePages(pages, user.roleCode));
+      }
     });
     return () => { active = false; };
-  }, []);
+  }, [user.roleCode]);
 
   const launch = (def: Subsystem) => {
     if (!def.win) return;
