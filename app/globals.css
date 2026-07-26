@@ -16,7 +16,7 @@
 @import "@syncfusion/ej2-schedule/styles/bootstrap5.css";
 
 /* ============================================================
-   RPOM ERP — Linear-style minimal mono (dark default)
+   RPOM Quản trị — Linear-style minimal mono (dark default)
    ============================================================ */
 :root {
   --bg: #18181b;
@@ -439,22 +439,6 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
 .e-grid .e-gridheader,
 .e-grid .e-gridcontent { border-color: var(--border-strong) !important; }
 
-/* List-pane grids: fixed header row height so headers/cells don't reflow on re-render */
-.data-list .e-grid .e-headercell {
-  height: 32px;
-  min-height: 32px;
-  max-height: 32px;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.data-list .e-grid .e-headercelldiv,
-.data-list .e-grid .e-headertext {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 32px;
-}
-
 /* ============ LOGIN ============ */
 .login {
   position: fixed; inset: 0;
@@ -602,7 +586,8 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
   font-weight: 500;
   font-size: var(--t-12);
   color: var(--fg-muted);
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.25;
   user-select: none;
 }
 .dgrid tbody td {
@@ -833,4 +818,142 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
 .e-treeview .e-list-item.e-active > .e-text-content .e-list-text,
 .e-treeview .e-list-item.e-active > .e-text-content .count {
   color: var(--row-selected-fg) !important;
+}
+
+/* Checkbox permission trees — expand icon tách khỏi checkbox, vẫn click được */
+.access-check-tree .e-list-item > .e-text-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.access-check-tree .e-list-item > .e-text-content .e-icons {
+  pointer-events: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.access-check-tree .e-list-item > .e-text-content .e-checkbox-wrapper {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+/* Staff account detail dialog */
+.staff-account-dialog .e-dlg-content {
+  padding: 0 !important;
+}
+.staff-account-dialog-body {
+  display: flex;
+  flex-direction: column;
+}
+.staff-account-dialog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.staff-account-dialog-toolbar-spacer {
+  flex: 1;
+}
+.staff-account-dialog-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.staff-account-dialog-alert {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.staff-account-dialog-alert.success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+.staff-account-dialog-alert.error {
+  background: #fee2e2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+.staff-account-dialog-alert-dismiss {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+.staff-account-dialog-form {
+  display: flex;
+  gap: 24px;
+  padding: 16px 20px;
+}
+.staff-account-dialog-form-main {
+  flex: 1;
+  min-width: 0;
+}
+.staff-account-dialog-form-side {
+  width: 200px;
+  flex-shrink: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+.staff-account-dialog-checks {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+}
+.staff-account-dialog-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-13);
+  cursor: pointer;
+}
+.staff-account-dialog-perms {
+  margin: 0 20px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.staff-account-dialog-perms-tabs {
+  display: flex;
+  align-items: stretch;
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--border-strong);
+}
+.staff-account-dialog-perms-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #71717a;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.staff-account-dialog-perms-tab.active {
+  background: #fff;
+  color: var(--accent);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
+}
+.staff-account-dialog-perms-hint {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #71717a;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border);
+}
+.staff-account-dialog-perms-tree {
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px 12px;
 }
