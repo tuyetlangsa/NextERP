@@ -36,6 +36,7 @@ export interface ItemUpsert {
   hasRecipe: boolean;
   lowStockThreshold?: number | null;
   kitchenStationId?: number | null;
+  prepMinutes: number;
   isActive: boolean;
   categories: ItemCategoryInput[];
 }
