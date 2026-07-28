@@ -20,7 +20,7 @@ export const subsystems: Subsystem[] = [
   // Pricing
   { id: "pricing",  label: "Bảng giá bán",     description: "Variant Time/Day/Area",            group: "pricing", showOnDesktop: true, win: "WinPricing" },
   { id: "discount", label: "Chính sách giảm giá", description: "Bill & Quantity-based", group: "pricing", showOnDesktop: true, win: "WinDiscountPolicy" },
-  { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: null },
+  { id: "service-charge", label: "Phí phục vụ", description: "Service charge theo Khu",         group: "pricing", showOnDesktop: true, win: "WinServiceCharge" },
   // System
   { id: "users",     label: "Quản lý tài khoản", description: "Vai trò, ma trận quyền",           group: "system",  showOnDesktop: true, win: "WinStaffAccount" },
   { id: "shifts",    label: "Danh sách ca",    description: "Khung giờ làm theo ngày",          group: "system",  showOnDesktop: true, win: "WinShift" },

@@ -6,6 +6,7 @@ import type {
   AreaMenuCategoriesReplaceRequest,
   AreaMenuCategoriesReplaceResult,
   AreaMenuCategoriesResponse,
+  AreaServiceCharge,
   Counter,
   RestaurantTable,
 } from "@/types/api/restaurant";
@@ -70,6 +71,24 @@ export const areasApi = {
   create: (body: AreaUpsert) => http.post<Area>("/api/areas", body),
   update: (id: number, body: AreaUpsert) => http.put<Area>(`/api/areas/${id}`, body),
   remove: (id: number) => http.delete<null>(`/api/areas/${id}`),
+};
+
+export interface ServiceChargeUpdate {
+  serviceChargePercent: number;
+  serviceChargeVatPercent: number;
+}
+
+export interface ServiceChargeUpdateResult {
+  areaId: number;
+  serviceChargePercent: number;
+  serviceChargeVatPercent: number;
+  updatedAt: string;
+}
+
+export const areaServiceChargesApi = {
+  list: () => http.get<AreaServiceCharge[]>("/api/areas/service-charges"),
+  update: (areaId: number, body: ServiceChargeUpdate) =>
+    http.put<ServiceChargeUpdateResult>(`/api/areas/${areaId}/service-charge`, body),
 };
 
 export const areaMenuCategoriesApi = {
