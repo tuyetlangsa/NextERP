@@ -74,6 +74,7 @@ export interface ItemDetail {
   lowStockThreshold: number | null;
   kitchenStationId: number | null;
   kitchenStationName: string | null;
+  prepMinutes: number | null;
   isActive: boolean;
   categories: ItemCategoryAssignment[];
   createdAt: string;

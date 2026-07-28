@@ -3,6 +3,7 @@ export interface RoleRow {
   id: number;
   code: string;
   name: string;
+  description: string | null;
   isSystemRole: boolean;
   accountCount: number;
 }

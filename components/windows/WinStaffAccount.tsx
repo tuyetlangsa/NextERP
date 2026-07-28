@@ -138,6 +138,71 @@ export function WinStaffAccount() {
     [roles, roleId]
   );
 
+  // ── Role CRUD (custom roles only; system roles are immutable) ──────────────
+  const [roleDialog, setRoleDialog] = useState<
+    { mode: "create" | "edit"; id: number | null; code: string; name: string; description: string } | null
+  >(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const canEditRole = selectedRole != null && !selectedRole.isSystemRole;
+
+  const openCreateRole = useCallback(() => {
+    setRoleError(null);
+    setRoleDialog({ mode: "create", id: null, code: "", name: "", description: "" });
+  }, []);
+
+  const openEditRole = useCallback(() => {
+    if (selectedRole == null || selectedRole.isSystemRole) return;
+    setRoleError(null);
+    setRoleDialog({
+      mode: "edit",
+      id: selectedRole.id,
+      code: selectedRole.code,
+      name: selectedRole.name,
+      description: selectedRole.description ?? "",
+    });
+  }, [selectedRole]);
+
+  const handleRoleSave = useCallback(async () => {
+    if (!roleDialog) return;
+    const name = roleDialog.name.trim();
+    if (!name) { setRoleError("Tên vai trò là bắt buộc."); return; }
+    const code = roleDialog.code.trim().toUpperCase();
+    if (roleDialog.mode === "create" && !/^[A-Z][A-Z0-9_]*$/.test(code)) {
+      setRoleError("Mã vai trò: CHỮ HOA, số và gạch dưới (vd: SHIFT_LEAD).");
+      return;
+    }
+    setRoleSaving(true);
+    setRoleError(null);
+    const description = roleDialog.description.trim() || null;
+    const res = roleDialog.mode === "create"
+      ? await accessApi.createRole({ code, name, description })
+      : await accessApi.updateRole(roleDialog.id!, { name, description });
+    if (res.isSuccess) {
+      setRoleDialog(null);
+      rolesRes.reload();
+    } else {
+      setRoleError(formatApiError(res));
+    }
+    setRoleSaving(false);
+  }, [roleDialog, rolesRes]);
+
+  const handleRoleDelete = useCallback(async () => {
+    if (selectedRole == null || selectedRole.isSystemRole) return;
+    if (selectedRole.accountCount > 0) {
+      window.alert(`Vai trò "${selectedRole.name}" đang gán cho ${selectedRole.accountCount} tài khoản — hãy chuyển các tài khoản này sang vai trò khác trước khi xoá.`);
+      return;
+    }
+    if (!window.confirm(`Xoá vai trò "${selectedRole.name}"?`)) return;
+    const res = await accessApi.deleteRole(selectedRole.id);
+    if (res.isSuccess) {
+      setRoleId(null);
+      rolesRes.reload();
+    } else {
+      window.alert(formatApiError(res));
+    }
+  }, [selectedRole, rolesRes]);
+
   // Client-side fallback when API returns unfiltered rows.
   const displayAccounts = useMemo(() => {
     if (!accountItems) return EMPTY_ACCOUNTS;
@@ -552,6 +617,38 @@ export function WinStaffAccount() {
             flexShrink: 0,
           }}
         >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 6px",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <strong style={{ fontSize: 11, flex: 1, color: "var(--fg-muted)" }}>VAI TRÒ</strong>
+            <button type="button" className="tb-btn" onClick={openCreateRole} title="Tạo vai trò mới">
+              + Tạo
+            </button>
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={openEditRole}
+              disabled={!canEditRole}
+              title={canEditRole ? "Sửa vai trò" : "Vai trò hệ thống không sửa được"}
+            >
+              Sửa
+            </button>
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={handleRoleDelete}
+              disabled={!canEditRole}
+              title={canEditRole ? "Xoá vai trò" : "Vai trò hệ thống không xoá được"}
+            >
+              Xoá
+            </button>
+          </div>
           {rolesRes.loading && <LoadingBar text="Đang tải vai trò..." />}
           {rolesRes.isApiError && (
             <ErrorBar
@@ -987,6 +1084,53 @@ export function WinStaffAccount() {
               </div>
             </div>
           )}
+          </div>
+        ) : null}
+      </DialogComponent>
+
+      <DialogComponent
+        width="420px"
+        target={dialogTarget ?? undefined}
+        header={roleDialog?.mode === "create" ? "Tạo vai trò" : "Sửa vai trò"}
+        visible={roleDialog !== null}
+        showCloseIcon
+        isModal
+        close={() => setRoleDialog(null)}
+      >
+        {roleDialog ? (
+          <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label="Mã vai trò" required>
+              <input
+                value={roleDialog.code}
+                disabled={roleDialog.mode === "edit"}
+                onChange={(e) => setRoleDialog({ ...roleDialog, code: e.target.value.toUpperCase() })}
+                placeholder="VD: SHIFT_LEAD"
+              />
+            </Field>
+            <Field label="Tên hiển thị" required>
+              <input
+                value={roleDialog.name}
+                onChange={(e) => setRoleDialog({ ...roleDialog, name: e.target.value })}
+              />
+            </Field>
+            <Field label="Mô tả">
+              <textarea
+                rows={2}
+                value={roleDialog.description}
+                onChange={(e) => setRoleDialog({ ...roleDialog, description: e.target.value })}
+              />
+            </Field>
+            {roleError && (
+              <div style={{ color: "var(--danger)", fontSize: 12, whiteSpace: "pre-wrap" }}>{roleError}</div>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+              <button type="button" className="tb-btn" onClick={() => setRoleDialog(null)} disabled={roleSaving}>
+                Bỏ qua
+              </button>
+              <button type="button" className="tb-btn primary" onClick={handleRoleSave} disabled={roleSaving}>
+                {roleSaving ? "Đang lưu…" : "Lưu"}
+              </button>
+            </div>
           </div>
         ) : null}
       </DialogComponent>
