@@ -34,6 +34,19 @@ const BUSINESS_ERROR_MESSAGES: Record<string, string> = {
   "StockMovement.ItemNotStockable": "Chỉ item có IsStockable mới có thể nhập/xuất kho",
   "StockMovement.InvalidUom": "Đơn vị không hợp lệ (phải là ĐVT cơ bản hoặc có quy đổi của item)",
   "StockMovement.QuantityNotPositive": "Số lượng phải lớn hơn 0",
+  "Schedule.NotFound": "Không tìm thấy lịch làm việc",
+  "Schedule.WeekNotMonday": "Ngày bắt đầu tuần phải là Thứ 2",
+  "Schedule.WeekNotFutureEnough": "Chỉ tạo được lịch cho tuần sau trở đi",
+  "Schedule.WeekAlreadyHasSchedule": "Tuần này đã có lịch (nháp hoặc đã đăng)",
+  "Schedule.TemplateNotFound": "Không tìm thấy mẫu lịch",
+  "Schedule.NotDraft": "Chỉ thao tác được trên lịch nháp",
+  "Schedule.PublishedEditTooLate": "Không sửa được ca đã đăng vì quá gần giờ làm",
+  "Schedule.ConcurrencyConflict": "Lịch đã thay đổi — vui lòng tải lại",
+  "ScheduleTemplate.NotFound": "Không tìm thấy mẫu lịch",
+  "ScheduleTemplate.DuplicateLine": "Trùng dòng (thứ + ca + vai trò) trong mẫu",
+  "ScheduleTemplate.InvalidShift": "Ca làm việc không tồn tại hoặc không hoạt động",
+  "ScheduleTemplate.InvalidRole": "Vai trò không tồn tại hoặc không hoạt động",
+  "ScheduleTemplate.IsAutoTemplate": "Không xoá được mẫu đang dùng cho tạo lịch tự động",
 };
 
 /**
