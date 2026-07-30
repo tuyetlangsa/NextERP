@@ -5,6 +5,7 @@ import type {
   CounterLookupItem,
   DenominationLookupItem,
   KitchenStationLookupItem,
+  ScheduleTemplateLookupItem,
   ShiftLookupItem,
 } from "@/types/api/restaurant";
 
@@ -14,4 +15,7 @@ export const lookupsApi = {
   getKitchenStations: () => http.get<KitchenStationLookupItem[]>("/api/lookups/kitchen-stations"),
   getShifts: () => http.get<ShiftLookupItem[]>("/api/lookups/shifts"),
   getDenominations: () => http.get<DenominationLookupItem[]>("/api/lookups/denominations"),
+  /** All templates (active + inactive). Active-only: scheduleApi.listTemplates(). */
+  getScheduleTemplates: () =>
+    http.get<ScheduleTemplateLookupItem[]>("/api/lookups/schedule-templates"),
 };

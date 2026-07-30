@@ -49,38 +49,67 @@ interface RpomProblemDetails {
 
 /**
  * Branch on payload shape:
- *  - `{ isSuccess: true, data }` → unwrap as SuccessResponse.
- *  - ProblemDetails → wrap as ErrorResponse with all PD fields populated.
+ *  - `{ isSuccess: true, data }` / `{ IsSuccess, Data }` → unwrap SuccessResponse.
+ *  - 2xx with a raw JSON body (array/object) that is not ProblemDetails → treat body as data
+ *    (covers endpoints that omit the ApiResult envelope).
+ *  - 2xx empty (204) → success with null data.
+ *  - ProblemDetails → ErrorResponse.
  */
 function normalize<T>(statusCode: number, raw: unknown): BaseResponse<T> {
-  if (raw && typeof raw === "object" && "isSuccess" in raw && (raw as RpomApiSuccessBody<T>).isSuccess) {
-    const body = raw as RpomApiSuccessBody<T>;
-    return {
-      isSuccess: true,
-      message: "",
-      data: body.data,
-      type: null,
-      title: null,
-      status: null,
-      detail: null,
-      extensions: null,
-      statusCode,
-    } satisfies SuccessResponse<T>;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const obj = raw as Record<string, unknown>;
+    const ok = obj.isSuccess === true || obj.IsSuccess === true;
+    if (ok) {
+      const data = (obj.data !== undefined ? obj.data : obj.Data) as T;
+      return {
+        isSuccess: true,
+        message: "",
+        data,
+        type: null,
+        title: null,
+        status: null,
+        detail: null,
+        extensions: null,
+        statusCode,
+      } satisfies SuccessResponse<T>;
+    }
   }
 
-  // 2xx with empty body (eg. 204 No Content from DELETE) — success without data.
   if (statusCode >= 200 && statusCode < 300) {
-    return {
-      isSuccess: true,
-      message: "",
-      data: null as unknown as T,
-      type: null,
-      title: null,
-      status: null,
-      detail: null,
-      extensions: null,
-      statusCode,
-    } satisfies SuccessResponse<T>;
+    // 204 / empty body
+    if (raw === null || raw === undefined || raw === "") {
+      return {
+        isSuccess: true,
+        message: "",
+        data: null as unknown as T,
+        type: null,
+        title: null,
+        status: null,
+        detail: null,
+        extensions: null,
+        statusCode,
+      } satisfies SuccessResponse<T>;
+    }
+
+    // Raw array/object payload (not ApiResult, not ProblemDetails)
+    const looksLikeProblem =
+      typeof raw === "object" &&
+      !Array.isArray(raw) &&
+      ("title" in (raw as object) || "detail" in (raw as object) || "status" in (raw as object));
+
+    if (!looksLikeProblem) {
+      return {
+        isSuccess: true,
+        message: "",
+        data: raw as T,
+        type: null,
+        title: null,
+        status: null,
+        detail: null,
+        extensions: null,
+        statusCode,
+      } satisfies SuccessResponse<T>;
+    }
   }
 
   const pd = (raw ?? {}) as RpomProblemDetails;

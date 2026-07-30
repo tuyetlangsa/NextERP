@@ -100,11 +100,23 @@ export interface ScheduleTemplateDetail {
   updatedAt: string;
 }
 
-export interface ScheduleTemplateUpsert {
+/** POST /api/schedule-templates — BE always creates with IsActive = true. */
+export interface ScheduleTemplateCreate {
   name: string;
   description?: string | null;
   lines: Omit<ScheduleTemplateLine, "id">[];
 }
+
+/** PUT /api/schedule-templates/{id} — name/description/isActive + full line set. */
+export interface ScheduleTemplateUpdate {
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  lines: Omit<ScheduleTemplateLine, "id">[];
+}
+
+/** @deprecated Prefer ScheduleTemplateCreate / ScheduleTemplateUpdate. */
+export type ScheduleTemplateUpsert = ScheduleTemplateCreate;
 
 export type SwapStatus =
   | "PENDING"

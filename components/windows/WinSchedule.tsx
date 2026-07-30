@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -17,6 +17,7 @@ import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { ScheduleGrid } from "@/components/schedule/ScheduleGrid";
+import { TemplatePanel } from "@/components/schedule/TemplatePanel";
 import { scheduleApi } from "@/lib/api/schedule";
 import { accessApi } from "@/lib/api/access";
 import { lookupsApi } from "@/lib/api/lookups";
@@ -25,7 +26,6 @@ import {
   formatIsoDate,
   nextMonday,
   parseIsoDate,
-  shortTime,
   startOfWeek,
   weekLabel,
 } from "@/lib/schedule/dates";
@@ -40,8 +40,6 @@ import {
   type ScheduleAssignmentRow,
   type ScheduleDetail,
   type ScheduleRow,
-  type ScheduleTemplateLine,
-  type ScheduleTemplateRow,
   type SwapRequestRow,
   type SwapStatus,
 } from "@/types/api/schedule";
@@ -49,17 +47,12 @@ import {
 ensureSyncfusionLicense();
 
 type MainTab = "schedules" | "templates" | "swaps";
-const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
-
-/** Dòng template trong form — id âm = dòng mới chưa lưu. */
-type TemplateLineDraft = ScheduleTemplateLine;
 
 export function WinSchedule() {
   const [tab, setTab] = useState<MainTab>("schedules");
   const [banner, setBanner] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [dialogTarget, setDialogTarget] = useState<HTMLElement | null>(null);
-  const tempLineId = useRef(-1);
 
   useEffect(() => setDialogTarget(document.body), []);
 
@@ -79,14 +72,6 @@ export function WinSchedule() {
   const shifts = shiftsRes.data ?? [];
   const roles = rolesRes.data?.roles ?? [];
   const swaps = swapsRes.data ?? [];
-
-  const shiftName = useCallback(
-    (shiftId: number) => {
-      const s = shifts.find(x => x.id === shiftId);
-      return s ? `${s.name} (${shortTime(s.beginTime)}-${shortTime(s.endTime)})` : `Ca #${shiftId}`;
-    },
-    [shifts],
-  );
 
   // ── Schedule detail ───────────────────────────────────────────────────────
   const [detail, setDetail] = useState<ScheduleDetail | null>(null);
@@ -258,131 +243,6 @@ export function WinSchedule() {
     await reloadDetail();
   };
 
-  // ── Template detail ───────────────────────────────────────────────────────
-  const [tplId, setTplId] = useState<number | null>(null);
-  const [isNewTemplate, setIsNewTemplate] = useState(false);
-  const [tplDraft, setTplDraft] = useState<{
-    name: string;
-    description: string;
-    lines: TemplateLineDraft[];
-  } | null>(null);
-
-  const defaultTemplateLine = useCallback((): TemplateLineDraft => {
-    tempLineId.current -= 1;
-    return {
-      id: tempLineId.current,
-      dayOfWeek: 1,
-      shiftId: shifts[0]?.id ?? 0,
-      roleId: roles[0]?.id ?? 0,
-      requiredCount: 1,
-    };
-  }, [shifts, roles]);
-
-  const openNewTemplate = () => {
-    setBanner(null);
-    setTplId(null);
-    setIsNewTemplate(true);
-    setTplDraft({
-      name: "",
-      description: "",
-      lines: shifts.length > 0 && roles.length > 0 ? [defaultTemplateLine()] : [],
-    });
-  };
-
-  const openTemplate = async (row: ScheduleTemplateRow) => {
-    setBanner(null);
-    setIsNewTemplate(false);
-    const res = await scheduleApi.getTemplate(row.id);
-    if (res.isSuccess) {
-      setTplId(res.data.id);
-      setTplDraft({
-        name: res.data.name,
-        description: res.data.description ?? "",
-        lines: res.data.lines,
-      });
-    } else {
-      setBanner({ kind: "error", text: formatApiError(res) });
-    }
-  };
-
-  const validateTemplateDraft = (): string | null => {
-    if (!tplDraft) return "Không có dữ liệu template.";
-    if (!tplDraft.name.trim()) return "Tên template là bắt buộc.";
-    if (tplDraft.lines.length === 0) return "Thêm ít nhất một dòng (thứ × ca × vai trò).";
-    if (shifts.length === 0) return "Chưa có ca làm việc — hãy tạo ca trước.";
-    if (roles.length === 0) return "Chưa có vai trò — hãy tạo vai trò trước.";
-    for (const line of tplDraft.lines) {
-      if (line.requiredCount < 1) return "Số người mỗi dòng phải ≥ 1.";
-      if (!shifts.some(s => s.id === line.shiftId)) return "Chọn ca hợp lệ cho mọi dòng.";
-      if (!roles.some(r => r.id === line.roleId)) return "Chọn vai trò hợp lệ cho mọi dòng.";
-    }
-    const keys = tplDraft.lines.map(l => `${l.dayOfWeek}|${l.shiftId}|${l.roleId}`);
-    if (new Set(keys).size !== keys.length) {
-      return "Không được trùng (thứ + ca + vai trò) trong cùng template.";
-    }
-    return null;
-  };
-
-  const templateUpsertBody = () => {
-    if (!tplDraft) throw new Error("no draft");
-    return {
-      name: tplDraft.name.trim(),
-      description: tplDraft.description.trim() || null,
-      lines: tplDraft.lines.map(({ dayOfWeek, shiftId, roleId, requiredCount }) => ({
-        dayOfWeek,
-        shiftId,
-        roleId,
-        requiredCount,
-      })),
-    };
-  };
-
-  const handleSaveTemplate = async () => {
-    if (!tplDraft) return;
-    const err = validateTemplateDraft();
-    if (err) {
-      setBanner({ kind: "error", text: err });
-      return;
-    }
-    setBusy(true);
-    const body = templateUpsertBody();
-    const creating = isNewTemplate;
-    const res = creating
-      ? await scheduleApi.createTemplate(body)
-      : await scheduleApi.updateTemplate(tplId!, body);
-    setBusy(false);
-    if (res.isSuccess) {
-      await templatesRes.reload();
-      setTplId(res.data.id);
-      setIsNewTemplate(false);
-      setTplDraft({
-        name: res.data.name,
-        description: res.data.description ?? "",
-        lines: res.data.lines,
-      });
-      setBanner({ kind: "info", text: creating ? "Đã tạo template." : "Đã lưu template." });
-    } else {
-      setBanner({ kind: "error", text: formatApiError(res) });
-    }
-  };
-
-  const handleDeleteTemplate = async () => {
-    if (tplId === null || isNewTemplate || !tplDraft) return;
-    if (!window.confirm(`Xoá template "${tplDraft.name}"?`)) return;
-    setBusy(true);
-    const res = await scheduleApi.deleteTemplate(tplId);
-    setBusy(false);
-    if (res.isSuccess) {
-      setTplId(null);
-      setTplDraft(null);
-      setIsNewTemplate(false);
-      await templatesRes.reload();
-      setBanner({ kind: "info", text: "Đã xoá template." });
-    } else {
-      setBanner({ kind: "error", text: formatApiError(res) });
-    }
-  };
-
   // ── Swap ──────────────────────────────────────────────────────────────────
   const [swapId, setSwapId] = useState<number | null>(null);
   const selectedSwap = swaps.find(s => s.id === swapId) ?? null;
@@ -446,90 +306,47 @@ export function WinSchedule() {
 
   return (
     <>
-      <WinToolbar
-        left={
-          <>
-            {tab === "schedules" && !detail && (
-              <TB icon={ChromeIcons.Plus} onClick={openCreate} kind="primary" disabled={busy}>
-                Tạo lịch mới
-              </TB>
-            )}
-            {tab === "schedules" && detail && (
-              <>
-                <TB icon={ChromeIcons.Back} onClick={() => setDetail(null)}>
-                  Danh sách lịch
+      {tab === "schedules" && (
+        <WinToolbar
+          left={
+            <>
+              {!detail && (
+                <TB icon={ChromeIcons.Plus} onClick={openCreate} kind="primary" disabled={busy}>
+                  Tạo lịch mới
                 </TB>
-                {isDraft && (
-                  <>
-                    <TB icon={ChromeIcons.Check} onClick={handlePublish} kind="primary" disabled={busy}>
-                      Đăng
-                    </TB>
-                    <TB icon={ChromeIcons.Trash} onClick={handleScrap} kind="danger" disabled={busy}>
-                      Huỷ nháp
-                    </TB>
-                  </>
-                )}
-                <TB
-                  icon={ChromeIcons.Copy}
-                  onClick={() => {
-                    setDupWeek(earliestWeek);
-                    setDialogError(null);
-                    setDupOpen(true);
-                  }}
-                  disabled={busy}
-                >
-                  Nhân bản lịch
-                </TB>
-              </>
-            )}
-            {tab === "templates" && !tplDraft && (
-              <TB icon={ChromeIcons.Plus} onClick={openNewTemplate} kind="primary" disabled={busy}>
-                Tạo template mới
-              </TB>
-            )}
-            {tab === "templates" && tplDraft && (
-              <>
-                <TB
-                  icon={ChromeIcons.Back}
-                  onClick={() => {
-                    setTplDraft(null);
-                    setTplId(null);
-                    setIsNewTemplate(false);
-                  }}
-                >
-                  Danh sách template
-                </TB>
-                <TB
-                  icon={ChromeIcons.Save}
-                  onClick={handleSaveTemplate}
-                  kind="primary"
-                  disabled={busy || !tplDraft.name.trim()}
-                >
-                  {isNewTemplate ? "Tạo template" : "Lưu template"}
-                </TB>
-                {!isNewTemplate && tplId !== null && (
-                  <TB icon={ChromeIcons.Trash} onClick={handleDeleteTemplate} kind="danger" disabled={busy}>
-                    Xoá template
+              )}
+              {detail && (
+                <>
+                  <TB icon={ChromeIcons.Back} onClick={() => setDetail(null)}>
+                    Danh sách lịch
                   </TB>
-                )}
-              </>
-            )}
-            <div className="tb-divider" />
-            <TB
-              icon={ChromeIcons.Refresh}
-              onClick={() => {
-                schedulesRes.reload();
-                templatesRes.reload();
-                swapsRes.reload();
-                reloadDetail();
-              }}
-            >
-              Làm mới
-            </TB>
-          </>
-        }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
-      />
+                  {isDraft && (
+                    <>
+                      <TB icon={ChromeIcons.Check} onClick={handlePublish} kind="primary" disabled={busy}>
+                        Đăng
+                      </TB>
+                      <TB icon={ChromeIcons.Trash} onClick={handleScrap} kind="danger" disabled={busy}>
+                        Huỷ nháp
+                      </TB>
+                    </>
+                  )}
+                  <TB
+                    icon={ChromeIcons.Copy}
+                    onClick={() => {
+                      setDupWeek(earliestWeek);
+                      setDialogError(null);
+                      setDupOpen(true);
+                    }}
+                    disabled={busy}
+                  >
+                    Nhân bản lịch
+                  </TB>
+                </>
+              )}
+            </>
+          }
+        />
+      )}
 
       <div className="cc-tabs">
         {(["schedules", "templates", "swaps"] as const).map(t => (
@@ -542,7 +359,7 @@ export function WinSchedule() {
               setBanner(null);
             }}
           >
-            {t === "schedules" ? "Lịch tuần" : t === "templates" ? "Template" : "Đơn đổi ca"}
+            {t === "schedules" ? "Lịch làm việc" : t === "templates" ? "Template" : "Đơn đổi ca"}
           </button>
         ))}
       </div>
@@ -553,7 +370,7 @@ export function WinSchedule() {
         {schedulesRes.isApiError && (
           <ErrorBar text={schedulesRes.error ?? ""} onRetry={() => schedulesRes.reload()} />
         )}
-        {banner && (
+        {banner && tab !== "templates" && (
           <div className={banner.kind === "error" ? "sched-error" : "sched-info"}>{banner.text}</div>
         )}
 
@@ -685,217 +502,12 @@ export function WinSchedule() {
           </div>
         )}
 
-        {tab === "templates" && !tplDraft && (
-          <div className="data-list sched-list">
-            <div className="grid-filterbar">
-              <strong style={{ fontSize: 13 }}>Template lịch tuần</strong>
-              <div className="tb-divider" />
-              <span style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-                Mỗi dòng = số người cần cho (thứ × ca × vai trò)
-              </span>
-            </div>
-            {templates.length === 0 && !templatesRes.loading && (
-              <div className="sched-info" style={{ margin: "8px 12px" }}>
-                Chưa có template — bấm &quot;Tạo template mới&quot; trước khi sinh lịch tuần.
-              </div>
-            )}
-            {templatesRes.loading && <LoadingBar text="Đang tải template..." />}
-            <GridComponent
-              dataSource={templates}
-              allowSorting
-              allowPaging
-              pageSettings={{ pageSize: 12 }}
-              rowSelected={(args: { data: ScheduleTemplateRow | ScheduleTemplateRow[] }) => {
-                const row = Array.isArray(args.data) ? args.data[0] : args.data;
-                if (row?.id) openTemplate(row);
-              }}
-              height="100%"
-            >
-              <ColumnsDirective>
-                <ColumnDirective field="name" headerText="Tên template" width="200" />
-                <ColumnDirective field="description" headerText="Mô tả" width="280" />
-                <ColumnDirective field="lineCount" headerText="Số dòng" width="100" textAlign="Right" />
-                <ColumnDirective field="isActive" headerText="Hoạt động" width="110" displayAsCheckBox />
-              </ColumnsDirective>
-              <Inject services={[Page, Sort]} />
-            </GridComponent>
-          </div>
-        )}
-
-        {tab === "templates" && tplDraft && (
-          <div className="sched-detail">
-            <div className="sched-form-row">
-              <Field label="Tên template" required>
-                <input
-                  value={tplDraft.name}
-                  onChange={e => setTplDraft({ ...tplDraft, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Mô tả">
-                <input
-                  value={tplDraft.description}
-                  onChange={e => setTplDraft({ ...tplDraft, description: e.target.value })}
-                />
-              </Field>
-            </div>
-            <div className="sched-tpl-toolbar">
-              <button
-                type="button"
-                className="tb-btn"
-                disabled={busy || shifts.length === 0 || roles.length === 0}
-                onClick={() => setTplDraft(prev => (prev ? { ...prev, lines: [...prev.lines, defaultTemplateLine()] } : prev))}
-              >
-                + Thêm dòng
-              </button>
-              <span className="sched-hint-inline">
-                {tplDraft.lines.length} dòng · backend yêu cầu số người ≥ 1
-              </span>
-            </div>
-            <div className="sched-grid-wrap">
-              <table className="sched-grid sched-tpl-table">
-                <thead>
-                  <tr>
-                    <th>Ngày</th>
-                    <th>Ca</th>
-                    <th>Vai trò</th>
-                    <th>Số người</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {tplDraft.lines.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="sched-empty-detail">
-                        Chưa có dòng — thêm ít nhất một dòng cấu hình.
-                      </td>
-                    </tr>
-                  )}
-                  {tplDraft.lines.map(line => (
-                    <tr key={line.id}>
-                      <td>
-                        <select
-                          value={line.dayOfWeek}
-                          onChange={e =>
-                            setTplDraft(prev =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    lines: prev.lines.map(l =>
-                                      l.id === line.id
-                                        ? { ...l, dayOfWeek: Number(e.target.value) }
-                                        : l,
-                                    ),
-                                  }
-                                : prev,
-                            )
-                          }
-                        >
-                          {DOW_LABELS.map((label, i) => (
-                            <option key={label} value={i + 1}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          value={line.shiftId}
-                          onChange={e =>
-                            setTplDraft(prev =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    lines: prev.lines.map(l =>
-                                      l.id === line.id
-                                        ? { ...l, shiftId: Number(e.target.value) }
-                                        : l,
-                                    ),
-                                  }
-                                : prev,
-                            )
-                          }
-                        >
-                          {shifts.map(s => (
-                            <option key={s.id} value={s.id}>
-                              {shiftName(s.id)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          value={line.roleId}
-                          onChange={e =>
-                            setTplDraft(prev =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    lines: prev.lines.map(l =>
-                                      l.id === line.id
-                                        ? { ...l, roleId: Number(e.target.value) }
-                                        : l,
-                                    ),
-                                  }
-                                : prev,
-                            )
-                          }
-                        >
-                          {roles.map(r => (
-                            <option key={r.id} value={r.id}>
-                              {r.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min={1}
-                          max={99}
-                          value={line.requiredCount}
-                          onChange={e =>
-                            setTplDraft(prev =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    lines: prev.lines.map(l =>
-                                      l.id === line.id
-                                        ? {
-                                            ...l,
-                                            requiredCount: Math.max(1, Number(e.target.value) || 1),
-                                          }
-                                        : l,
-                                    ),
-                                  }
-                                : prev,
-                            )
-                          }
-                          style={{ width: 64 }}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="sched-slot-clear"
-                          title="Xoá dòng"
-                          disabled={busy}
-                          onClick={() =>
-                            setTplDraft(prev =>
-                              prev
-                                ? { ...prev, lines: prev.lines.filter(l => l.id !== line.id) }
-                                : prev,
-                            )
-                          }
-                        >
-                          ×
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {tab === "templates" && (
+          <TemplatePanel
+            roles={roles}
+            onActiveTemplatesChanged={() => templatesRes.reload()}
+            onBanner={setBanner}
+          />
         )}
 
         {tab === "swaps" && (

@@ -6,9 +6,10 @@ import type {
   GenerateScheduleResponse,
   ScheduleDetail,
   ScheduleRow,
+  ScheduleTemplateCreate,
   ScheduleTemplateDetail,
   ScheduleTemplateRow,
-  ScheduleTemplateUpsert,
+  ScheduleTemplateUpdate,
   SwapRequestRow,
   SwapStatus,
 } from "@/types/api/schedule";
@@ -60,10 +61,10 @@ export const scheduleApi = {
   getTemplate: (id: number) =>
     http.get<ScheduleTemplateDetail>(`/api/schedule-templates/${id}`),
 
-  createTemplate: (body: ScheduleTemplateUpsert) =>
+  createTemplate: (body: ScheduleTemplateCreate) =>
     http.post<ScheduleTemplateDetail>("/api/schedule-templates", body),
 
-  updateTemplate: (id: number, body: ScheduleTemplateUpsert) =>
+  updateTemplate: (id: number, body: ScheduleTemplateUpdate) =>
     http.put<ScheduleTemplateDetail>(`/api/schedule-templates/${id}`, body),
 
   deleteTemplate: (id: number) =>

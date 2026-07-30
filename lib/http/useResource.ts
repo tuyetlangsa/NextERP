@@ -35,6 +35,8 @@ export function useResource<T>(
   const [isOffline, setIsOffline] = useState(false);
 
   const requestIdRef = useRef(0);
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
 
   const load = useCallback(async () => {
     const myRequestId = ++requestIdRef.current;
@@ -43,7 +45,7 @@ export function useResource<T>(
     setIsApiError(false);
     setIsOffline(false);
 
-    const res = await fetcher();
+    const res = await fetcherRef.current();
 
     // Drop response if a newer request has been fired in the meantime.
     if (myRequestId !== requestIdRef.current) return;

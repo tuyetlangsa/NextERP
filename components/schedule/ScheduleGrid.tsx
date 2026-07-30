@@ -2,12 +2,14 @@
 
 import { useMemo } from "react";
 import { shortTime, weekDays } from "@/lib/schedule/dates";
+import { normalizeShiftLookups } from "@/lib/schedule/normalizeShifts";
 import type { ScheduleAssignmentRow } from "@/types/api/schedule";
 import type { ShiftLookupItem } from "@/types/api/restaurant";
 
 interface Props {
   weekStartDate: string;
   assignments: ScheduleAssignmentRow[];
+  /** Rows of the grid = active shifts from GET /api/lookups/shifts */
   shifts: ShiftLookupItem[];
   readOnly?: boolean;
   emptyHint?: string;
@@ -23,22 +25,34 @@ interface ShiftGroup {
   endTime: string;
 }
 
-/** Hàng lưới = các ca thực có assignment, sắp theo giờ bắt đầu. */
+/** Hàng lưới = toàn bộ ca từ lookup; bổ sung ca chỉ có trong assignment (nếu thiếu). */
 function shiftGroups(
   assignments: ScheduleAssignmentRow[],
   shifts: ShiftLookupItem[],
 ): ShiftGroup[] {
+  const normalized = normalizeShiftLookups(shifts);
   const byId = new Map<number, ShiftGroup>();
+
+  for (const s of normalized) {
+    byId.set(s.id, {
+      shiftId: s.id,
+      shiftName: s.name,
+      beginTime: shortTime(s.beginTime),
+      endTime: shortTime(s.endTime),
+    });
+  }
+
   for (const a of assignments) {
     if (byId.has(a.shiftId)) continue;
-    const lookup = shifts.find(s => s.id === a.shiftId);
+    const lookup = normalized.find(s => s.id === a.shiftId);
     byId.set(a.shiftId, {
       shiftId: a.shiftId,
-      shiftName: a.shiftName,
+      shiftName: a.shiftName || lookup?.name || `Ca #${a.shiftId}`,
       beginTime: shortTime(lookup?.beginTime),
       endTime: shortTime(lookup?.endTime),
     });
   }
+
   return [...byId.values()].sort((x, y) => x.beginTime.localeCompare(y.beginTime));
 }
 
@@ -55,7 +69,6 @@ export function ScheduleGrid({
   const days = useMemo(() => weekDays(weekStartDate), [weekStartDate]);
   const rows = useMemo(() => shiftGroups(assignments, shifts), [assignments, shifts]);
 
-  // (shiftId|workDate) → assignments, giữ thứ tự vai trò do API trả về.
   const cells = useMemo(() => {
     const map = new Map<string, ScheduleAssignmentRow[]>();
     for (const a of assignments) {
@@ -71,7 +84,9 @@ export function ScheduleGrid({
     return (
       <div className="sched-grid-empty">
         {emptyHint ??
-          "Lịch này chưa có ô phân công nào — kiểm tra lại các dòng của template."}
+          (shifts.length === 0
+            ? "Chưa có ca làm việc — hãy tạo ca trong Danh sách ca."
+            : "Lịch này chưa có ô phân công nào — kiểm tra lại các dòng của template.")}
       </div>
     );
   }

@@ -63,7 +63,17 @@ export function formatDateLong(iso: string): string {
   return `${DOW_SHORT[d.getDay()]}, ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
-/** "09:00:00" → "09:00" */
-export function shortTime(value: string | undefined): string {
-  return value ? value.slice(0, 5) : "";
+/** "09:00:00" | "09:00" → "09:00". Accepts non-string TimeOnly payloads safely. */
+export function shortTime(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.length >= 5 ? value.slice(0, 5) : value;
+  if (typeof value === "object") {
+    const o = value as { hour?: number; minute?: number; Hours?: number; Minutes?: number };
+    const h = o.hour ?? o.Hours;
+    const m = o.minute ?? o.Minutes;
+    if (typeof h === "number" && typeof m === "number") {
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    }
+  }
+  return "";
 }
