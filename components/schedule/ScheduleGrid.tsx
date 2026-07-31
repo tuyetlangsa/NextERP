@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { shortTime, weekDays } from "@/lib/schedule/dates";
 import { normalizeShiftLookups } from "@/lib/schedule/normalizeShifts";
 import type { ScheduleAssignmentRow } from "@/types/api/schedule";
@@ -9,13 +9,11 @@ import type { ShiftLookupItem } from "@/types/api/restaurant";
 interface Props {
   weekStartDate: string;
   assignments: ScheduleAssignmentRow[];
-  /** Rows of the grid = active shifts from GET /api/lookups/shifts */
   shifts: ShiftLookupItem[];
   readOnly?: boolean;
   emptyHint?: string;
-  busyAssignmentId?: number | null;
-  onPickStaff?: (assignment: ScheduleAssignmentRow) => void;
-  onClearStaff?: (assignment: ScheduleAssignmentRow) => void;
+  /** Open shift-assign modal for a day × shift cell. */
+  onEditCell?: (shiftId: number, workDate: string, slots: ScheduleAssignmentRow[]) => void;
 }
 
 interface ShiftGroup {
@@ -25,7 +23,12 @@ interface ShiftGroup {
   endTime: string;
 }
 
-/** Hàng lưới = toàn bộ ca từ lookup; bổ sung ca chỉ có trong assignment (nếu thiếu). */
+interface RolePill {
+  roleId: number;
+  roleName: string;
+  count: number;
+}
+
 function shiftGroups(
   assignments: ScheduleAssignmentRow[],
   shifts: ShiftLookupItem[],
@@ -56,18 +59,27 @@ function shiftGroups(
   return [...byId.values()].sort((x, y) => x.beginTime.localeCompare(y.beginTime));
 }
 
+function rolePills(slots: ScheduleAssignmentRow[]): RolePill[] {
+  const map = new Map<number, RolePill>();
+  for (const s of slots) {
+    const cur = map.get(s.roleId);
+    if (cur) cur.count += 1;
+    else map.set(s.roleId, { roleId: s.roleId, roleName: s.roleName, count: 1 });
+  }
+  return [...map.values()];
+}
+
 export function ScheduleGrid({
   weekStartDate,
   assignments,
   shifts,
   readOnly,
   emptyHint,
-  busyAssignmentId,
-  onPickStaff,
-  onClearStaff,
+  onEditCell,
 }: Props) {
   const days = useMemo(() => weekDays(weekStartDate), [weekStartDate]);
   const rows = useMemo(() => shiftGroups(assignments, shifts), [assignments, shifts]);
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
 
   const cells = useMemo(() => {
     const map = new Map<string, ScheduleAssignmentRow[]>();
@@ -100,7 +112,7 @@ export function ScheduleGrid({
             {days.map(d => (
               <th key={d.iso} className="sched-day-head">
                 <span className="sched-dow">{d.label}</span>
-                <span className="sched-dom">{d.dayNum}</span>
+                <span className="sched-dom">{String(d.dayNum).padStart(2, "0")}</span>
               </th>
             ))}
           </tr>
@@ -117,51 +129,42 @@ export function ScheduleGrid({
                 )}
               </td>
               {days.map(d => {
-                const slots = cells.get(`${shift.shiftId}|${d.iso}`) ?? [];
+                const key = `${shift.shiftId}|${d.iso}`;
+                const slots = cells.get(key) ?? [];
+                const pills = rolePills(slots);
+                const isHover = hoverKey === key && slots.length > 0 && !readOnly;
+
                 return (
-                  <td key={`${shift.shiftId}-${d.iso}`} className="sched-cell">
-                    {slots.length === 0 && <span className="sched-empty">—</span>}
-                    {slots.map(slot => {
-                      const busy = busyAssignmentId === slot.id;
-                      return (
-                        <div key={slot.id} className="sched-slot">
-                          <span className="sched-slot-role">{slot.roleName}</span>
-                          {slot.staffAccountId === null ? (
+                  <td
+                    key={key}
+                    className={`sched-cell${isHover ? " is-hover" : ""}`}
+                    onMouseEnter={() => setHoverKey(key)}
+                    onMouseLeave={() => setHoverKey(prev => (prev === key ? null : prev))}
+                  >
+                    {slots.length === 0 ? (
+                      <span className="sched-empty">—</span>
+                    ) : (
+                      <>
+                        <div className={`sched-cell-pills${isHover ? " is-dimmed" : ""}`}>
+                          {pills.map(p => (
+                            <span key={p.roleId} className="sched-role-pill">
+                              {p.roleName}: {p.count}
+                            </span>
+                          ))}
+                        </div>
+                        {isHover && (
+                          <div className="sched-cell-actions">
                             <button
                               type="button"
-                              className="sched-slot-empty"
-                              disabled={readOnly || busy}
-                              onClick={() => onPickStaff?.(slot)}
+                              className="sched-cell-edit"
+                              onClick={() => onEditCell?.(shift.shiftId, d.iso, slots)}
                             >
-                              {busy ? "Đang lưu..." : "Trống — thêm nhân viên"}
+                              Sửa
                             </button>
-                          ) : (
-                            <span className="sched-slot-staff">
-                              <button
-                                type="button"
-                                className="sched-slot-name"
-                                disabled={readOnly || busy}
-                                onClick={() => onPickStaff?.(slot)}
-                                title="Đổi nhân viên"
-                              >
-                                {slot.staffFullName}
-                              </button>
-                              {!readOnly && (
-                                <button
-                                  type="button"
-                                  className="sched-slot-clear"
-                                  disabled={busy}
-                                  onClick={() => onClearStaff?.(slot)}
-                                  title="Bỏ trống ô này"
-                                >
-                                  ×
-                                </button>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </td>
                 );
               })}

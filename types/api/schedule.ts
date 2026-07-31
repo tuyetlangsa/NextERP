@@ -8,7 +8,7 @@ export type ScheduleStatus = "DRAFT" | "PUBLISHED" | "DELETED";
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   DRAFT: "Nháp",
   PUBLISHED: "Đã đăng",
-  DELETED: "Đã huỷ",
+  DELETED: "Đã xóa",
 };
 
 /** GET /api/schedules */
@@ -38,7 +38,7 @@ export interface ScheduleAssignmentRow {
 export type ScheduleGenerationType = "MANUAL" | "AUTO";
 
 export const GENERATION_TYPE_LABELS: Record<ScheduleGenerationType, string> = {
-  MANUAL: "Tạo thủ công",
+  MANUAL: "Thủ công",
   AUTO: "Tự động",
 };
 
@@ -63,12 +63,42 @@ export interface GenerateScheduleResponse {
   filledCount: number;
 }
 
-/** PUT /api/schedules/assignments/{id} — warnings are non-blocking. */
+/** PUT /api/schedules/assignments/{id} | POST /api/schedules/{id}/assignments — warnings are non-blocking. */
 export interface EditAssignmentResponse {
   assignmentId: number;
   staffAccountId: number | null;
   version: number;
-  warnings: string[];
+  warnings: AssignmentWarning[] | string[];
+}
+
+export interface AssignmentWarning {
+  code: string;
+  severity: string;
+  message: string;
+}
+
+/** GET /api/schedules/assignments/{id}/preview */
+export interface PreviewAssignmentResponse {
+  hasWarnings: boolean;
+  warnings: AssignmentWarning[];
+}
+
+/** PUT /api/schedules/{id}/assignments/batch */
+export interface BatchAssignmentItem {
+  assignmentId: number;
+  staffAccountId: number | null;
+  expectedVersion: number;
+}
+
+export interface BatchAssignmentItemResult {
+  assignmentId: number;
+  staffAccountId: number | null;
+  version: number;
+  warnings: AssignmentWarning[];
+}
+
+export interface BatchAssignmentResponse {
+  results: BatchAssignmentItemResult[];
 }
 
 /** GET /api/schedule-templates */

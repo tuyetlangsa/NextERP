@@ -41,6 +41,33 @@ export function weekLabel(weekStartDate: string): string {
   return `${DD_MM(s)} - ${DD_MM(e)}/${e.getFullYear()}`;
 }
 
+/** "08/07 - 14/07" (Figma week dropdown rows). */
+export function weekRangeShort(weekStartDate: string): string {
+  const s = parseIsoDate(weekStartDate);
+  const e = endOfWeek(s);
+  return `${DD_MM(s)} - ${DD_MM(e)}`;
+}
+
+/** "20/07/2026 - 26/07/2026" (Figma list / meta / trigger). */
+export function weekRangeLabel(weekStartDate: string): string {
+  const s = parseIsoDate(weekStartDate);
+  const e = endOfWeek(s);
+  const fmt = (d: Date) =>
+    `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  return `${fmt(s)} - ${fmt(e)}`;
+}
+
+/** Upcoming Mondays starting from nextMonday(from), for create/duplicate week pickers. */
+export function upcomingMondays(from: Date, count = 12): string[] {
+  let m = nextMonday(from);
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(formatIsoDate(m));
+    m = new Date(m.getFullYear(), m.getMonth(), m.getDate() + 7);
+  }
+  return out;
+}
+
 const DOW_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"] as const;
 
 /** Các ngày T2→CN của tuần, dùng làm cột lưới. */
