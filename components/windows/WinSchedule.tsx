@@ -59,7 +59,7 @@ export function WinSchedule() {
   const schedulesRes = useResource(() => scheduleApi.listSchedules());
   const templatesRes = useResource(() => scheduleApi.listTemplates());
   const shiftsRes = useResource(() => lookupsApi.getShifts());
-  const rolesRes = useResource(() => accessApi.listRoles());
+  const rolesRes = useResource(() => accessApi.listAssignableRoles());
 
   const [swapFilter, setSwapFilter] = useState<SwapStatus | "ALL">("ALL");
   const swapsRes = useResource(

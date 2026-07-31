@@ -9,6 +9,15 @@ export interface RoleRow {
 }
 export interface ListRolesResponse { roles: RoleRow[]; }
 
+/** Active roles for pickers (excludes MANAGER, ADMIN_VENDOR). GET /api/access/roles/assignable */
+export interface AssignableRoleRow {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+}
+export interface ListAssignableRolesResponse { roles: AssignableRoleRow[]; }
+
 // Account grid
 export interface StaffAccountRow {
   id: number;

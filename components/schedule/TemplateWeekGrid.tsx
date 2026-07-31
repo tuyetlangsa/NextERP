@@ -10,7 +10,7 @@ import {
   expandCellRoles,
   type TemplateRoleQty,
 } from "@/lib/schedule/templateCells";
-import type { RoleRow } from "@/types/api/access";
+import type { AssignableRoleRow } from "@/types/api/access";
 import type { ShiftLookupItem } from "@/types/api/restaurant";
 
 const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
@@ -18,7 +18,7 @@ const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
 interface Props {
   /** Rows = active shifts from GET /api/lookups/shifts */
   shifts: ShiftLookupItem[];
-  roles: RoleRow[];
+  roles: AssignableRoleRow[];
   cells: Map<string, TemplateRoleQty[]>;
   duplicateMode: boolean;
   sourceKey: string | null;
@@ -29,7 +29,7 @@ interface Props {
   onToggleTarget: (dayOfWeek: number, shiftId: number) => void;
 }
 
-function roleName(roles: RoleRow[], roleId: number): string {
+function roleName(roles: AssignableRoleRow[], roleId: number): string {
   return roles.find(r => r.id === roleId)?.name ?? `Role #${roleId}`;
 }
 

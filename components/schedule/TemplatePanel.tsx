@@ -31,7 +31,7 @@ import {
   linesToCellMap,
   type TemplateRoleQty,
 } from "@/lib/schedule/templateCells";
-import type { RoleRow } from "@/types/api/access";
+import type { AssignableRoleRow } from "@/types/api/access";
 import type { ScheduleTemplateLookupItem } from "@/types/api/restaurant";
 
 ensureSyncfusionLicense();
@@ -42,7 +42,7 @@ const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
 type Banner = { kind: "error" | "info"; text: string } | null;
 
 interface Props {
-  roles: RoleRow[];
+  roles: AssignableRoleRow[];
   /** Refresh active-only list used by "Tạo lịch" dialog (`GET /api/schedule-templates`). */
   onActiveTemplatesChanged?: () => Promise<unknown> | unknown;
   onBanner?: (banner: Banner) => void;
