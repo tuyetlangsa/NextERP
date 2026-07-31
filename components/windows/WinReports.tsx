@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useTransition } from "react";
 import {
   TabComponent,
   TabItemDirective,
@@ -57,6 +57,7 @@ export function WinReports() {
   const [ticketId, setTicketId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   const filterParams = useMemo(
     () => ({
@@ -82,7 +83,9 @@ export function WinReports() {
         selecting={(args: any) => {
           if (args.isSwiped) args.cancel = true;
         }}
-        selected={(args: any) => setActiveTab(args.selectedIndex)}
+        selected={useCallback((args: any) => {
+          startTransition(() => setActiveTab(args.selectedIndex));
+        }, [startTransition])}
       >
         <TabItemsDirective>
           {TAB_LABELS.map((label) => (
