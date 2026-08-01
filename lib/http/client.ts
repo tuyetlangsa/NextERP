@@ -9,7 +9,7 @@ import { getAccessToken, setAccessToken } from "./auth-storage";
 import type { BaseResponse, ErrorResponse, SuccessResponse } from "./types";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5000";
+  process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5080";
 
 export interface HttpOptions {
   token?: string | null;
