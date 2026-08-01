@@ -1712,8 +1712,15 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
   padding: 10px 12px;
   text-align: left;
   font-size: 13px;
-  border-bottom: 1px solid #eee;
+  border-right: 1px solid #e8e8e8;
+  border-bottom: 1px solid #e8e8e8;
   vertical-align: middle;
+}
+.sched-list-table tr > :first-child {
+  border-left: 1px solid #e8e8e8;
+}
+.sched-list-table thead th {
+  border-top: 1px solid #e8e8e8;
 }
 .sched-list-table th {
   position: sticky;

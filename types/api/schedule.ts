@@ -11,15 +11,22 @@ export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   DELETED: "Đã xóa",
 };
 
+export type ScheduleGenerationType = "MANUAL" | "AUTO";
+
+export const GENERATION_TYPE_LABELS: Record<ScheduleGenerationType, string> = {
+  MANUAL: "Thủ công",
+  AUTO: "Tự động",
+};
+
 /** GET /api/schedules */
 export interface ScheduleRow {
   id: number;
   weekStartDate: string;
   status: ScheduleStatus;
   publishedAt: string | null;
-  assignmentCount?: number;
-  filledCount?: number;
-  sourceTemplateName?: string | null;
+  generationType: ScheduleGenerationType;
+  sourceTemplateId: number | null;
+  sourceTemplateName: string | null;
 }
 
 /** One cell of the shift × Mon–Sun grid. `staffAccountId` null = ô trống. */
@@ -35,22 +42,15 @@ export interface ScheduleAssignmentRow {
   version: number;
 }
 
-export type ScheduleGenerationType = "MANUAL" | "AUTO";
-
-export const GENERATION_TYPE_LABELS: Record<ScheduleGenerationType, string> = {
-  MANUAL: "Thủ công",
-  AUTO: "Tự động",
-};
-
 /** GET /api/schedules/{id} */
 export interface ScheduleDetail {
   id: number;
   weekStartDate: string;
   status: ScheduleStatus;
   publishedAt: string | null;
-  sourceTemplateId?: number | null;
-  sourceTemplateName?: string | null;
-  generationType?: ScheduleGenerationType;
+  generationType: ScheduleGenerationType;
+  sourceTemplateId: number | null;
+  sourceTemplateName: string | null;
   assignments: ScheduleAssignmentRow[];
 }
 

@@ -31,10 +31,11 @@ import {
   startOfWeek,
   weekRangeLabel,
 } from "@/lib/schedule/dates";
-import { normalizeScheduleDetail } from "@/lib/schedule/normalize";
+import { normalizeScheduleDetail, normalizeScheduleList } from "@/lib/schedule/normalize";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
 import {
+  GENERATION_TYPE_LABELS,
   SCHEDULE_STATUS_LABELS,
   SWAP_STATUS_LABELS,
   type ScheduleAssignmentRow,
@@ -64,7 +65,10 @@ export function WinSchedule() {
     { deps: [swapFilter] },
   );
 
-  const schedules = schedulesRes.data ?? [];
+  const schedules = useMemo(
+    () => normalizeScheduleList(schedulesRes.data ?? []),
+    [schedulesRes.data],
+  );
   const templates = templatesRes.data ?? [];
   const shifts = shiftsRes.data ?? [];
   const roles = rolesRes.data?.roles ?? [];
@@ -220,7 +224,10 @@ export function WinSchedule() {
   };
 
   const isDraft = detail?.status === "DRAFT";
-  const sourceTemplateName = detail?.sourceTemplateName ?? "—";
+  const sourceTemplateName = detail?.sourceTemplateName?.trim() || "—";
+  const generationLabel = detail?.generationType
+    ? GENERATION_TYPE_LABELS[detail.generationType]
+    : "—";
 
   useEffect(() => {
     // Reset assign modal when leaving detail
@@ -281,6 +288,16 @@ export function WinSchedule() {
               <div>
                 <span className="k">Mẫu template</span>
                 <span>{sourceTemplateName}</span>
+              </div>
+              <div>
+                <span className="k">Loại</span>
+                {detail.generationType ? (
+                  <span className={`sched-type-pill type-${detail.generationType.toLowerCase()}`}>
+                    {generationLabel}
+                  </span>
+                ) : (
+                  <span>—</span>
+                )}
               </div>
               <div>
                 <span className="k">Trạng thái</span>

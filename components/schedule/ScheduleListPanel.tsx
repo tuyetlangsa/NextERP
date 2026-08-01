@@ -85,7 +85,7 @@ export function ScheduleListPanel({
                   <tr key={row.id}>
                     <td>{row.id}</td>
                     <td>{weekRangeLabel(row.weekStartDate)}</td>
-                    <td>{row.sourceTemplateName ?? "—"}</td>
+                    <td>{row.sourceTemplateName?.trim() || "—"}</td>
                     <td>
                       <span className={`sched-status-pill status-${row.status.toLowerCase()}`}>
                         <span className="sched-status-dot" aria-hidden />
@@ -93,13 +93,9 @@ export function ScheduleListPanel({
                       </span>
                     </td>
                     <td>
-                      {row.generationType ? (
-                        <span className={`sched-type-pill type-${row.generationType.toLowerCase()}`}>
-                          {GENERATION_TYPE_LABELS[row.generationType]}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
+                      <span className={`sched-type-pill type-${row.generationType.toLowerCase()}`}>
+                        {GENERATION_TYPE_LABELS[row.generationType]}
+                      </span>
                     </td>
                     <td>{publishedDateText(row.publishedAt)}</td>
                     <td className="sched-col-actions">
