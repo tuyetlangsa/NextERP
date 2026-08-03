@@ -31,6 +31,7 @@ import { WinReports } from "@/components/windows/WinReports";
 import { WinSchedule } from "@/components/windows/WinSchedule";
 import { WinConfig } from "@/components/windows/WinConfig";
 import { WinAiAssistant } from "@/components/windows/WinAiAssistant";
+import { AiAssistantDock } from "@/components/ai/AiAssistantDock";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -214,6 +215,8 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         user={{ username: user.username, roleCode: user.roleCode }}
         clock={clock}
       />
+
+      <AiAssistantDock />
     </div>
   );
 }

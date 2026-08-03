@@ -29,7 +29,7 @@ export const subsystems: Subsystem[] = [
   { id: "config",    label: "Cấu hình nhà hàng", description: "Cấu hình hệ thống, làm tròn, hóa đơn, email", group: "system", showOnDesktop: true, win: "WinConfig" },
   // Reports
   { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
-  { id: "ai",      label: "Trợ lý AI",           description: "Hỏi đáp doanh thu + biểu đồ",    group: "reports", showOnDesktop: true, win: "WinAiAssistant" },
+  { id: "ai",      label: "Trợ lý AI",           description: "Hỏi đáp doanh thu + biểu đồ",    group: "reports", showOnDesktop: false, win: "WinAiAssistant" },
 ];
 
 export const subsystemGroups: { id: SubsystemGroup | "all"; label: string }[] = [

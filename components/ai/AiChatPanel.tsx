@@ -11,7 +11,7 @@ interface Turn {
   visualizations?: ChatVisualization[];
 }
 
-export function AiChatPanel() {
+export function AiChatPanel({ suggestions = [] }: { suggestions?: string[] }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,6 +37,20 @@ export function AiChatPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto p-3 space-y-3">
+        {turns.length === 0 && suggestions.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs text-gray-400">Gợi ý câu hỏi:</div>
+            {suggestions.map((q) => (
+              <button
+                key={q}
+                onClick={() => { setInput(q); }}
+                className="block w-full text-left text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-gray-50"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {turns.map((turn, i) => (
           <div key={i} className={turn.role === "user" ? "text-right" : "text-left"}>
             <div className={`inline-block max-w-[90%] rounded-lg px-3 py-2 text-sm ${
