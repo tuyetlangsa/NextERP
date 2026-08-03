@@ -4,6 +4,8 @@ export interface ChatVisualization {
   chartType?: "line" | "bar" | "pie" | "area";
   xField?: string;
   series?: { name: string; field: string }[];
+  columns?: { field: string; header: string; format?: "money" | "number" | "percent" | "date" }[];
+  metrics?: { label: string; value: string; unit?: string }[];
   data?: Record<string, unknown>[];
 }
 
