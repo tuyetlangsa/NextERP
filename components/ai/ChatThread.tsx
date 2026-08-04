@@ -2,6 +2,7 @@
 
 import type { ChatTurn } from "@/components/ai/useAiChat";
 import { VisualizationRenderer } from "@/components/ai/VisualizationRenderer";
+import { Markdown } from "@/components/ai/Markdown";
 
 export function ChatThread({
   turns,
@@ -38,11 +39,11 @@ export function ChatThread({
         {turns.map((turn, i) => (
           <div key={i} className={turn.role === "user" ? "text-right" : "text-left"}>
             <div
-              className={`inline-block max-w-[90%] rounded-lg px-3 py-2 text-sm ${
+              className={`inline-block max-w-[90%] rounded-lg px-3 py-2 text-sm text-left ${
                 turn.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
               }`}
             >
-              {turn.text}
+              {turn.role === "user" ? turn.text : <Markdown text={turn.text} />}
             </div>
             {turn.visualizations?.map((v, j) => <VisualizationRenderer key={j} viz={v} />)}
           </div>
