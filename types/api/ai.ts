@@ -14,3 +14,22 @@ export interface SendChatResponse {
   narrative: string;
   visualizations: ChatVisualization[];
 }
+
+export interface ConversationSummary {
+  id: number;
+  title: string | null;
+  messageCount: number;
+  updatedAt: string;
+}
+
+export interface ConversationTurn {
+  role: "USER" | "ASSISTANT";
+  content: string;
+  visualizations: ChatVisualization[] | null;
+}
+
+export interface ConversationDetail {
+  conversationId: number;
+  title: string | null;
+  turns: ConversationTurn[];
+}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { aiApi } from "@/lib/api/ai";
-import type { ChatVisualization } from "@/types/api/ai";
+import type { ChatVisualization, ConversationSummary } from "@/types/api/ai";
 import { VisualizationRenderer } from "@/components/ai/VisualizationRenderer";
 
 interface Turn {
@@ -16,6 +16,10 @@ export function AiChatPanel({ suggestions = [] }: { suggestions?: string[] }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [conversationId, setConversationId] = useState<number | undefined>();
+
+  const [showList, setShowList] = useState(false);
+  const [sessions, setSessions] = useState<ConversationSummary[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
   const send = async () => {
     const message = input.trim();
@@ -34,8 +38,82 @@ export function AiChatPanel({ suggestions = [] }: { suggestions?: string[] }) {
     }
   };
 
+  const startNew = () => {
+    setTurns([]);
+    setConversationId(undefined);
+    setShowList(false);
+  };
+
+  const openSession = async (id: number) => {
+    const res = await aiApi.getConversation(id);
+    if (res.isSuccess && res.data) {
+      const data = res.data;
+      setTurns(
+        data.turns.map((turn) => ({
+          role: turn.role === "USER" ? "user" : "ai",
+          text: turn.content,
+          visualizations: turn.visualizations ?? undefined,
+        }))
+      );
+      setConversationId(data.conversationId);
+    }
+    setShowList(false);
+  };
+
+  const toggleList = async () => {
+    const next = !showList;
+    setShowList(next);
+    if (next) {
+      setLoadingSessions(true);
+      const res = await aiApi.listConversations();
+      setLoadingSessions(false);
+      if (res.isSuccess && res.data) {
+        setSessions(res.data);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 border-b border-gray-200 px-2 py-1.5">
+        <button
+          onClick={startNew}
+          className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50"
+        >
+          + Mới
+        </button>
+        <button
+          onClick={toggleList}
+          className={`px-2 py-1 text-xs border rounded hover:bg-gray-50 ${
+            showList ? "border-blue-400 text-blue-600 bg-blue-50" : "border-gray-200"
+          }`}
+        >
+          Lịch sử
+        </button>
+      </div>
+
+      {showList && (
+        <div className="max-h-40 overflow-auto border-b border-gray-200">
+          {loadingSessions && <div className="p-2 text-xs text-gray-400">Đang tải…</div>}
+          {!loadingSessions && sessions.length === 0 && (
+            <div className="p-2 text-xs text-gray-400">Chưa có phiên chat nào.</div>
+          )}
+          {!loadingSessions &&
+            sessions.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => openSession(s.id)}
+                className={`block w-full text-left px-3 py-1.5 text-xs border-b border-gray-100 hover:bg-gray-50 ${
+                  s.id === conversationId ? "bg-blue-50" : ""
+                }`}
+              >
+                <div className="truncate font-medium text-gray-800">{s.title ?? "(không tiêu đề)"}</div>
+                <div className="text-gray-400">{new Date(s.updatedAt).toLocaleString("vi-VN")}</div>
+              </button>
+            ))}
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto p-3 space-y-3">
         {turns.length === 0 && suggestions.length > 0 && (
           <div className="space-y-2">
