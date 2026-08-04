@@ -31,6 +31,7 @@ import { WinReports } from "@/components/windows/WinReports";
 import { WinSchedule } from "@/components/windows/WinSchedule";
 import { WinConfig } from "@/components/windows/WinConfig";
 import { WinAiAssistant } from "@/components/windows/WinAiAssistant";
+import { WinAiKnowledge } from "@/components/windows/WinAiKnowledge";
 import { AiAssistantDock } from "@/components/ai/AiAssistantDock";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
@@ -56,6 +57,7 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinSchedule,
   WinConfig,
   WinAiAssistant,
+  WinAiKnowledge,
 };
 
 const fmtClock = (d: Date) =>

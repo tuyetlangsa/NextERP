@@ -33,3 +33,24 @@ export interface ConversationDetail {
   title: string | null;
   turns: ConversationTurn[];
 }
+
+export interface KnowledgeSummary {
+  id: number;
+  title: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface KnowledgeDetail {
+  id: number;
+  title: string;
+  content: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface KnowledgeUpsert {
+  title: string;
+  content: string;
+  isActive: boolean;
+}

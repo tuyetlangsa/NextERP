@@ -30,6 +30,7 @@ export const subsystems: Subsystem[] = [
   // Reports
   { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
   { id: "ai",      label: "Trợ lý AI",           description: "Chat phân tích doanh thu, tồn kho, quỹ — toàn màn hình", group: "reports", showOnDesktop: true, win: "WinAiAssistant" },
+  { id: "ai-knowledge", label: "Tri thức nghiệp vụ", description: "Nhập quy trình/nghiệp vụ cho Trợ lý AI", group: "reports", showOnDesktop: true, win: "WinAiKnowledge" },
 ];
 
 export const subsystemGroups: { id: SubsystemGroup | "all"; label: string }[] = [
