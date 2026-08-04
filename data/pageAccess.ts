@@ -70,20 +70,33 @@ export function canSeeSubsystem(
 const SCHEDULE_NAV_FALLBACK_PAGES = ["nexterp.shifts", "nexterp.staff_accounts"] as const;
 const SCHEDULE_NAV_FALLBACK_ROLES = new Set(["OWNER", "MANAGER"]);
 
+/** Backend page `nexterp.ai` is not seeded yet — grant AI-assistant navigation to
+ *  Owner/Manager (AI endpoints are still gated by the `ai:ask` permission server-side). */
+const AI_NAV_FALLBACK_ROLES = new Set(["OWNER", "MANAGER"]);
+
 export function augmentAccessiblePages(
   pages: Set<string>,
   roleCode?: string,
 ): Set<string> {
-  const scheduleCode = SUBSYSTEM_PAGE_CODE.schedule;
-  if (!scheduleCode || pages.has(scheduleCode)) return pages;
-
   const role = roleCode?.toUpperCase() ?? "";
-  const canSee =
-    SCHEDULE_NAV_FALLBACK_ROLES.has(role) ||
-    SCHEDULE_NAV_FALLBACK_PAGES.some(code => pages.has(code));
-  if (!canSee) return pages;
+  let next = pages;
 
-  const next = new Set(pages);
-  next.add(scheduleCode);
+  const scheduleCode = SUBSYSTEM_PAGE_CODE.schedule;
+  if (scheduleCode && !next.has(scheduleCode)) {
+    const canSee =
+      SCHEDULE_NAV_FALLBACK_ROLES.has(role) ||
+      SCHEDULE_NAV_FALLBACK_PAGES.some(code => next.has(code));
+    if (canSee) {
+      next = new Set(next);
+      next.add(scheduleCode);
+    }
+  }
+
+  const aiCode = SUBSYSTEM_PAGE_CODE.ai;
+  if (aiCode && !next.has(aiCode) && AI_NAV_FALLBACK_ROLES.has(role)) {
+    next = next === pages ? new Set(next) : next;
+    next.add(aiCode);
+  }
+
   return next;
 }
