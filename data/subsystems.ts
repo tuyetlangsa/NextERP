@@ -31,6 +31,7 @@ export const subsystems: Subsystem[] = [
   { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
   { id: "ai",      label: "Trợ lý AI",           description: "Chat phân tích doanh thu, tồn kho, quỹ — toàn màn hình", group: "reports", showOnDesktop: true, win: "WinAiAssistant" },
   { id: "ai-knowledge", label: "Tri thức nghiệp vụ", description: "Nhập quy trình/nghiệp vụ cho Trợ lý AI", group: "reports", showOnDesktop: true, win: "WinAiKnowledge" },
+  { id: "ai-monitor", label: "Nhật ký AI", description: "Giám sát hoạt động Trợ lý AI — công cụ, độ trễ, lỗi", group: "reports", showOnDesktop: true, win: "WinAiMonitor" },
 ];
 
 export const subsystemGroups: { id: SubsystemGroup | "all"; label: string }[] = [

@@ -41,6 +41,7 @@ export const SUBSYSTEM_PAGE_CODE: Record<string, string> = {
   reports: "nexterp.reports",
   ai: "nexterp.ai",
   "ai-knowledge": "nexterp.ai_knowledge",
+  "ai-monitor": "nexterp.ai_monitor",
 };
 
 export function pageCodeForSubsystem(subsystemId: string): string | undefined {
