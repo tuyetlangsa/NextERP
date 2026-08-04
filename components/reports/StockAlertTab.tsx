@@ -14,6 +14,7 @@ import {
   type RowDataBoundEventArgs,
 } from "@syncfusion/ej2-react-grids";
 import { CheckBoxComponent } from "@syncfusion/ej2-react-buttons";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 export function StockAlertTab({
   onLoading,
   onError,
@@ -100,6 +101,10 @@ export function StockAlertTab({
 
   return (
     <div className="flex flex-col h-full gap-3">
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Tồn kho" data={data} />
+      </div>
+
       {/* Controls */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
@@ -144,7 +149,7 @@ export function StockAlertTab({
           <ColumnsDirective>
             <ColumnDirective field="itemCode" headerText="Mã" width={100} />
             <ColumnDirective field="itemName" headerText="Tên" width={200} />
-            <ColumnDirective field="baseUomCode" headerText="ĐVT" width={60} textAlign="Center" />
+            <ColumnDirective field="baseUomCode" headerText="Đơn vị tính" width={100} textAlign="Center" />
             <ColumnDirective
               field="currentQty"
               headerText="Tồn hiện"

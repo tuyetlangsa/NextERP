@@ -6,6 +6,7 @@ import { reportsApi } from "@/lib/api/reports";
 import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
 import type { MetricCard } from "@/components/reports/ReportSummaryCards";
 import type { DetailedRevenueResponse } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import {
   GridComponent,
   ColumnsDirective,
@@ -53,23 +54,25 @@ export function DetailedRevenueTab({
 
   const data = revenueDetail.data;
 
-  if (!data) return null;
-
+  // All hooks run every render — guard on nullable `data`, early-return only afterwards.
   const cards: MetricCard[] = useMemo(
-    () => [
-      {
-        label: "Tổng hóa đơn",
-        value: data.summary.totalBills.toLocaleString("vi-VN"),
-      },
-      {
-        label: "Tổng doanh thu",
-        value: fmt(data.summary.totalRevenue) + "đ",
-      },
-      {
-        label: "TB / bill",
-        value: fmt(data.summary.averageBill) + "đ",
-      },
-    ],
+    () =>
+      data
+        ? [
+            {
+              label: "Tổng hóa đơn",
+              value: data.summary.totalBills.toLocaleString("vi-VN"),
+            },
+            {
+              label: "Tổng doanh thu",
+              value: fmt(data.summary.totalRevenue) + "đ",
+            },
+            {
+              label: "Trung bình / hóa đơn",
+              value: fmt(data.summary.averageBill) + "đ",
+            },
+          ]
+        : [],
     [data],
   );
 
@@ -88,10 +91,16 @@ export function DetailedRevenueTab({
     }
   }, []);
 
+  if (!data) return null;
+
   const isEmpty = !data.bills || data.bills.length === 0;
 
   return (
     <div className="p-4 space-y-4">
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Danh sách phiếu" data={data} />
+      </div>
+
       <ReportSummaryCards cards={cards} />
 
       {isEmpty ? (
@@ -116,8 +125,8 @@ export function DetailedRevenueTab({
           <ColumnsDirective>
             <ColumnDirective
               field="rowNumber"
-              headerText="STT"
-              width="60"
+              headerText="Số thứ tự"
+              width="90"
               textAlign="Right"
             />
             <ColumnDirective
@@ -139,7 +148,7 @@ export function DetailedRevenueTab({
             />
             <ColumnDirective
               field="waiterName"
-              headerText="NV"
+              headerText="Nhân viên"
               width="120"
             />
             <ColumnDirective
@@ -172,8 +181,8 @@ export function DetailedRevenueTab({
             />
             <ColumnDirective
               field="paymentMethods"
-              headerText="TT"
-              width="100"
+              headerText="Thanh toán"
+              width="110"
             />
           </ColumnsDirective>
         </GridComponent>

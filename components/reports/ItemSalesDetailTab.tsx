@@ -6,6 +6,7 @@ import { reportsApi } from "@/lib/api/reports";
 import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
 import type { MetricCard } from "@/components/reports/ReportSummaryCards";
 import type { ItemSalesDetailResponse } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 
 function fmt(n: number): string {
   return n.toLocaleString("vi-VN");
@@ -71,22 +72,30 @@ export function ItemSalesDetailTab({
     setPage((p) => p + 1);
   }, []);
 
+  // useMemo must run every render — keep it above the early return and guard on `data`.
+  const cards: MetricCard[] = useMemo(
+    () =>
+      data
+        ? [
+            { label: "Tổng hóa đơn", value: fmt(data.summary.totalBills) },
+            { label: "Mặt hàng đã bán", value: fmt(data.summary.totalItems) },
+            { label: "Tổng doanh thu", value: fmt(data.summary.totalRevenue) + "đ" },
+          ]
+        : [],
+    [data],
+  );
+
   if (!data) return null;
 
   const totalPages = Math.ceil(data.totalCount / pageSize);
   const isEmpty = !data.bills || data.bills.length === 0;
 
-  const cards: MetricCard[] = useMemo(
-    () => [
-      { label: "Tổng hóa đơn", value: fmt(data.summary.totalBills) },
-      { label: "Mặt hàng đã bán", value: fmt(data.summary.totalItems) },
-      { label: "Tổng doanh thu", value: fmt(data.summary.totalRevenue) + "đ" },
-    ],
-    [data],
-  );
-
   return (
     <div className="p-4 space-y-4">
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Bán hàng" data={data} />
+      </div>
+
       <ReportSummaryCards cards={cards} />
 
       <div className="flex items-center justify-between">
@@ -144,11 +153,11 @@ export function ItemSalesDetailTab({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-100 text-gray-600">
-                      <th className="px-3 py-2 text-left w-12">STT</th>
-                      <th className="px-3 py-2 text-left">Mã MH</th>
+                      <th className="px-3 py-2 text-left w-16">Số thứ tự</th>
+                      <th className="px-3 py-2 text-left">Mã mặt hàng</th>
                       <th className="px-3 py-2 text-left">Tên mặt hàng</th>
-                      <th className="px-3 py-2 text-left">ĐVT</th>
-                      <th className="px-3 py-2 text-right">SL</th>
+                      <th className="px-3 py-2 text-left">Đơn vị tính</th>
+                      <th className="px-3 py-2 text-right">Số lượng</th>
                       <th className="px-3 py-2 text-right">Đơn giá</th>
                       <th className="px-3 py-2 text-right">Tiền hàng</th>
                       <th className="px-3 py-2 text-right">Thành tiền</th>
