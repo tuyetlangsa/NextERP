@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useAiChat } from "@/components/ai/useAiChat";
+import type { useAiChat } from "@/components/ai/useAiChat";
 import { ChatThread } from "@/components/ai/ChatThread";
 
-export function AiChatPanel({ suggestions = [] }: { suggestions?: string[] }) {
-  const chat = useAiChat();
+export function AiChatPanel({
+  chat,
+  suggestions = [],
+}: {
+  chat: ReturnType<typeof useAiChat>;
+  suggestions?: string[];
+}) {
   const [showList, setShowList] = useState(false);
 
   const startNew = () => {

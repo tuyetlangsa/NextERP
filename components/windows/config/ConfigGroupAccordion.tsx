@@ -58,7 +58,7 @@ export function ConfigGroupAccordion({
         </span>
       </button>
       {open && (
-        <div style={{ padding: "4px 14px 12px 36px" }}>{children}</div>
+        <div style={{ padding: "4px 14px 12px 36px", display: "flex", flexDirection: "column" }}>{children}</div>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * Tracks dirty state for a flat set of string-keyed values.
@@ -10,6 +10,14 @@ export function useConfigDirty<T extends string>(
 ) {
   const originalRef = useRef(initial);
   const [current, setCurrent] = useState<Map<T, string>>(initial);
+
+  // Reset when initial data changes (e.g. after API response arrives)
+  useEffect(() => {
+    if (initial.size > 0 && originalRef.current !== initial) {
+      originalRef.current = initial;
+      setCurrent(new Map(initial));
+    }
+  }, [initial]);
 
   const dirtyKeys = useMemo(() => {
     const keys = new Set<T>();

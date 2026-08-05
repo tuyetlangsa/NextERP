@@ -2,6 +2,8 @@
 
 import { http } from "@/lib/http/client";
 import type {
+  AreaLookupItem,
+  CategoryLookupItem,
   CounterLookupItem,
   DenominationLookupItem,
   KitchenStationLookupItem,
@@ -14,4 +16,6 @@ export const lookupsApi = {
   getKitchenStations: () => http.get<KitchenStationLookupItem[]>("/api/lookups/kitchen-stations"),
   getShifts: () => http.get<ShiftLookupItem[]>("/api/lookups/shifts"),
   getDenominations: () => http.get<DenominationLookupItem[]>("/api/lookups/denominations"),
+  getAreas: () => http.get<AreaLookupItem[]>("/api/lookups/areas"),
+  getCategories: () => http.get<CategoryLookupItem[]>("/api/lookups/categories"),
 };
