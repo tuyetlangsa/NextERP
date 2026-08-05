@@ -73,7 +73,7 @@ export function CreateScheduleDialog({
             >
               <span>
                 {selectedTemplate
-                  ? `${selectedTemplate.name} (${selectedTemplate.lineCount} dòng)`
+                  ? selectedTemplate.name
                   : templates.length === 0
                     ? "— Chưa có template —"
                     : "Chọn template"}
@@ -92,7 +92,7 @@ export function CreateScheduleDialog({
                         setTemplateOpen(false);
                       }}
                     >
-                      {t.name} ({t.lineCount} dòng)
+                      {t.name}
                     </button>
                   </li>
                 ))}

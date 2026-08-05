@@ -1,14 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState } from "react";
 import {
   ArrowLeft,
+  Pencil,
+  Plus,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Pencil,
-  Plus,
 } from "lucide-react";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { TemplateWeekGrid } from "@/components/schedule/TemplateWeekGrid";
@@ -391,7 +395,7 @@ export function TemplatePanel({
               </table>
             </div>
 
-            <div className="tpl-pager">
+                        <div className="tpl-pager">
               <div className="tpl-pager-nav">
                 <button
                   type="button"
@@ -496,11 +500,15 @@ export function TemplatePanel({
         </button>
 
         <label className="tpl-field">
-          <span className="tpl-field-label">Tên template</span>
+          <span className="tpl-field-label">
+            Tên template <span className="required" aria-hidden>*</span>
+          </span>
           <input
             className="tpl-input"
             placeholder="Nhập tên template"
             value={draft.name}
+            required
+            aria-required="true"
             disabled={busy || duplicateMode}
             onChange={e => setDraft({ ...draft, name: e.target.value })}
           />

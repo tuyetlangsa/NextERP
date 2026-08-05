@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -461,7 +466,7 @@ export function ScheduleListPanel({
                 </th>
                 <th>
                   <ColumnFilter
-                    label="Tên template"
+                    label="Mẫu template"
                     active={templateFilter !== "ALL"}
                     open={openFilter === "template"}
                     onToggle={() => toggle("template")}
@@ -596,7 +601,11 @@ export function ScheduleListPanel({
                 </tr>
               ) : (
                 paged.map(row => (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    className="sched-row-clickable"
+                    onClick={() => onEdit(row)}
+                  >
                     <td>{row.id}</td>
                     <td>{weekRangeLabel(row.weekStartDate)}</td>
                     <td>{row.sourceTemplateName?.trim() || "—"}</td>
@@ -612,7 +621,7 @@ export function ScheduleListPanel({
                       </span>
                     </td>
                     <td>{publishedDateText(row.publishedAt)}</td>
-                    <td className="sched-col-actions">
+                    <td className="sched-col-actions" onClick={e => e.stopPropagation()}>
                       <div className="sched-row-actions">
                         {row.status === "DRAFT" && (
                           <>
@@ -665,7 +674,7 @@ export function ScheduleListPanel({
           </table>
         </div>
 
-        <div className="tpl-pager">
+                <div className="tpl-pager">
           <div className="tpl-pager-nav">
             <button
               type="button"

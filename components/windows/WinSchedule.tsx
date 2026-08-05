@@ -299,15 +299,11 @@ export function WinSchedule() {
             </button>
 
             <div className="sched-detail-meta">
-              <div>
+              <div className="sched-detail-meta-item">
                 <span className="k">Ngày tháng</span>
                 <span>{weekRangeLabel(detail.weekStartDate)}</span>
               </div>
-              <div>
-                <span className="k">Mẫu template</span>
-                <span>{sourceTemplateName}</span>
-              </div>
-              <div>
+              <div className="sched-detail-meta-item">
                 <span className="k">Loại</span>
                 {detail.generationType ? (
                   <span className={`sched-type-pill type-${detail.generationType.toLowerCase()}`}>
@@ -317,7 +313,11 @@ export function WinSchedule() {
                   <span>—</span>
                 )}
               </div>
-              <div>
+              <div className="sched-detail-meta-item">
+                <span className="k">Mẫu template</span>
+                <span>{sourceTemplateName}</span>
+              </div>
+              <div className="sched-detail-meta-item">
                 <span className="k">Trạng thái</span>
                 <span className={`sched-status-pill status-${detail.status.toLowerCase()}`}>
                   <span className="sched-status-dot" aria-hidden />

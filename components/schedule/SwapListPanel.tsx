@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
   Check,
+  Filter,
+  X,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Filter,
-  X,
 } from "lucide-react";
 import {
   SWAP_STATUS_LABELS,
@@ -367,7 +372,7 @@ export function SwapListPanel({
           </table>
         </div>
 
-        <div className="tpl-pager">
+                <div className="tpl-pager">
           <div className="tpl-pager-nav">
             <button
               type="button"
