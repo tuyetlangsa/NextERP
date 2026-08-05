@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AiChatPanel } from "@/components/ai/AiChatPanel";
+import { useAiChat } from "@/components/ai/useAiChat";
+import { subscribeAiAnalysis, buildAnalysisMessage } from "@/lib/ai/analyzeBus";
 
 const SUGGESTIONS = [
   "Doanh thu 7 ngày qua thế nào?",
@@ -12,6 +14,22 @@ const SUGGESTIONS = [
 
 export function AiAssistantDock() {
   const [open, setOpen] = useState(false);
+  const chat = useAiChat();
+  const { sendFresh } = chat;
+
+  // A report tab asked to analyze its data → open the dock + send it as a new conversation.
+  // The model receives the full JSON payload; the chat bubble shows a clean label (no raw JSON).
+  useEffect(
+    () =>
+      subscribeAiAnalysis((req) => {
+        setOpen(true);
+        void sendFresh(
+          buildAnalysisMessage(req.reportName, req.data),
+          `📊 Phân tích báo cáo "${req.reportName}"`,
+        );
+      }),
+    [sendFresh],
+  );
 
   return (
     <>
@@ -31,7 +49,7 @@ export function AiAssistantDock() {
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Đóng">✕</button>
           </div>
           <div className="flex-1 min-h-0">
-            <AiChatPanel suggestions={SUGGESTIONS} />
+            <AiChatPanel chat={chat} suggestions={SUGGESTIONS} />
           </div>
         </div>
       )}
