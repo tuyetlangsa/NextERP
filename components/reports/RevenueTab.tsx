@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
-import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
-import type { MetricCard } from "@/components/reports/ReportSummaryCards";
-import type { RevenueResponse, BreakdownRow } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import {
   ChartComponent,
   SeriesCollectionDirective,
@@ -25,10 +23,6 @@ import {
   Page,
   Sort,
 } from "@syncfusion/ej2-react-grids";
-
-function fmt(n: number): string {
-  return n.toLocaleString("vi-VN");
-}
 
 export function RevenueTab({
   filters,
@@ -57,72 +51,30 @@ export function RevenueTab({
   // Show nothing until loaded
   if (!data) return null;
 
-  const cards: MetricCard[] = useMemo(
-    () => [
-      {
-        label: "Tổng doanh thu",
-        value: fmt(data.totalRevenue) + "đ",
-      },
-      {
-        label: "Tổng hóa đơn",
-        value: data.billCount.toLocaleString("vi-VN"),
-      },
-      {
-        label: "TB / bill",
-        value: fmt(data.averageBill) + "đ",
-      },
-      {
-        label: "TB / khách",
-        value: fmt(data.revenuePerGuest) + "đ",
-      },
-      {
-        label: "Tiền mặt / QR",
-        value:
-          data.cashRate.toFixed(0) + "% / " + data.qrRate.toFixed(0) + "%",
-        color: data.cashRate > 80 ? "amber" : undefined,
-      },
-      {
-        label: "Tỉ lệ giảm giá",
-        value: data.discountRate.toFixed(1) + "%",
-        color: data.discountRate > 15 ? "amber" : undefined,
-      },
-    ],
-    [data],
-  );
-
-  const signPrefix = data.prevPeriodChangePct >= 0 ? "+" : "";
-  const comparisonText = [
-    "📈",
-    "Hôm qua:",
-    signPrefix + data.prevPeriodChangePct.toFixed(1) + "% |",
-    "Cùng thứ:",
-    data.sameDowChangePct.toFixed(1) + "% |",
-    "TB 30 ngày:",
-    data.vsThirtyDayAvgPct.toFixed(1) + "%",
-  ].join(" ");
-
   return (
     <div className="p-4 space-y-4">
-      <ReportSummaryCards cards={cards} />
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Doanh thu" data={data} />
+      </div>
 
-      <div className="text-sm text-gray-600 px-3">{comparisonText}</div>
-
-      {/* Line chart */}
+      {/* Revenue trend — one line, one point per day; X axis uses the real dates (dd/MM)
+          from the selected filter range so it stays correct even across month boundaries. */}
       <div className="h-80">
         <ChartComponent
-          primaryXAxis={{ valueType: "Category", labelRotation: -45 }}
+          primaryXAxis={{ valueType: "Category", title: "Ngày", labelRotation: -45 }}
           primaryYAxis={{ labelFormat: "N0" }}
+          legendSettings={{ visible: true }}
+          tooltip={{ enable: true }}
         >
-          <ChartInject
-            services={[LineSeries, Category, Legend, Tooltip, DataLabel]}
-          />
+          <ChartInject services={[LineSeries, Category, Legend, Tooltip, DataLabel]} />
           <SeriesCollectionDirective>
             <SeriesDirective
               type="Line"
-              dataSource={data.breakdown}
+              dataSource={data.revenueTrend}
               xName="label"
-              yName="totalRevenue"
+              yName="currentRevenue"
               name="Doanh thu"
+              marker={{ visible: true }}
             />
           </SeriesCollectionDirective>
         </ChartComponent>
@@ -139,13 +91,13 @@ export function RevenueTab({
         <ColumnsDirective>
           <ColumnDirective
             field="label"
-            headerText="Khoảng thời gian"
+            headerText="Ngày"
             width="150"
           />
           <ColumnDirective
             field="billCount"
-            headerText="SL hóa đơn"
-            width="100"
+            headerText="Số lượng hóa đơn"
+            width="140"
             textAlign="Right"
           />
           <ColumnDirective
@@ -171,9 +123,9 @@ export function RevenueTab({
           />
           <ColumnDirective
             field="averageBill"
-            headerText="TB/bill"
+            headerText="Trung bình/hóa đơn"
             format="N0"
-            width="120"
+            width="160"
             textAlign="Right"
           />
           <ColumnDirective

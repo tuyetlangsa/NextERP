@@ -12,15 +12,15 @@ interface Props {
 export function ReportToolbar({ reportType, filters, disabled }: Props) {
   const handleExport = async (format: "pdf" | "excel") => {
     try {
-      const res = (await reportsApi.exportReport(reportType, format, filters)) as unknown as Blob;
-      const url = URL.createObjectURL(res);
+      const blob = await reportsApi.exportReport(reportType, format, filters);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${reportType}_${new Date().toISOString().slice(0, 10)}.${format === "pdf" ? "pdf" : "xlsx"}`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // handled by parent via error state
+    } catch (err) {
+      alert(`Xuất báo cáo thất bại: ${err instanceof Error ? err.message : "lỗi không xác định"}`);
     }
   };
 

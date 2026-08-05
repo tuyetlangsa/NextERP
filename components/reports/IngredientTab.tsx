@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
 import type { IngredientConsumptionRow } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import {
   GridComponent,
   ColumnsDirective,
@@ -40,14 +41,6 @@ export function IngredientTab({
 
   const data = items.data;
 
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-gray-400">
-        Chưa có dữ liệu định lượng (BOM). Vào Master Data &gt; Công thức để thiết lập.
-      </div>
-    );
-  }
-
   const rowDataBound = (args: RowDataBoundEventArgs) => {
     const row = args.data as IngredientConsumptionRow;
     if (!args.row) return;
@@ -60,43 +53,57 @@ export function IngredientTab({
   };
 
   return (
-    <GridComponent
-      dataSource={data}
-      allowSorting
-      allowPaging
-      pageSettings={{ pageSize: 50 }}
-      rowDataBound={rowDataBound}
-      height="100%"
-    >
-      <ColumnsDirective>
-        <ColumnDirective field="ingredientCode" headerText="Mã" width={80} />
-        <ColumnDirective field="ingredientName" headerText="Tên nguyên liệu" width={180} />
-        <ColumnDirective field="baseUomCode" headerText="ĐVT" width={60} textAlign="Center" />
-        <ColumnDirective
-          field="totalConsumedQty"
-          headerText="Đã dùng"
-          width={100}
-          textAlign="Right"
-          format="N2"
-        />
-        <ColumnDirective
-          field="currentStock"
-          headerText="Tồn"
-          width={100}
-          textAlign="Right"
-          format="N2"
-        />
-        <ColumnDirective
-          field="percentUsed"
-          headerText="% đã dùng"
-          width={90}
-          textAlign="Right"
-          template={(row: IngredientConsumptionRow) =>
-            `${row.percentUsed.toFixed(1)}%`
-          }
-        />
-      </ColumnsDirective>
-      <Inject services={[Page, Sort]} />
-    </GridComponent>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-end px-1 pb-2">
+        <AnalyzeButton reportName="Nguyên liệu" data={data} />
+      </div>
+
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-48 text-gray-400">
+          Chưa có dữ liệu định lượng (BOM). Vào Master Data &gt; Công thức để thiết lập.
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0">
+          <GridComponent
+            dataSource={data}
+            allowSorting
+            allowPaging
+            pageSettings={{ pageSize: 50 }}
+            rowDataBound={rowDataBound}
+            height="100%"
+          >
+            <ColumnsDirective>
+              <ColumnDirective field="ingredientCode" headerText="Mã" width={80} />
+              <ColumnDirective field="ingredientName" headerText="Tên nguyên liệu" width={180} />
+              <ColumnDirective field="baseUomCode" headerText="Đơn vị tính" width={100} textAlign="Center" />
+              <ColumnDirective
+                field="totalConsumedQty"
+                headerText="Đã dùng"
+                width={100}
+                textAlign="Right"
+                format="N2"
+              />
+              <ColumnDirective
+                field="currentStock"
+                headerText="Tồn"
+                width={100}
+                textAlign="Right"
+                format="N2"
+              />
+              <ColumnDirective
+                field="percentUsed"
+                headerText="% đã dùng"
+                width={90}
+                textAlign="Right"
+                template={(row: IngredientConsumptionRow) =>
+                  `${row.percentUsed.toFixed(1)}%`
+                }
+              />
+            </ColumnsDirective>
+            <Inject services={[Page, Sort]} />
+          </GridComponent>
+        </div>
+      )}
+    </div>
   );
 }

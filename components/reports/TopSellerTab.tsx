@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
 import type { TopSellerRow } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import { DropDownListComponent } from "@syncfusion/ej2-react-dropdowns";
 import type { ChangeEventArgs as DropDownChangeEventArgs } from "@syncfusion/ej2-dropdowns";
 import {
@@ -91,83 +92,84 @@ export function TopSellerTab({
 
   const data = result.data;
 
-  if (data.length === 0) {
-    return (
-      <div>
-        {controls}
+  return (
+    <div>
+      <div className="flex justify-end mb-2">
+        <AnalyzeButton reportName="Top bán chạy" data={data} />
+      </div>
+
+      {controls}
+
+      {data.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-gray-400">
           Không có dữ liệu
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <>
+          <div className="h-80 mb-4">
+            <ChartComponent
+              primaryXAxis={{ labelFormat: "N0" }}
+              primaryYAxis={{ valueType: "Category" }}
+              legendSettings={{ visible: false }}
+              tooltip={{ enable: true, format: "${point.y}: <b>${point.x}</b>" }}
+            >
+              <ChartInject
+                services={[BarSeries, Category, Legend, Tooltip, DataLabel]}
+              />
+              <SeriesCollectionDirective>
+                <SeriesDirective
+                  type="Bar"
+                  dataSource={data}
+                  xName="totalRevenue"
+                  yName="itemName"
+                  name="Doanh thu"
+                />
+              </SeriesCollectionDirective>
+            </ChartComponent>
+          </div>
 
-  return (
-    <div>
-      {controls}
-
-      <div className="h-80 mb-4">
-        <ChartComponent
-          primaryXAxis={{ labelFormat: "N0" }}
-          primaryYAxis={{ valueType: "Category" }}
-          legendSettings={{ visible: false }}
-          tooltip={{ enable: true, format: "${point.y}: <b>${point.x}</b>" }}
-        >
-          <ChartInject
-            services={[BarSeries, Category, Legend, Tooltip, DataLabel]}
-          />
-          <SeriesCollectionDirective>
-            <SeriesDirective
-              type="Bar"
-              dataSource={data}
-              xName="totalRevenue"
-              yName="itemName"
-              name="Doanh thu"
-            />
-          </SeriesCollectionDirective>
-        </ChartComponent>
-      </div>
-
-      <GridComponent
-        dataSource={data}
-        allowSorting
-        allowPaging
-        pageSettings={{ pageSize: 50 }}
-        height="100%"
-      >
-        <ColumnsDirective>
-          <ColumnDirective
-            field="rank"
-            headerText="Rank"
-            width="50"
-            textAlign="Right"
-          />
-          <ColumnDirective field="itemCode" headerText="Mã" width="100" />
-          <ColumnDirective field="itemName" headerText="Tên món" width="200" />
-          <ColumnDirective
-            field="totalQuantity"
-            headerText="Số lượng"
-            width="100"
-            textAlign="Right"
-            format="N0"
-          />
-          <ColumnDirective
-            field="totalRevenue"
-            headerText="Doanh thu"
-            width="130"
-            textAlign="Right"
-            format="N0"
-          />
-          <ColumnDirective
-            field="percentageOfTotal"
-            headerText="% Tổng"
-            width="80"
-            textAlign="Right"
-            format="N1"
-          />
-        </ColumnsDirective>
-        <GridInject services={[Page, Sort]} />
-      </GridComponent>
+          <GridComponent
+            dataSource={data}
+            allowSorting
+            allowPaging
+            pageSettings={{ pageSize: 50 }}
+            height="100%"
+          >
+            <ColumnsDirective>
+              <ColumnDirective
+                field="rank"
+                headerText="Xếp hạng"
+                width="90"
+                textAlign="Right"
+              />
+              <ColumnDirective field="itemCode" headerText="Mã" width="100" />
+              <ColumnDirective field="itemName" headerText="Tên món" width="200" />
+              <ColumnDirective
+                field="totalQuantity"
+                headerText="Số lượng"
+                width="100"
+                textAlign="Right"
+                format="N0"
+              />
+              <ColumnDirective
+                field="totalRevenue"
+                headerText="Doanh thu"
+                width="130"
+                textAlign="Right"
+                format="N0"
+              />
+              <ColumnDirective
+                field="percentageOfTotal"
+                headerText="% Tổng"
+                width="80"
+                textAlign="Right"
+                format="N1"
+              />
+            </ColumnsDirective>
+            <GridInject services={[Page, Sort]} />
+          </GridComponent>
+        </>
+      )}
     </div>
   );
 }

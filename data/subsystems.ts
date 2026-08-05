@@ -26,10 +26,12 @@ export const subsystems: Subsystem[] = [
   { id: "shifts",    label: "Danh sách ca",    description: "Khung giờ làm theo ngày",          group: "system",  showOnDesktop: true, win: "WinShift" },
   { id: "cancellation-reason", label: "Lý do huỷ/trả", description: "Lý do huỷ món / trả món", group: "system", showOnDesktop: true, win: "WinCancellationReason" },
   { id: "schedule",  label: "Lịch làm việc", description: "Xếp ca tuần, template, duyệt đổi ca", group: "system", showOnDesktop: true, win: "WinSchedule" },
-  { id: "config",    label: "Cấu hình nhà hàng", description: "Restaurant Profile",             group: "system",  win: null },
+  { id: "config",    label: "Cấu hình nhà hàng", description: "Cấu hình hệ thống, làm tròn, hóa đơn, email", group: "system", showOnDesktop: true, win: "WinConfig" },
   // Reports
   { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
-  { id: "ai",      label: "AI Conversational",   description: "Chart-bound chat",               group: "reports", win: null },
+  { id: "ai",      label: "Trợ lý AI",           description: "Chat phân tích doanh thu, tồn kho, quỹ — toàn màn hình", group: "reports", showOnDesktop: true, win: "WinAiAssistant" },
+  { id: "ai-knowledge", label: "Tri thức nghiệp vụ", description: "Nhập quy trình/nghiệp vụ cho Trợ lý AI", group: "reports", showOnDesktop: true, win: "WinAiKnowledge" },
+  { id: "ai-monitor", label: "Nhật ký AI", description: "Giám sát hoạt động Trợ lý AI — công cụ, độ trễ, lỗi", group: "reports", showOnDesktop: true, win: "WinAiMonitor" },
 ];
 
 export const subsystemGroups: { id: SubsystemGroup | "all"; label: string }[] = [

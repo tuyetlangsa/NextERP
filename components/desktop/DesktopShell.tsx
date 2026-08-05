@@ -29,6 +29,11 @@ import { WinUomConversion } from "@/components/windows/WinUomConversion";
 import { WinStaffAccount } from "@/components/windows/WinStaffAccount";
 import { WinReports } from "@/components/windows/WinReports";
 import { WinSchedule } from "@/components/windows/WinSchedule";
+import { WinConfig } from "@/components/windows/WinConfig";
+import { WinAiAssistant } from "@/components/windows/WinAiAssistant";
+import { WinAiKnowledge } from "@/components/windows/WinAiKnowledge";
+import { WinAiMonitor } from "@/components/windows/WinAiMonitor";
+import { AiAssistantDock } from "@/components/ai/AiAssistantDock";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinCounter,
@@ -51,6 +56,10 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinStaffAccount,
   WinReports,
   WinSchedule,
+  WinConfig,
+  WinAiAssistant,
+  WinAiKnowledge,
+  WinAiMonitor,
 };
 
 const fmtClock = (d: Date) =>
@@ -210,6 +219,8 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         user={{ username: user.username, roleCode: user.roleCode }}
         clock={clock}
       />
+
+      <AiAssistantDock />
     </div>
   );
 }

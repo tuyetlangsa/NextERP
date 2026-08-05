@@ -28,7 +28,18 @@ export interface RevenueResponse {
   prevPeriodRevenue: number; prevPeriodChangePct: number;
   sameDowLastWeekRevenue: number; sameDowChangePct: number;
   thirtyDayAvgRevenue: number; vsThirtyDayAvgPct: number;
+  totalReceive: number; totalPayment: number;
   breakdown: BreakdownRow[];
+  revenueTrend: RevenueTrendPoint[];
+}
+
+/** One day-slot for the revenue trend chart. `label` is the real date as dd/MM.
+ *  `previousRevenue` mirrors the backend contract — the chart currently plots only
+ *  `currentRevenue` (single line). */
+export interface RevenueTrendPoint {
+  label: string;
+  currentRevenue: number;
+  previousRevenue: number;
 }
 
 export interface BreakdownRow {
@@ -113,6 +124,7 @@ export interface ShiftReportRow {
   actualClosingCash: number | null; variance: number | null;
   totalBills: number; totalRevenue: number;
   cashRevenue: number; qrRevenue: number;
+  totalReceive: number; totalPayment: number;
 }
 
 // ─── Ingredient Consumption (Tab 8) ───

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
 import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
 import type { MetricCard } from "@/components/reports/ReportSummaryCards";
 import type { DetailedRevenueResponse } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import {
   GridComponent,
   ColumnsDirective,
@@ -30,17 +31,17 @@ export function DetailedRevenueTab({
   onError: (e: string | null) => void;
   onDrillDown: (ticketId: number) => void;
 }) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
+  // Fetch a single large page and let the Syncfusion grid paginate client-side.
+  // (Mixing server-side paging with the grid's own client-side paging caused the grid
+  //  to loop/freeze when clicking through pages — see the other tabs which page client-side.)
   const revenueDetail = useResource(
     () =>
       reportsApi.revenueDetail({
         ...(filters as any),
-        pageNumber: page,
-        pageSize,
+        pageNumber: 1,
+        pageSize: 1000,
       }),
-    { deps: [filters, page, pageSize] },
+    { deps: [filters] },
   );
 
   useEffect(() => {
@@ -53,23 +54,25 @@ export function DetailedRevenueTab({
 
   const data = revenueDetail.data;
 
-  if (!data) return null;
-
+  // All hooks run every render — guard on nullable `data`, early-return only afterwards.
   const cards: MetricCard[] = useMemo(
-    () => [
-      {
-        label: "Tổng hóa đơn",
-        value: data.summary.totalBills.toLocaleString("vi-VN"),
-      },
-      {
-        label: "Tổng doanh thu",
-        value: fmt(data.summary.totalRevenue) + "đ",
-      },
-      {
-        label: "TB / bill",
-        value: fmt(data.summary.averageBill) + "đ",
-      },
-    ],
+    () =>
+      data
+        ? [
+            {
+              label: "Tổng hóa đơn",
+              value: data.summary.totalBills.toLocaleString("vi-VN"),
+            },
+            {
+              label: "Tổng doanh thu",
+              value: fmt(data.summary.totalRevenue) + "đ",
+            },
+            {
+              label: "Trung bình / hóa đơn",
+              value: fmt(data.summary.averageBill) + "đ",
+            },
+          ]
+        : [],
     [data],
   );
 
@@ -81,17 +84,16 @@ export function DetailedRevenueTab({
     [onDrillDown],
   );
 
-  const handleActionComplete = useCallback((args: any) => {
-    if (args.requestType === "paging") {
-      setPage(args.currentPage);
-      setPageSize(args.pageSize);
-    }
-  }, []);
+  if (!data) return null;
 
   const isEmpty = !data.bills || data.bills.length === 0;
 
   return (
     <div className="p-4 space-y-4">
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Danh sách phiếu" data={data} />
+      </div>
+
       <ReportSummaryCards cards={cards} />
 
       {isEmpty ? (
@@ -103,21 +105,15 @@ export function DetailedRevenueTab({
           dataSource={data.bills}
           allowPaging={true}
           allowSorting={true}
-          pageSettings={{
-            pageSize,
-            pageSizes: [10, 20, 50, 100],
-            currentPage: page,
-            totalRecordsCount: data.totalCount,
-          }}
+          pageSettings={{ pageSize: 20, pageSizes: [10, 20, 50, 100] }}
           rowSelected={handleRowSelected}
-          actionComplete={handleActionComplete}
         >
           <Inject services={[Page, Sort]} />
           <ColumnsDirective>
             <ColumnDirective
               field="rowNumber"
-              headerText="STT"
-              width="60"
+              headerText="Số thứ tự"
+              width="90"
               textAlign="Right"
             />
             <ColumnDirective
@@ -139,7 +135,7 @@ export function DetailedRevenueTab({
             />
             <ColumnDirective
               field="waiterName"
-              headerText="NV"
+              headerText="Nhân viên"
               width="120"
             />
             <ColumnDirective
@@ -172,8 +168,8 @@ export function DetailedRevenueTab({
             />
             <ColumnDirective
               field="paymentMethods"
-              headerText="TT"
-              width="100"
+              headerText="Thanh toán"
+              width="110"
             />
           </ColumnsDirective>
         </GridComponent>
