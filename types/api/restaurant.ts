@@ -85,6 +85,20 @@ export interface CounterLookupItem {
   displayOrder: number;
 }
 
+export interface AreaLookupItem {
+  id: number;
+  name: string;
+  counterId: number;
+  displayOrder: number;
+}
+
+export interface CategoryLookupItem {
+  id: number;
+  name: string;
+  parentId: number | null;
+  displayOrder: number;
+}
+
 export interface KitchenStationLookupItem {
   id: number;
   code: string;

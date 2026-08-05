@@ -9,7 +9,7 @@ import { getAccessToken, setAccessToken } from "./auth-storage";
 import type { BaseResponse, ErrorResponse, SuccessResponse } from "./types";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5000";
+  process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5080";
 
 export interface HttpOptions {
   token?: string | null;
@@ -168,9 +168,34 @@ async function handleRequest<T>(
   }
 }
 
+/**
+ * Fetch a binary file (PDF/Excel export). Bypasses `normalize()` — that helper is
+ * JSON-only and would discard a Blob body as an empty 2xx response. Returns the raw
+ * Blob or throws so the caller can surface the failure.
+ */
+async function getBlob(url: string, options: HttpOptions = {}): Promise<Blob> {
+  const config: AxiosRequestConfig = {
+    method: "get",
+    url,
+    timeout: options.timeoutMs,
+    signal: options.signal,
+    params: cleanParams(options.params),
+    responseType: "blob",
+  };
+
+  const token = options.token ?? getAccessToken();
+  if (token) {
+    config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
+  }
+
+  const response = await instance.request<Blob>(config);
+  return response.data;
+}
+
 export const http = {
   get: <T>(url: string, options?: HttpOptions) =>
     handleRequest<T>("get", url, undefined, options),
+  getBlob,
   post: <T>(url: string, data?: unknown, options?: HttpOptions) =>
     handleRequest<T>("post", url, data, options),
   put: <T>(url: string, data?: unknown, options?: HttpOptions) =>

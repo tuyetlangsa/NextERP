@@ -13,6 +13,7 @@ import {
   AccumulationTooltip,
 } from "@syncfusion/ej2-react-charts";
 import type { CategoryReportRow } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 
 function fmt(n: number): string {
   return n.toLocaleString("vi-VN");
@@ -48,6 +49,10 @@ export function CategoryTab({
 
   return (
     <div className="p-4 space-y-4">
+      <div className="flex justify-end">
+        <AnalyzeButton reportName="Danh mục" data={data} />
+      </div>
+
       {isEmpty ? (
         <div className="text-center text-gray-400 py-12">
           Không có dữ liệu
@@ -91,7 +96,7 @@ export function CategoryTab({
               <thead>
                 <tr className="bg-gray-100 text-gray-600">
                   <th className="px-4 py-2 text-left">Danh mục</th>
-                  <th className="px-4 py-2 text-right">SL bán</th>
+                  <th className="px-4 py-2 text-right">Số lượng bán</th>
                   <th className="px-4 py-2 text-right">Doanh thu</th>
                   <th className="px-4 py-2 text-right">Giảm giá</th>
                 </tr>

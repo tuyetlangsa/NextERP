@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
 import type { ShiftReportRow } from "@/types/api/reports";
+import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
 import {
   GridComponent,
   ColumnsDirective,
@@ -59,14 +60,6 @@ export function ShiftTab({
 
   if (data === null) return null;
 
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-gray-400">
-        Không có dữ liệu
-      </div>
-    );
-  }
-
   const rowDataBound = (args: RowDataBoundEventArgs) => {
     const row = args.data as ShiftReportRow;
     if (!args.row) return;
@@ -79,15 +72,26 @@ export function ShiftTab({
   };
 
   return (
-    <GridComponent
-      dataSource={data}
-      allowSorting
-      allowPaging
-      pageSettings={{ pageSize: 50 }}
-      rowDataBound={rowDataBound}
-      height="100%"
-    >
-      <ColumnsDirective>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-end px-1 pb-2">
+        <AnalyzeButton reportName="Ca làm việc" data={data} />
+      </div>
+
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-48 text-gray-400">
+          Không có dữ liệu
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0">
+          <GridComponent
+            dataSource={data}
+            allowSorting
+            allowPaging
+            pageSettings={{ pageSize: 50 }}
+            rowDataBound={rowDataBound}
+            height="100%"
+          >
+            <ColumnsDirective>
         <ColumnDirective field="counterName" headerText="Quầy" width="100" />
         <ColumnDirective field="shiftName" headerText="Ca" width="90" />
         <ColumnDirective
@@ -104,13 +108,13 @@ export function ShiftTab({
         />
         <ColumnDirective
           field="openedByStaffName"
-          headerText="NV mở"
-          width="120"
+          headerText="Nhân viên mở"
+          width="140"
         />
         <ColumnDirective
           field="closedByStaffName"
-          headerText="NV đóng"
-          width="120"
+          headerText="Nhân viên đóng"
+          width="140"
         />
         <ColumnDirective
           field="openingCash"
@@ -135,21 +139,21 @@ export function ShiftTab({
         />
         <ColumnDirective
           field="totalBills"
-          headerText="Bills"
-          width="60"
+          headerText="Số hóa đơn"
+          width="110"
           textAlign="Right"
         />
         <ColumnDirective
           field="totalRevenue"
-          headerText="DT"
+          headerText="Doanh thu"
           width="120"
           textAlign="Right"
           format="N0"
         />
         <ColumnDirective
           field="cashRevenue"
-          headerText="TM"
-          width="100"
+          headerText="Tiền mặt"
+          width="110"
           textAlign="Right"
           format="N0"
         />
@@ -160,8 +164,25 @@ export function ShiftTab({
           textAlign="Right"
           format="N0"
         />
-      </ColumnsDirective>
-      <Inject services={[Page, Sort]} />
-    </GridComponent>
+        <ColumnDirective
+          field="totalReceive"
+          headerText="Phiếu thu"
+          width="110"
+          textAlign="Right"
+          format="N0"
+        />
+        <ColumnDirective
+          field="totalPayment"
+          headerText="Phiếu chi"
+          width="110"
+          textAlign="Right"
+          format="N0"
+        />
+            </ColumnsDirective>
+            <Inject services={[Page, Sort]} />
+          </GridComponent>
+        </div>
+      )}
+    </div>
   );
 }
