@@ -57,11 +57,11 @@ export function RevenueTab({
         <AnalyzeButton reportName="Doanh thu" data={data} />
       </div>
 
-      {/* Line chart — current period vs previous period, one point per day.
-          X axis shows the day number only (month intentionally omitted). */}
+      {/* Revenue trend — one line, one point per day; X axis uses the real dates (dd/MM)
+          from the selected filter range so it stays correct even across month boundaries. */}
       <div className="h-80">
         <ChartComponent
-          primaryXAxis={{ valueType: "Category", title: "Ngày" }}
+          primaryXAxis={{ valueType: "Category", title: "Ngày", labelRotation: -45 }}
           primaryYAxis={{ labelFormat: "N0" }}
           legendSettings={{ visible: true }}
           tooltip={{ enable: true }}
@@ -73,16 +73,7 @@ export function RevenueTab({
               dataSource={data.revenueTrend}
               xName="label"
               yName="currentRevenue"
-              name="Kỳ này"
-              marker={{ visible: true }}
-            />
-            <SeriesDirective
-              type="Line"
-              dataSource={data.revenueTrend}
-              xName="label"
-              yName="previousRevenue"
-              name="Kỳ trước"
-              dashArray="5,5"
+              name="Doanh thu"
               marker={{ visible: true }}
             />
           </SeriesCollectionDirective>
