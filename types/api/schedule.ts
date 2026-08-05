@@ -168,9 +168,24 @@ export interface SwapRequestRow {
   id: number;
   requesterStaffAccountId: number;
   requesterName: string;
+  /** Vai trò của người gửi — dùng cột list. */
+  requesterRoleName: string;
   targetStaffAccountId: number;
   targetName: string;
+  requesterWorkDate: string;
+  requesterShiftName: string;
+  requesterBeginTime: string;
+  requesterEndTime: string;
+  targetWorkDate: string;
+  targetShiftName: string;
+  targetBeginTime: string;
+  targetEndTime: string;
   earliestShiftStartAt: string;
   status: SwapStatus;
   createdAt: string;
+  /** Lý do người gửi khi tạo đơn. */
+  reason: string | null;
+  reviewNote: string | null;
+  reviewedByStaffAccountId: number | null;
+  reviewedByStaffAccountName: string | null;
 }

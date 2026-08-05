@@ -3,6 +3,8 @@ import type {
   ScheduleDetail,
   ScheduleGenerationType,
   ScheduleRow,
+  SwapRequestRow,
+  SwapStatus,
 } from "@/types/api/schedule";
 
 /** API DateOnly is yyyy-MM-dd; guard against datetime strings breaking grid keys. */
@@ -13,6 +15,25 @@ export function normalizeIsoDate(value: string): string {
 function asGenerationType(value: unknown): ScheduleGenerationType {
   const raw = String(value ?? "").toUpperCase();
   return raw === "AUTO" ? "AUTO" : "MANUAL";
+}
+
+function pickStr(r: Record<string, unknown>, camel: string, pascal: string): string {
+  return String(r[camel] ?? r[pascal] ?? "");
+}
+
+function pickTime(r: Record<string, unknown>, camel: string, pascal: string): string {
+  const v = r[camel] ?? r[pascal];
+  if (v == null) return "";
+  if (typeof v === "string") return v.length >= 5 ? v.slice(0, 5) : v;
+  if (typeof v === "object") {
+    const o = v as { hour?: number; minute?: number; Hours?: number; Minutes?: number };
+    const h = o.hour ?? o.Hours;
+    const m = o.minute ?? o.Minutes;
+    if (typeof h === "number" && typeof m === "number") {
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    }
+  }
+  return String(v);
 }
 
 /** Accept camelCase or PascalCase list payloads from the API envelope. */
@@ -64,4 +85,55 @@ export function normalizeScheduleDetail(detail: ScheduleDetail | Record<string, 
       });
     }),
   };
+}
+
+export function normalizeSwapRequest(row: SwapRequestRow | Record<string, unknown>): SwapRequestRow {
+  const r = row as Record<string, unknown>;
+  const workReq = pickStr(r, "requesterWorkDate", "RequesterWorkDate");
+  const workTgt = pickStr(r, "targetWorkDate", "TargetWorkDate");
+  return {
+    id: Number(r.id ?? r.Id),
+    requesterStaffAccountId: Number(r.requesterStaffAccountId ?? r.RequesterStaffAccountId),
+    requesterName: pickStr(r, "requesterName", "RequesterName"),
+    requesterRoleName: pickStr(r, "requesterRoleName", "RequesterRoleName"),
+    targetStaffAccountId: Number(r.targetStaffAccountId ?? r.TargetStaffAccountId),
+    targetName: pickStr(r, "targetName", "TargetName"),
+    requesterWorkDate: workReq ? normalizeIsoDate(workReq) : "",
+    requesterShiftName: pickStr(r, "requesterShiftName", "RequesterShiftName"),
+    requesterBeginTime: pickTime(r, "requesterBeginTime", "RequesterBeginTime"),
+    requesterEndTime: pickTime(r, "requesterEndTime", "RequesterEndTime"),
+    targetWorkDate: workTgt ? normalizeIsoDate(workTgt) : "",
+    targetShiftName: pickStr(r, "targetShiftName", "TargetShiftName"),
+    targetBeginTime: pickTime(r, "targetBeginTime", "TargetBeginTime"),
+    targetEndTime: pickTime(r, "targetEndTime", "TargetEndTime"),
+    earliestShiftStartAt: String(r.earliestShiftStartAt ?? r.EarliestShiftStartAt ?? ""),
+    status: String(r.status ?? r.Status).toUpperCase() as SwapStatus,
+    createdAt: String(r.createdAt ?? r.CreatedAt ?? ""),
+    reason: (() => {
+      const v = r.reason ?? r.Reason;
+      if (v == null || v === "") return null;
+      return String(v);
+    })(),
+    reviewNote: (() => {
+      const v = r.reviewNote ?? r.ReviewNote;
+      if (v == null || v === "") return null;
+      return String(v);
+    })(),
+    reviewedByStaffAccountId: (() => {
+      const v = r.reviewedByStaffAccountId ?? r.ReviewedByStaffAccountId;
+      if (v == null || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    })(),
+    reviewedByStaffAccountName: (() => {
+      const v = r.reviewedByStaffAccountName ?? r.ReviewedByStaffAccountName;
+      if (v == null || v === "") return null;
+      return String(v);
+    })(),
+  };
+}
+
+export function normalizeSwapList(rows: SwapRequestRow[] | unknown): SwapRequestRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(r => normalizeSwapRequest(r as SwapRequestRow));
 }

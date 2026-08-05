@@ -1,18 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ColumnDirective,
-  ColumnsDirective,
-  Filter,
-  GridComponent,
-  Inject,
-  Page,
-  Sort,
-} from "@syncfusion/ej2-react-grids";
-import { ArrowLeft, Pencil, Plus } from "lucide-react";
-import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
-import { ensureSyncfusionViLocale } from "@/lib/syncfusion-vi";
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { TemplateWeekGrid } from "@/components/schedule/TemplateWeekGrid";
 import { TemplateRoleDialog } from "@/components/schedule/TemplateRoleDialog";
@@ -34,10 +31,8 @@ import {
 import type { AssignableRoleRow } from "@/types/api/access";
 import type { ScheduleTemplateLookupItem } from "@/types/api/restaurant";
 
-ensureSyncfusionLicense();
-ensureSyncfusionViLocale();
-
 const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
+const PAGE_SIZE = 10;
 
 type Banner = { kind: "error" | "info"; text: string } | null;
 
@@ -59,15 +54,6 @@ interface Draft {
   cells: Map<string, TemplateRoleQty[]>;
 }
 
-function rowData(raw: ScheduleTemplateLookupItem | { [key: string]: unknown }): ScheduleTemplateLookupItem {
-  // Syncfusion may pass the row directly or wrap under `data`
-  const maybe = raw as { data?: ScheduleTemplateLookupItem };
-  if (maybe && typeof maybe === "object" && maybe.data && typeof maybe.data.id === "number") {
-    return maybe.data;
-  }
-  return raw as ScheduleTemplateLookupItem;
-}
-
 export function TemplatePanel({
   roles,
   onActiveTemplatesChanged,
@@ -84,7 +70,7 @@ export function TemplatePanel({
   const templatesRes = useResource(() => lookupsApi.getScheduleTemplates());
   const templates = templatesRes.data ?? [];
 
-  const gridRef = useRef<GridComponent | null>(null);
+  const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
   const [localBanner, setLocalBanner] = useState<Banner>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -110,6 +96,17 @@ export function TemplatePanel({
     await templatesRes.reload();
     await onActiveTemplatesChanged?.();
   };
+
+  const totalPages = Math.max(1, Math.ceil(templates.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return templates.slice(start, start + PAGE_SIZE);
+  }, [templates, safePage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [templates]);
 
   const openCreate = () => {
     setBanner(null);
@@ -147,11 +144,12 @@ export function TemplatePanel({
     });
   };
 
-  const closeEditor = () => {
+  const closeEditor = async () => {
     setDraft(null);
     setRoleDialog(null);
     setDupSource(null);
     setDupTargets(new Set());
+    await reloadLists();
   };
 
   const handleSave = async () => {
@@ -182,7 +180,10 @@ export function TemplatePanel({
         kind: "info",
         text: draft.mode === "create" ? "Đã tạo template." : "Đã lưu template.",
       });
-      closeEditor();
+      setDraft(null);
+      setRoleDialog(null);
+      setDupSource(null);
+      setDupTargets(new Set());
     } else {
       setBanner({ kind: "error", text: formatApiError(res) });
     }
@@ -333,84 +334,109 @@ export function TemplatePanel({
           <h3 className="tpl-list-title">Danh sách template</h3>
         </div>
 
-        {templates.length === 0 && !templatesRes.loading && (
+        {templates.length === 0 && !templatesRes.loading ? (
           <div className="sched-info" style={{ margin: "0 0 12px" }}>
             Chưa có template — bấm &quot;Tạo template mới&quot; trước khi sinh lịch tuần.
           </div>
-        )}
+        ) : (
+          <div className="sched-list-card">
+            <div className="sched-list-table-wrap">
+              <table className="sched-list-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Tên template</th>
+                    <th>Mô tả</th>
+                    <th>Kích hoạt</th>
+                    <th className="sched-col-actions">Hoạt động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map(row => (
+                    <tr key={row.id}>
+                      <td>{row.id}</td>
+                      <td>{row.name}</td>
+                      <td>{row.description?.trim() || "—"}</td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="cbx"
+                          checked={!!row.isActive}
+                          disabled={busy}
+                          title={row.isActive ? "Bỏ chọn để tắt" : "Chọn để kích hoạt lại"}
+                          onClick={e => {
+                            e.preventDefault();
+                            void requestToggleActive(row);
+                          }}
+                          onChange={() => {}}
+                          aria-label={`Kích hoạt ${row.name}`}
+                        />
+                      </td>
+                      <td className="sched-col-actions">
+                        <div className="tpl-row-actions">
+                          <button
+                            type="button"
+                            className="tpl-icon-btn"
+                            title="Sửa"
+                            disabled={busy}
+                            onClick={() => void openEdit(row)}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        <div className="tpl-list-grid">
-          <GridComponent
-            ref={gridRef}
-            dataSource={templates}
-            locale="vi-VN"
-            allowSorting
-            allowPaging
-            allowFiltering
-            filterSettings={{ type: "Menu" }}
-            pageSettings={{ pageSize: 10, pageCount: 4 }}
-            height="100%"
-          >
-            <ColumnsDirective>
-              <ColumnDirective field="id" headerText="ID" width="120" textAlign="Left" />
-              <ColumnDirective field="name" headerText="Tên template" width="180" />
-              <ColumnDirective field="description" headerText="Mô tả" width="240" />
-              <ColumnDirective
-                field="isActive"
-                headerText="Kích hoạt"
-                width="110"
-                allowFiltering={false}
-                template={(raw: ScheduleTemplateLookupItem) => {
-                  const row = rowData(raw);
-                  return (
-                    <input
-                      type="checkbox"
-                      className="cbx"
-                      checked={!!row.isActive}
-                      disabled={busy}
-                      title={row.isActive ? "Bỏ chọn để tắt" : "Chọn để kích hoạt lại"}
-                      onMouseDown={e => e.stopPropagation()}
-                      onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void requestToggleActive(row);
-                      }}
-                      onChange={() => {}}
-                      aria-label={`Kích hoạt ${row.name}`}
-                    />
-                  );
-                }}
-              />
-              <ColumnDirective
-                headerText="Hoạt động"
-                width="80"
-                allowFiltering={false}
-                allowSorting={false}
-                template={(raw: ScheduleTemplateLookupItem) => {
-                  const row = rowData(raw);
-                  return (
-                    <div className="tpl-row-actions">
-                      <button
-                        type="button"
-                        className="tpl-icon-btn"
-                        title="Sửa"
-                        disabled={busy}
-                        onMouseDown={e => e.stopPropagation()}
-                        onClick={e => {
-                          e.stopPropagation();
-                          void openEdit(row);
-                        }}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                    </div>
-                  );
-                }}
-              />
-            </ColumnsDirective>
-            <Inject services={[Page, Sort, Filter]} />
-          </GridComponent>
-        </div>
+            <div className="tpl-pager">
+              <div className="tpl-pager-nav">
+                <button
+                  type="button"
+                  className="tpl-pager-btn"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage(1)}
+                  aria-label="Trang đầu"
+                >
+                  <ChevronsLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="tpl-pager-btn"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  aria-label="Trang trước"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="tpl-pager-page is-current">{safePage}</span>
+                <button
+                  type="button"
+                  className="tpl-pager-btn"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  aria-label="Trang sau"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="tpl-pager-btn"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                  aria-label="Trang cuối"
+                >
+                  <ChevronsRight size={16} />
+                </button>
+              </div>
+              <div className="tpl-pager-info">
+                Trang {safePage} / {totalPages} ({templates.length} mục)
+              </div>
+            </div>
+          </div>
+        )}
 
         <TemplateConfirmDialog
           open={toggleConfirm !== null}
@@ -459,7 +485,12 @@ export function TemplatePanel({
           </div>
         )}
 
-        <button type="button" className="tpl-back" onClick={closeEditor} disabled={busy}>
+        <button
+          type="button"
+          className="tpl-back"
+          onClick={() => void closeEditor()}
+          disabled={busy}
+        >
           <ArrowLeft size={18} />
           <span>{draft.mode === "create" ? "Tạo template mới" : "Sửa template"}</span>
         </button>
@@ -522,7 +553,12 @@ export function TemplatePanel({
       </div>
 
       <div className="tpl-editor-foot">
-        <button type="button" className="tpl-btn tpl-btn-secondary" onClick={closeEditor} disabled={busy}>
+        <button
+          type="button"
+          className="tpl-btn tpl-btn-secondary"
+          onClick={() => void closeEditor()}
+          disabled={busy}
+        >
           Hủy
         </button>
         <button

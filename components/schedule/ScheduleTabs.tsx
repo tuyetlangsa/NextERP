@@ -5,7 +5,7 @@ import { CalendarPlus, LayoutGrid, ArrowLeftRight } from "lucide-react";
 export type ScheduleMainTab = "schedules" | "templates" | "swaps";
 
 const TABS: { id: ScheduleMainTab; label: string; Icon: typeof CalendarPlus }[] = [
-  { id: "schedules", label: "Tạo lịch", Icon: CalendarPlus },
+  { id: "schedules", label: "Lịch", Icon: CalendarPlus },
   { id: "templates", label: "Template", Icon: LayoutGrid },
   { id: "swaps", label: "Đơn đổi ca", Icon: ArrowLeftRight },
 ];

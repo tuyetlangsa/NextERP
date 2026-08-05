@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  ColumnDirective,
-  ColumnsDirective,
-  GridComponent,
-  Inject,
-  Page,
-  Sort,
-} from "@syncfusion/ej2-react-grids";
 import { ArrowLeft, Copy, Upload } from "lucide-react";
-import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ScheduleTabs, type ScheduleMainTab } from "@/components/schedule/ScheduleTabs";
@@ -20,32 +11,34 @@ import { ShiftAssignModal } from "@/components/schedule/ShiftAssignModal";
 import { CreateScheduleDialog, DuplicateScheduleDialog } from "@/components/schedule/ScheduleDialogs";
 import { TemplatePanel } from "@/components/schedule/TemplatePanel";
 import { TemplateConfirmDialog } from "@/components/schedule/TemplateConfirmDialog";
+import { SwapListPanel } from "@/components/schedule/SwapListPanel";
+import { SwapDetailPanel } from "@/components/schedule/SwapDetailPanel";
 import { scheduleApi } from "@/lib/api/schedule";
 import { accessApi } from "@/lib/api/access";
+import { authApi } from "@/lib/api/auth";
 import { lookupsApi } from "@/lib/api/lookups";
 import {
-  formatDateLong,
   formatIsoDate,
   nextMonday,
   parseIsoDate,
   startOfWeek,
   weekRangeLabel,
 } from "@/lib/schedule/dates";
-import { normalizeScheduleDetail, normalizeScheduleList } from "@/lib/schedule/normalize";
+import {
+  normalizeScheduleDetail,
+  normalizeScheduleList,
+  normalizeSwapList,
+} from "@/lib/schedule/normalize";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
 import {
   GENERATION_TYPE_LABELS,
   SCHEDULE_STATUS_LABELS,
-  SWAP_STATUS_LABELS,
   type ScheduleAssignmentRow,
   type ScheduleDetail,
   type ScheduleRow,
   type SwapRequestRow,
-  type SwapStatus,
 } from "@/types/api/schedule";
-
-ensureSyncfusionLicense();
 
 type ConfirmKind = "publish" | "scrap" | null;
 
@@ -54,16 +47,17 @@ export function WinSchedule() {
   const [banner, setBanner] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const schedulesRes = useResource(() => scheduleApi.listSchedules());
-  const templatesRes = useResource(() => scheduleApi.listTemplates());
-  const shiftsRes = useResource(() => lookupsApi.getShifts());
-  const rolesRes = useResource(() => accessApi.listAssignableRoles());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [dupOpen, setDupOpen] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
-  const [swapFilter, setSwapFilter] = useState<SwapStatus | "ALL">("ALL");
-  const swapsRes = useResource(
-    () => scheduleApi.listSwapRequests(swapFilter === "ALL" ? undefined : swapFilter),
-    { deps: [swapFilter] },
-  );
+  // Mở module → load đủ dữ liệu cho status bar (Lịch / Template / Đơn chờ duyệt) + tab Lịch.
+  const schedulesRes = useResource(() => scheduleApi.listSchedules());
+  const shiftsRes = useResource(() => lookupsApi.getShifts());
+  const templatesRes = useResource(() => scheduleApi.listTemplates());
+  const rolesRes = useResource(() => accessApi.listAssignableRoles());
+  const swapsRes = useResource(() => scheduleApi.listSwapRequests());
+  const meRes = useResource(() => authApi.me());
 
   const schedules = useMemo(
     () => normalizeScheduleList(schedulesRes.data ?? []),
@@ -72,15 +66,13 @@ export function WinSchedule() {
   const templates = templatesRes.data ?? [];
   const shifts = shiftsRes.data ?? [];
   const roles = rolesRes.data?.roles ?? [];
-  const swaps = swapsRes.data ?? [];
+  const swaps = useMemo(() => normalizeSwapList(swapsRes.data ?? []), [swapsRes.data]);
+  const currentStaffAccountId = meRes.data?.staffAccountId ?? null;
 
   const [detail, setDetail] = useState<ScheduleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const earliestWeek = useMemo(() => formatIsoDate(nextMonday(new Date())), []);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [dupOpen, setDupOpen] = useState(false);
-  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null);
   const [confirmTarget, setConfirmTarget] = useState<ScheduleRow | ScheduleDetail | null>(null);
@@ -91,8 +83,7 @@ export function WinSchedule() {
     slots: ScheduleAssignmentRow[];
   } | null>(null);
 
-  const [swapId, setSwapId] = useState<number | null>(null);
-  const selectedSwap = swaps.find(s => s.id === swapId) ?? null;
+  const [selectedSwap, setSelectedSwap] = useState<SwapRequestRow | null>(null);
 
   const normalizeWeek = (value: string) => formatIsoDate(startOfWeek(parseIsoDate(value)));
 
@@ -109,9 +100,41 @@ export function WinSchedule() {
     if (detail) await openSchedule(detail.id);
   };
 
+  const backToScheduleList = async () => {
+    setAssignCell(null);
+    setDetail(null);
+    await schedulesRes.reload();
+  };
+
+  const openSwap = async (row: SwapRequestRow) => {
+    const fresh = await swapsRes.reload();
+    const list = normalizeSwapList(fresh ?? []);
+    setSelectedSwap(list.find(s => s.id === row.id) ?? row);
+  };
+
+  const backToSwapList = async () => {
+    setSelectedSwap(null);
+    await swapsRes.reload();
+  };
+
+  const changeTab = (t: ScheduleMainTab) => {
+    setTab(t);
+    setBanner(null);
+    setDetail(null);
+    setSelectedSwap(null);
+    setAssignCell(null);
+    if (t === "schedules") void schedulesRes.reload();
+    if (t === "templates") void templatesRes.reload();
+    if (t === "swaps") {
+      void swapsRes.reload();
+      void meRes.reload();
+    }
+  };
+
   const openCreate = () => {
     setDialogError(null);
     setCreateOpen(true);
+    void templatesRes.reload();
   };
 
   const handleGenerate = async (weekStartDate: string, templateId: number) => {
@@ -207,15 +230,17 @@ export function WinSchedule() {
     }
   };
 
-  const reviewSwap = async (approve: boolean) => {
-    if (!selectedSwap) return;
+  const reviewSwap = async (approve: boolean, row?: SwapRequestRow | null) => {
+    const target = row ?? selectedSwap;
+    if (!target) return;
     setBusy(true);
     const res = approve
-      ? await scheduleApi.approveSwap(selectedSwap.id)
-      : await scheduleApi.rejectSwap(selectedSwap.id);
+      ? await scheduleApi.approveSwap(target.id)
+      : await scheduleApi.rejectSwap(target.id);
     setBusy(false);
     if (res.isSuccess) {
       await swapsRes.reload();
+      if (selectedSwap?.id === target.id) setSelectedSwap(null);
       if (detail) await reloadDetail();
       setBanner({ kind: "info", text: approve ? "Đã duyệt đơn đổi ca." : "Đã từ chối đơn." });
     } else {
@@ -236,14 +261,7 @@ export function WinSchedule() {
 
   return (
     <>
-      <ScheduleTabs
-        active={tab}
-        onChange={t => {
-          setTab(t);
-          setBanner(null);
-          if (t !== "schedules") setDetail(null);
-        }}
-      />
+      <ScheduleTabs active={tab} onChange={changeTab} />
 
       <div className="win-body sched-body">
         {(schedulesRes.loading || detailLoading || shiftsRes.loading) && (
@@ -273,7 +291,7 @@ export function WinSchedule() {
             <button
               type="button"
               className="tpl-back"
-              onClick={() => setDetail(null)}
+              onClick={() => void backToScheduleList()}
               disabled={busy}
             >
               <ArrowLeft size={18} />
@@ -366,106 +384,33 @@ export function WinSchedule() {
           />
         )}
 
-        {tab === "swaps" && (
-          <div className="sched-swap-layout">
-            <div className="sched-swap-list">
-              <div className="grid-filterbar">
-                <div className="filter-group">
-                  <label>Trạng thái:</label>
-                  <select
-                    value={swapFilter}
-                    onChange={e => setSwapFilter(e.target.value as SwapStatus | "ALL")}
-                  >
-                    <option value="ALL">Tất cả</option>
-                    {(Object.keys(SWAP_STATUS_LABELS) as SwapStatus[]).map(s => (
-                      <option key={s} value={s}>
-                        {SWAP_STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {swapsRes.loading && <LoadingBar text="Đang tải đơn..." />}
-              {swapsRes.isApiError && (
-                <ErrorBar text={swapsRes.error ?? ""} onRetry={() => swapsRes.reload()} />
-              )}
-              {!swapsRes.loading && !swapsRes.isApiError && swaps.length === 0 && (
-                <div className="sched-info">Chưa có dữ liệu đơn đổi ca.</div>
-              )}
-              <GridComponent
-                dataSource={swaps.map(s => ({
-                  ...s,
-                  statusText: SWAP_STATUS_LABELS[s.status],
-                  createdText: new Date(s.createdAt).toLocaleDateString("vi-VN"),
-                }))}
-                allowSorting
-                allowPaging
-                pageSettings={{ pageSize: 10 }}
-                rowSelected={(args: { data: SwapRequestRow | SwapRequestRow[] }) => {
-                  const row = Array.isArray(args.data) ? args.data[0] : args.data;
-                  if (row?.id) setSwapId(row.id);
-                }}
-                height="100%"
-              >
-                <ColumnsDirective>
-                  <ColumnDirective field="requesterName" headerText="Người gửi" width="160" />
-                  <ColumnDirective field="targetName" headerText="Người thay" width="160" />
-                  <ColumnDirective field="statusText" headerText="Trạng thái" width="120" />
-                  <ColumnDirective field="createdText" headerText="Ngày gửi" width="110" />
-                </ColumnsDirective>
-                <Inject services={[Page, Sort]} />
-              </GridComponent>
-            </div>
-            <div className="sched-swap-detail">
-              {selectedSwap ? (
-                <>
-                  <h3 className="sched-swap-title">Chi tiết đơn đổi ca</h3>
-                  <div className="sched-swap-pane">
-                    <div>
-                      <span className="k">Người gửi:</span> {selectedSwap.requesterName}
-                    </div>
-                    <div>
-                      <span className="k">Người thay thế:</span> {selectedSwap.targetName}
-                    </div>
-                    <div>
-                      <span className="k">Ca sớm nhất:</span>{" "}
-                      {formatDateLong(selectedSwap.earliestShiftStartAt.slice(0, 10))}{" "}
-                      {new Date(selectedSwap.earliestShiftStartAt).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                    <div>
-                      <span className="k">Trạng thái:</span>{" "}
-                      {SWAP_STATUS_LABELS[selectedSwap.status]}
-                    </div>
-                  </div>
-                  {selectedSwap.status === "PENDING" && (
-                    <div className="sched-swap-actions">
-                      <button
-                        type="button"
-                        className="tb-btn danger"
-                        onClick={() => reviewSwap(false)}
-                        disabled={busy}
-                      >
-                        Từ chối
-                      </button>
-                      <button
-                        type="button"
-                        className="tb-btn primary"
-                        onClick={() => reviewSwap(true)}
-                        disabled={busy}
-                      >
-                        Duyệt
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="sched-empty-detail">Chọn một đơn để xem chi tiết.</div>
-              )}
-            </div>
-          </div>
+        {tab === "swaps" && !selectedSwap && (
+          <>
+            {swapsRes.loading && swaps.length === 0 && <LoadingBar text="Đang tải đơn..." />}
+            {swapsRes.isApiError && swaps.length === 0 && (
+              <ErrorBar text={swapsRes.error ?? ""} onRetry={() => swapsRes.reload()} />
+            )}
+            {(swaps.length > 0 || (!swapsRes.loading && !swapsRes.isApiError)) && (
+              <SwapListPanel
+                swaps={swaps}
+                currentStaffAccountId={currentStaffAccountId}
+                busy={busy}
+                onOpen={row => void openSwap(row)}
+                onApprove={row => void reviewSwap(true, row)}
+                onReject={row => void reviewSwap(false, row)}
+              />
+            )}
+          </>
+        )}
+
+        {tab === "swaps" && selectedSwap && (
+          <SwapDetailPanel
+            swap={selectedSwap}
+            busy={busy}
+            onBack={() => void backToSwapList()}
+            onApprove={() => void reviewSwap(true, selectedSwap)}
+            onReject={() => void reviewSwap(false, selectedSwap)}
+          />
         )}
       </div>
 
@@ -494,7 +439,7 @@ export function WinSchedule() {
         onSubmit={(week, templateId) => void handleGenerate(week, templateId)}
         onGoTemplates={() => {
           setCreateOpen(false);
-          setTab("templates");
+          changeTab("templates");
         }}
       />
 
@@ -521,8 +466,11 @@ export function WinSchedule() {
           busy={busy}
           onClose={() => setAssignCell(null)}
           onSaved={() => {
-            void reloadDetail();
-            setBanner({ kind: "info", text: "Đã lưu phân công ca." });
+            void (async () => {
+              await reloadDetail();
+              await schedulesRes.reload();
+              setBanner({ kind: "info", text: "Đã lưu phân công ca." });
+            })();
           }}
           onError={msg => setBanner({ kind: "error", text: msg })}
         />

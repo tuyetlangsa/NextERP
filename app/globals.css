@@ -1182,39 +1182,176 @@ svg:not([width]) { width: 1em; height: 1em; flex-shrink: 0; }
 .btn-secondary:hover { background: var(--accent-bg); }
 .btn-danger { background: #fff; color: var(--danger); border-color: #fecaca; }
 .btn-danger:hover { background: #fef2f2; }
-.sched-swap-layout {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 0;
-  overflow: hidden;
+.sched-swap-layout { display: none; }
+.swap-panel {
+  padding-top: 4px;
 }
-.sched-swap-list, .sched-swap-detail {
+.swap-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+.swap-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.swap-filter label {
+  color: var(--fg-muted, #737373);
+  white-space: nowrap;
+}
+.swap-filter select {
+  min-width: 140px;
+  height: 32px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  font-size: 13px;
+}
+.swap-th {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.swap-th svg {
+  color: #a3a3a3;
+  flex-shrink: 0;
+}
+.swap-row-clickable {
+  cursor: pointer;
+}
+.swap-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.swap-act-divider {
+  width: 1px;
+  height: 16px;
+  background: #d4d4d4;
+}
+.swap-act-approve {
+  color: #16a34a !important;
+}
+.swap-act-reject {
+  color: #dc2626 !important;
+}
+.sched-status-pill.swap-status-pending { background: #dbeafe; color: #1d4ed8; }
+.sched-status-pill.swap-status-approved { background: #dcfce7; color: #166534; }
+.sched-status-pill.swap-status-rejected { background: #fee2e2; color: #b91c1c; }
+.sched-status-pill.swap-status-expired { background: #f4f4f5; color: #525252; }
+.sched-status-pill.swap-status-cancelled { background: #f4f4f5; color: #525252; }
+
+.swap-detail-panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  overflow: hidden;
+  padding: 12px 20px 16px;
+  gap: 16px;
+  overflow: auto;
+  background: #fafafa;
 }
-.sched-swap-detail {
-  border-left: 1px solid var(--border);
-  padding: 12px 16px;
-  background: var(--panel-bg);
-}
-.sched-swap-title { font-size: 14px; margin: 0 0 12px; }
-.sched-swap-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.sched-swap-pane {
+.swap-detail-card {
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 10px 12px;
-  font-size: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 20px 24px;
 }
-.sched-swap-pane .pane-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
-.sched-swap-pane .k { color: var(--fg-muted); margin-right: 4px; }
-.sched-swap-pane > div { margin-bottom: 4px; }
-.sched-swap-reason { margin: 12px 0; font-size: 12px; }
-.sched-swap-status { font-size: 12px; margin-bottom: 12px; }
-.sched-swap-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.swap-detail-title {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.swap-detail-cols {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0 24px;
+  align-items: start;
+}
+.swap-detail-divider {
+  width: 1px;
+  align-self: stretch;
+  background: #e5e5e5;
+  min-height: 100px;
+}
+.swap-detail-col-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.swap-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.swap-detail-row .k {
+  color: #737373;
+  flex-shrink: 0;
+}
+.swap-detail-row .v {
+  text-align: right;
+  font-weight: 500;
+}
+.swap-detail-reason {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.swap-detail-reason .k {
+  font-weight: 700;
+  margin-right: 6px;
+}
+.swap-detail-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.swap-btn-reject {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.swap-btn-approve {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #fff !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .swap-detail-cols {
+    grid-template-columns: 1fr;
+  }
+  .swap-detail-divider {
+    width: 100%;
+    height: 1px;
+    min-height: 0;
+    margin: 12px 0;
+  }
+  .swap-list-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 .sched-empty-detail { color: var(--fg-muted); font-size: 12px; padding: 24px; }
 
 /* ── Schedule Template (Figma) ───────────────────────────────────────────── */
