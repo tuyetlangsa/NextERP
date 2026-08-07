@@ -31,7 +31,7 @@ import {
 } from "@/lib/api/menu";
 import { lookupsApi } from "@/lib/api/lookups";
 import { useResource } from "@/lib/http/useResource";
-import { uploadToCloudinary, isCloudinaryConfigured } from "@/lib/upload/cloudinary";
+import { uploadToCloudinary } from "@/lib/upload/cloudinary";
 import { ItemUomConversionTab } from "@/components/inventory/ItemUomConversionTab";
 import { ItemBomTab } from "@/components/inventory/ItemBomTab";
 import type { Category, ItemListRow } from "@/types/api/menu";
@@ -231,13 +231,13 @@ function renderImageTab(
       <div style={{ display: "flex", gap: 8 }}>
         <label
           style={{
-            cursor: isCloudinaryConfigured() ? "pointer" : "not-allowed",
+            cursor: "pointer",
             padding: "6px 12px",
             border: "1px solid var(--border-strong)",
             borderRadius: 4,
             fontSize: 12,
             background: "#fff",
-            opacity: isCloudinaryConfigured() ? 1 : 0.5,
+            opacity: 1,
           }}
         >
           {uploading ? "Đang upload..." : "Chọn ảnh"}
@@ -245,7 +245,7 @@ function renderImageTab(
             type="file"
             accept="image/*"
             onChange={handleFileUpload}
-            disabled={uploading || !isCloudinaryConfigured()}
+            disabled={uploading}
             style={{ display: "none" }}
           />
         </label>
@@ -265,11 +265,7 @@ function renderImageTab(
           </button>
         )}
       </div>
-      {!isCloudinaryConfigured() && (
-        <div style={{ marginTop: 6, fontSize: 11, color: "var(--warning)" }}>
-          Cloudinary chưa cấu hình — chỉ paste URL được.
-        </div>
-      )}
+
       <input
         style={{ marginTop: 8, width: "100%" }}
         placeholder="Hoặc paste URL ảnh..."
