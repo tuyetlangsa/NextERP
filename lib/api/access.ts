@@ -3,6 +3,7 @@
 import { http } from "@/lib/http/client";
 import type {
   ListRolesResponse,
+  ListAssignableRolesResponse,
   PagedStaffAccounts,
   StaffAccountDetail,
   CreateStaffAccountRequest,
@@ -20,6 +21,9 @@ export const accessApi = {
 
   // roles + accounts
   listRoles: () => http.get<ListRolesResponse>("/api/access/roles"),
+  /** Roles for create/edit assignment pickers (no MANAGER / ADMIN_VENDOR). */
+  listAssignableRoles: () =>
+    http.get<ListAssignableRolesResponse>("/api/access/roles/assignable"),
   createRole: (body: { code: string; name: string; description?: string | null }) =>
     http.post<{ id: number; code: string; name: string; description: string | null; isActive: boolean }>(
       "/api/access/roles", body),

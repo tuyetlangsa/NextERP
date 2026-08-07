@@ -8,7 +8,14 @@ export type ScheduleStatus = "DRAFT" | "PUBLISHED" | "DELETED";
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   DRAFT: "Nháp",
   PUBLISHED: "Đã đăng",
-  DELETED: "Đã huỷ",
+  DELETED: "Đã xóa",
+};
+
+export type ScheduleGenerationType = "MANUAL" | "AUTO";
+
+export const GENERATION_TYPE_LABELS: Record<ScheduleGenerationType, string> = {
+  MANUAL: "Thủ công",
+  AUTO: "Tự động",
 };
 
 /** GET /api/schedules */
@@ -17,9 +24,9 @@ export interface ScheduleRow {
   weekStartDate: string;
   status: ScheduleStatus;
   publishedAt: string | null;
-  assignmentCount?: number;
-  filledCount?: number;
-  sourceTemplateName?: string | null;
+  generationType: ScheduleGenerationType;
+  sourceTemplateId: number | null;
+  sourceTemplateName: string | null;
 }
 
 /** One cell of the shift × Mon–Sun grid. `staffAccountId` null = ô trống. */
@@ -35,22 +42,15 @@ export interface ScheduleAssignmentRow {
   version: number;
 }
 
-export type ScheduleGenerationType = "MANUAL" | "AUTO";
-
-export const GENERATION_TYPE_LABELS: Record<ScheduleGenerationType, string> = {
-  MANUAL: "Tạo thủ công",
-  AUTO: "Tự động",
-};
-
 /** GET /api/schedules/{id} */
 export interface ScheduleDetail {
   id: number;
   weekStartDate: string;
   status: ScheduleStatus;
   publishedAt: string | null;
-  sourceTemplateId?: number | null;
-  sourceTemplateName?: string | null;
-  generationType?: ScheduleGenerationType;
+  generationType: ScheduleGenerationType;
+  sourceTemplateId: number | null;
+  sourceTemplateName: string | null;
   assignments: ScheduleAssignmentRow[];
 }
 
@@ -63,12 +63,42 @@ export interface GenerateScheduleResponse {
   filledCount: number;
 }
 
-/** PUT /api/schedules/assignments/{id} — warnings are non-blocking. */
+/** PUT /api/schedules/assignments/{id} | POST /api/schedules/{id}/assignments — warnings are non-blocking. */
 export interface EditAssignmentResponse {
   assignmentId: number;
   staffAccountId: number | null;
   version: number;
-  warnings: string[];
+  warnings: AssignmentWarning[] | string[];
+}
+
+export interface AssignmentWarning {
+  code: string;
+  severity: string;
+  message: string;
+}
+
+/** GET /api/schedules/assignments/{id}/preview */
+export interface PreviewAssignmentResponse {
+  hasWarnings: boolean;
+  warnings: AssignmentWarning[];
+}
+
+/** PUT /api/schedules/{id}/assignments/batch */
+export interface BatchAssignmentItem {
+  assignmentId: number;
+  staffAccountId: number | null;
+  expectedVersion: number;
+}
+
+export interface BatchAssignmentItemResult {
+  assignmentId: number;
+  staffAccountId: number | null;
+  version: number;
+  warnings: AssignmentWarning[];
+}
+
+export interface BatchAssignmentResponse {
+  results: BatchAssignmentItemResult[];
 }
 
 /** GET /api/schedule-templates */
@@ -100,11 +130,23 @@ export interface ScheduleTemplateDetail {
   updatedAt: string;
 }
 
-export interface ScheduleTemplateUpsert {
+/** POST /api/schedule-templates — BE always creates with IsActive = true. */
+export interface ScheduleTemplateCreate {
   name: string;
   description?: string | null;
   lines: Omit<ScheduleTemplateLine, "id">[];
 }
+
+/** PUT /api/schedule-templates/{id} — name/description/isActive + full line set. */
+export interface ScheduleTemplateUpdate {
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  lines: Omit<ScheduleTemplateLine, "id">[];
+}
+
+/** @deprecated Prefer ScheduleTemplateCreate / ScheduleTemplateUpdate. */
+export type ScheduleTemplateUpsert = ScheduleTemplateCreate;
 
 export type SwapStatus =
   | "PENDING"
@@ -126,9 +168,24 @@ export interface SwapRequestRow {
   id: number;
   requesterStaffAccountId: number;
   requesterName: string;
+  /** Vai trò của người gửi — dùng cột list. */
+  requesterRoleName: string;
   targetStaffAccountId: number;
   targetName: string;
+  requesterWorkDate: string;
+  requesterShiftName: string;
+  requesterBeginTime: string;
+  requesterEndTime: string;
+  targetWorkDate: string;
+  targetShiftName: string;
+  targetBeginTime: string;
+  targetEndTime: string;
   earliestShiftStartAt: string;
   status: SwapStatus;
   createdAt: string;
+  /** Lý do người gửi khi tạo đơn. */
+  reason: string | null;
+  reviewNote: string | null;
+  reviewedByStaffAccountId: number | null;
+  reviewedByStaffAccountName: string | null;
 }

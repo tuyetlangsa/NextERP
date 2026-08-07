@@ -114,6 +114,15 @@ export interface ShiftLookupItem {
   isNextDay: boolean;
 }
 
+/** GET /api/lookups/schedule-templates — active + inactive (management UI). */
+export interface ScheduleTemplateLookupItem {
+  id: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  lineCount: number;
+}
+
 export interface DenominationLookupItem {
   id: number;
   faceValue: number;
