@@ -23,6 +23,9 @@ import { areasApi, countersApi, tablesApi, type TableBatchCreate, type TableUpse
 import { useResource } from "@/lib/http/useResource";
 import { mockAreas, mockCounters, mockTables } from "@/data/mock";
 import type { Area, RestaurantTable } from "@/types/api/restaurant";
+import { PosModuleTabs, type PosModuleTab } from "@/components/devices/PosModuleTabs";
+import { PosTerminalPanel } from "@/components/devices/PosTerminalPanel";
+import { CustomerDisplayPanel } from "@/components/devices/CustomerDisplayPanel";
 
 ensureSyncfusionLicense();
 
@@ -44,6 +47,8 @@ type BatchDraft = {
 };
 
 export function WinTable() {
+  const [tab, setTab] = useState<PosModuleTab>("table");
+
   const tables = useResource(() => tablesApi.list(), { fallback: mockTables });
   const areas = useResource(() => areasApi.list(), { fallback: mockAreas });
   const counters = useResource(() => countersApi.list(), { fallback: mockCounters });
@@ -237,6 +242,13 @@ export function WinTable() {
 
   return (
     <>
+      <PosModuleTabs active={tab} onChange={setTab} />
+
+      {tab === "pos-terminal" && <PosTerminalPanel />}
+      {tab === "customer-display" && <CustomerDisplayPanel />}
+
+      {tab === "table" && (
+      <>
       <WinToolbar
         left={
           <>
@@ -450,6 +462,8 @@ export function WinTable() {
         }
         right={<span>Gộp nhóm theo Khu</span>}
       />
+      </>
+      )}
     </>
   );
 }
