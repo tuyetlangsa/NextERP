@@ -21,7 +21,7 @@ import { customerDisplaysApi } from "@/lib/api/customerDisplays";
 import { posTerminalsApi } from "@/lib/api/posTerminals";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
-import { uploadToCloudinary, isCloudinaryConfigured } from "@/lib/upload/cloudinary";
+import { uploadToCloudinary } from "@/lib/upload/cloudinary";
 import type { CustomerDisplay } from "@/types/api/customerDisplay";
 
 const PAGE_SIZE = 10;
@@ -403,7 +403,7 @@ export function CustomerDisplayPanel() {
                   type="button"
                   className="tpl-btn tpl-btn-outline"
                   onClick={handlePickFile}
-                  disabled={busy || uploading || !isCloudinaryConfigured()}
+                  disabled={busy || uploading}
                 >
                   {formIdleMediaUrl ? <RefreshCcw size={14} /> : <Upload size={14} />}
                   {uploading ? "Đang tải..." : formIdleMediaUrl ? "Đổi ảnh" : "Tải ảnh lên"}
@@ -416,11 +416,6 @@ export function CustomerDisplayPanel() {
                   onChange={e => void handleFileChange(e)}
                 />
               </div>
-              {!isCloudinaryConfigured() && (
-                <div style={{ marginTop: 6, fontSize: 11, color: "var(--warning)" }}>
-                  Cloudinary chưa cấu hình — chỉ nhập URL tay được.
-                </div>
-              )}
             </div>
 
             <div className="tpl-modal-foot">
