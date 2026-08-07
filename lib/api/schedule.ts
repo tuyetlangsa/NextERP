@@ -2,13 +2,17 @@
 
 import { http } from "@/lib/http/client";
 import type {
+  BatchAssignmentItem,
+  BatchAssignmentResponse,
   EditAssignmentResponse,
   GenerateScheduleResponse,
+  PreviewAssignmentResponse,
   ScheduleDetail,
   ScheduleRow,
+  ScheduleTemplateCreate,
   ScheduleTemplateDetail,
   ScheduleTemplateRow,
-  ScheduleTemplateUpsert,
+  ScheduleTemplateUpdate,
   SwapRequestRow,
   SwapStatus,
 } from "@/types/api/schedule";
@@ -54,16 +58,41 @@ export const scheduleApi = {
       { staffAccountId, expectedVersion },
     ),
 
+  /** Dry-run warnings before committing an assignment change. */
+  previewAssignment: (assignmentId: number, staffAccountId: number | null) =>
+    http.get<PreviewAssignmentResponse>(
+      `/api/schedules/assignments/${assignmentId}/preview`,
+      { params: staffAccountId == null ? {} : { staffAccountId } },
+    ),
+
+  /** Apply many slot edits of one schedule (all-or-nothing). */
+  editAssignmentsBatch: (scheduleId: number, items: BatchAssignmentItem[]) =>
+    http.put<BatchAssignmentResponse>(`/api/schedules/${scheduleId}/assignments/batch`, {
+      items,
+    }),
+
+  /** Add one slot beyond template (call only on Save). Optionally pre-fill staff. */
+  addAssignment: (
+    scheduleId: number,
+    body: {
+      workDate: string;
+      shiftId: number;
+      roleId: number;
+      staffAccountId: number | null;
+    },
+  ) =>
+    http.post<EditAssignmentResponse>(`/api/schedules/${scheduleId}/assignments`, body),
+
   listTemplates: () =>
     http.get<ScheduleTemplateRow[]>("/api/schedule-templates"),
 
   getTemplate: (id: number) =>
     http.get<ScheduleTemplateDetail>(`/api/schedule-templates/${id}`),
 
-  createTemplate: (body: ScheduleTemplateUpsert) =>
+  createTemplate: (body: ScheduleTemplateCreate) =>
     http.post<ScheduleTemplateDetail>("/api/schedule-templates", body),
 
-  updateTemplate: (id: number, body: ScheduleTemplateUpsert) =>
+  updateTemplate: (id: number, body: ScheduleTemplateUpdate) =>
     http.put<ScheduleTemplateDetail>(`/api/schedule-templates/${id}`, body),
 
   deleteTemplate: (id: number) =>

@@ -1,0 +1,180 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #171717;
+  line-height: 1.3;
+  border: none;
+  padding: 0;
+}
+
+.filter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.filterLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #525252;
+  white-space: nowrap;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  min-width: 148px;
+  height: 34px;
+  padding: 0 32px 0 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  font: inherit;
+  font-size: 13px;
+  color: #171717;
+  cursor: pointer;
+}
+
+.select:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #a3a3a3;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+}
+
+.colFilterWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.colFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+}
+
+.colFilterBtn svg {
+  color: #a3a3a3;
+  flex-shrink: 0;
+}
+
+.colFilterBtnActive svg {
+  color: #2563eb;
+}
+
+.colFilterMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 168px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.colFilterOption {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: #171717;
+  cursor: pointer;
+}
+
+.colFilterOption:hover {
+  background: #f5f5f5;
+}
+
+.colFilterOption:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.colFilterOptionActive {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.colFilterEmpty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #737373;
+}
+
+.emptyCell {
+  text-align: center !important;
+  color: #737373;
+  padding: 24px 12px !important;
+}
+
+@media (max-width: 640px) {
+  .head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter {
+    width: 100%;
+  }
+
+  .select {
+    flex: 1;
+    width: 100%;
+  }
+}
