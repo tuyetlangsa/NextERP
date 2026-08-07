@@ -8,48 +8,37 @@ export interface CloudinaryUploadResult {
   bytes: number;
 }
 
-interface CloudinaryRawResponse {
-  secure_url: string;
-  public_id: string;
-  width: number;
-  height: number;
-  bytes: number;
-}
-
-const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-export function isCloudinaryConfigured(): boolean {
-  return Boolean(cloudName && uploadPreset);
-}
+const BASE_URL =
+  process.env.NEXT_PUBLIC_RPOM_API_URL ?? "http://localhost:5080";
 
 export async function uploadToCloudinary(file: File): Promise<CloudinaryUploadResult> {
-  if (!cloudName || !uploadPreset) {
-    throw new Error(
-      "Cloudinary chưa cấu hình. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME và NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET trong .env.local"
-    );
-  }
-
   const form = new FormData();
   form.append("file", file);
-  form.append("upload_preset", uploadPreset);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const token =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("rpom.accessToken")
+      : null;
+
+  const res = await fetch(`${BASE_URL}/api/erp/upload/media`, {
     method: "POST",
     body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Cloudinary upload thất bại (${res.status}): ${text || res.statusText}`);
+    throw new Error(`Upload thất bại (${res.status}): ${text || res.statusText}`);
   }
 
-  const json: CloudinaryRawResponse = await res.json();
+  const json = await res.json();
+  // Backend returns { isSuccess: true, data: { url, publicId, ... } }
+  const data = json.data ?? json;
   return {
-    url: json.secure_url,
-    publicId: json.public_id,
-    width: json.width,
-    height: json.height,
-    bytes: json.bytes,
+    url: data.url,
+    publicId: data.publicId,
+    width: data.width,
+    height: data.height,
+    bytes: data.bytes,
   };
 }
