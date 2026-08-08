@@ -41,7 +41,6 @@ export function useResource<T>(
   const [isOffline, setIsOffline] = useState(false);
 
   const requestIdRef = useRef(0);
-  const prevEnabledRef = useRef<boolean | null>(null);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
@@ -87,9 +86,6 @@ export function useResource<T>(
   }, deps);
 
   useEffect(() => {
-    const prev = prevEnabledRef.current;
-    prevEnabledRef.current = enabled;
-
     if (!enabled) {
       // Invalidate in-flight so stale responses cannot clear/overwrite after leaving tab.
       requestIdRef.current += 1;
@@ -97,10 +93,10 @@ export function useResource<T>(
       return;
     }
 
-    // First mount with enabled=true, or re-enter (false → true): fetch once.
-    if (prev === null || prev === false) {
-      void load();
-    }
+    // Runs on mount, on re-enable, and whenever `deps` change `load`'s identity —
+    // the last of those is how a filter/search/page change refetches. Do not gate
+    // this on "was previously disabled": that also swallows every deps change.
+    void load();
   }, [enabled, load]);
 
   return { data, loading, error, isApiError, isOffline, reload: load, setData };
