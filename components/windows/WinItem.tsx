@@ -73,6 +73,7 @@ function renderInfoTab(
   categoryList: Category[],
   mainCategoryId: number | null,
   setMainCategoryOnly: (id: number) => void,
+  isEdit: boolean,
 ) {
   return (
     <div style={{ padding: 12 }}>
@@ -104,7 +105,15 @@ function renderInfoTab(
         </select>
       </Field>
       <Field label="ĐVT" required>
-        <select value={draft.baseUomId} onChange={e => setDraft({ ...draft, baseUomId: Number(e.target.value) })}>
+        {/* Tồn kho, quy đổi đơn vị và công thức đều tính theo đơn vị này, và không
+            có gì ghi lại chúng được ghi dưới đơn vị nào — nên đổi sau khi tạo sẽ
+            làm sai toàn bộ số cũ. BE từ chối bằng Item.BaseUomImmutable. */}
+        <select
+          value={draft.baseUomId}
+          disabled={isEdit}
+          title={isEdit ? "Không thể đổi đơn vị gốc sau khi đã tạo. Cần đơn vị khác thì tạo hàng hoá mới." : undefined}
+          onChange={e => setDraft({ ...draft, baseUomId: Number(e.target.value) })}
+        >
           {uomList.map(u => (
             <option key={u.id} value={u.id}>
               {u.code} — {u.name}
@@ -933,7 +942,7 @@ export function WinItem() {
               ))}
             </div>
             <div style={{ display: selectedTab === "info" ? "block" : "none" }}>
-              {renderInfoTab(draft, setDraft, uomList, stationList, categoryListDfs, mainCategoryId, setMainCategoryOnly)}
+              {renderInfoTab(draft, setDraft, uomList, stationList, categoryListDfs, mainCategoryId, setMainCategoryOnly, editingId != null)}
             </div>
             <div style={{ display: selectedTab === "image" ? "block" : "none" }}>
               {renderImageTab(draft, setDraft, uploading, handleFileUpload)}

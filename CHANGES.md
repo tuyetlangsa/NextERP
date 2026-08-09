@@ -4,6 +4,14 @@ Branch: `main`
 
 ---
 
+## 0. Khoá ĐVT gốc khi sửa hàng hoá (`WinItem`) — 2026-08-09
+
+- Select **ĐVT** ở tab Thông tin `disabled` khi đang **sửa** (`isEdit = editingId != null`), kèm tooltip giải thích. Lúc **tạo mới** vẫn chọn bình thường.
+- Lý do: tồn kho (`ItemStock`), sổ kho append-only (`StockMovement`), quy đổi đơn vị và dòng công thức (`BomLine`) đều tính theo đơn vị này mà **không** ghi lại chúng thuộc đơn vị nào — đổi sau khi tạo là làm sai toàn bộ số cũ chứ không quy đổi. Cần đơn vị gốc khác thì tạo hàng hoá mới.
+- BE mới là chỗ chặn thật (`Item.BaseUomImmutable`); select `disabled` chỉ để giải thích cho người dùng.
+
+---
+
 ## 0a. Custom-role CRUD in `WinStaffAccount` — 2026-07-20
 
 - Role panel (thanh trái) thêm mini-toolbar **+ Tạo / Sửa / Xoá** vai trò + dialog Mã/Tên/Mô tả.
