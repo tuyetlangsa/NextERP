@@ -629,6 +629,7 @@ button {
 }
 .detail-panel-body {
   flex: 1;
+  min-height: 0; /* see .dgrid-wrap — without it the fields push past the panel */
   overflow-y: auto;
   padding: 14px;
 }
@@ -693,6 +694,7 @@ button {
 /* ============ DATA LIST ============ */
 .data-list {
   flex: 1;
+  min-height: 0; /* see .dgrid-wrap */
   display: flex;
   flex-direction: column;
   background: var(--panel-bg);
@@ -967,6 +969,12 @@ svg:not([width]) {
    when reference UX requires dynamic columns / inline-edit cells). */
 .dgrid-wrap {
   flex: 1;
+  /* A flex child defaults to min-height:auto, i.e. "never shrink below my
+     content". Without this the table demands its full natural height and pushes
+     whatever follows it out of the panel instead of scrolling — which is how the
+     Set Menu config pane loses its "Loại lựa chọn" grid off the bottom edge on a
+     short screen, with two of these stacked in one column. */
+  min-height: 0;
   overflow: auto;
   background: var(--panel-bg);
 }
@@ -1253,6 +1261,21 @@ svg:not([width]) {
   overflow: hidden;
   border-top: 1px solid var(--border);
 }
+/* A 50/50 split assumes both halves need the same room. They do not: the top is a
+   paged, scrollable list that survives being small, while the bottom stacks a form
+   and two tables and needs every pixel. On a scaled display (1920x1080 at 150% is
+   ~648 CSS px tall) half of what is left after the chrome is under 270px, and the
+   second table drops off the bottom edge. Only .vsplit is retuned — .vsplit-half
+   below is deliberately even. */
+@media (max-height: 820px) {
+  .vsplit > .vtop {
+    flex: 1 1 30%;
+  }
+  .vsplit > .vbot {
+    flex: 1.8 1 auto;
+  }
+}
+
 /* Fixed 50/50 vertical split (e.g. WinChoice modifiers) — equal flex, not % height */
 .vsplit-half {
   display: flex;
@@ -1393,6 +1416,30 @@ svg:not([width]) {
    `height`/`max-height` from `setMaxHeight()`, and that clamp is computed from
    `window.innerHeight` — not from the ERP window — so on a short viewport the
    dialog would otherwise stick out of its own window. */
+/* ============ DIALOG SIZE GUARD (global) ============
+   Every dialog in the app but one is opened with a hard pixel width and no
+   height cap (WinItem 760/520, ItemPicker 820, WinPricing 560, WinSetMenu 520,
+   WinStaffAccount 420). That is fine on a tall monitor and breaks on a scaled
+   one: Windows at 125–150% turns a 1920x1080 screen into a ~1280x648 CSS
+   viewport, and a form taller than that runs off the bottom with no way to
+   scroll to its buttons.
+
+   Capping here rather than at each call site means a dialog added later cannot
+   reintroduce the bug. The pixel width still applies whenever it fits — this
+   only ever shrinks. */
+.e-dialog {
+  max-width: calc(100vw - 24px) !important;
+  max-height: calc(100vh - 56px) !important;
+  display: flex !important;
+  flex-direction: column;
+}
+/* The header and footer keep their height; the body is the single scroll region. */
+.e-dialog > .e-dlg-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .staff-account-dialog.e-dialog {
   width: min(760px, calc(100% - 24px)) !important;
   height: min(680px, calc(100% - 24px)) !important;
@@ -1629,6 +1676,7 @@ svg:not([width]) {
 }
 .sched-grid-wrap {
   flex: 1;
+  min-height: 0; /* see .dgrid-wrap — the week grid must scroll, not overflow */
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 4px;

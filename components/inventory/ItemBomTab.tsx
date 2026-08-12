@@ -310,14 +310,25 @@ export function ItemBomTab({ itemId }: Props) {
   };
 
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ fontSize: 11, color: "var(--fg-muted)", marginBottom: 8 }}>
+    /* Flex column filling the host pane: the hint, buttons and errors keep their
+       height and the grid takes the rest, so it shrinks with the window instead
+       of holding a fixed height that runs off a short screen. */
+    <div
+      style={{
+        padding: 12,
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ fontSize: 11, color: "var(--fg-muted)", marginBottom: 8, flexShrink: 0 }}>
         Nguyên liệu cần cho 1 đơn vị món bán. Chỉ chọn hàng quản kho, không có công thức riêng.
         Bấm <strong>Thêm</strong> trên lưới để chèn dòng mới, sửa trực tiếp trong ô, rồi bấm{" "}
         <strong>Lưu</strong>. Nguyên liệu và đơn vị chỉ đặt được lúc thêm mới.
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexShrink: 0 }}>
         <button
           type="button"
           onClick={() => void handleSave()}
@@ -337,11 +348,12 @@ export function ItemBomTab({ itemId }: Props) {
       </div>
 
       {errorMsg && (
-        <div style={{ color: "var(--danger)", fontSize: 12, marginBottom: 8, whiteSpace: "pre-wrap" }}>
+        <div style={{ color: "var(--danger)", fontSize: 12, marginBottom: 8, whiteSpace: "pre-wrap", flexShrink: 0 }}>
           {errorMsg}
         </div>
       )}
 
+      <div style={{ flex: 1, minHeight: 0 }}>
       <GridComponent
         key={`bom-${itemId}-${rows.length}`}
         ref={(g: GridComponent | null) => { gridRef.current = g; }}
@@ -353,7 +365,7 @@ export function ItemBomTab({ itemId }: Props) {
         allowSorting
         allowPaging
         pageSettings={{ pageSize: 10 }}
-        height={260}
+        height="100%"
       >
         <ColumnsDirective>
           <ColumnDirective field="id" headerText="ID" width="60" isPrimaryKey={true} visible={false} />
@@ -405,6 +417,7 @@ export function ItemBomTab({ itemId }: Props) {
         </ColumnsDirective>
         <Inject services={[Page, Sort, Edit, Toolbar]} />
       </GridComponent>
+      </div>
     </div>
   );
 }

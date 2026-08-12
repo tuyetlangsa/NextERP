@@ -304,7 +304,7 @@ export function ItemUomConversionTab({ itemId, baseUomId, uomList }: Props) {
         pageSettings={{ pageSize: 10 }}
         rowSelected={handleRowSelected}
         selectedRowIndex={selectedId !== null ? list.findIndex(c => c.id === selectedId) : -1}
-        height={220}
+        height="38vh"
       >
         <ColumnsDirective>
           <ColumnDirective field="conversionDisplay" headerText="Quy đổi" width="220" />

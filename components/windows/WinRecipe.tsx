@@ -321,11 +321,15 @@ export function WinRecipe() {
             </GridComponent>
           </div>
 
+          {/* hidden, not auto: the ingredient grid inside is a flex child that
+              takes the leftover height and scrolls itself. Letting this pane
+              scroll instead would give that grid an indefinite height, which
+              collapses a Syncfusion grid asking for height 100%. */}
           <div
             style={{
               flex: 1,
               minHeight: 0,
-              overflow: "auto",
+              overflow: "hidden",
               borderTop: "1px solid var(--border-strong)",
             }}
           >
@@ -340,13 +344,14 @@ export function WinRecipe() {
                 Chọn một món ở danh sách trên để khai báo nguyên liệu cho công thức của món đó.
               </div>
             ) : (
-              <div>
+              <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <div
                   style={{
                     padding: "10px 12px",
                     borderBottom: "1px solid var(--border)",
                     fontSize: 13,
                     fontWeight: 600,
+                    flexShrink: 0,
                   }}
                 >
                   {selectedItem.code} — {selectedItem.name}
@@ -359,7 +364,9 @@ export function WinRecipe() {
                     </span>
                   )}
                 </div>
-                <ItemBomTab key={selectedItem.id} itemId={selectedItem.id} />
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <ItemBomTab key={selectedItem.id} itemId={selectedItem.id} />
+                </div>
               </div>
             )}
           </div>

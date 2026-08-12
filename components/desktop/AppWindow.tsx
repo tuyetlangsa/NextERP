@@ -17,7 +17,10 @@ interface Props {
 
 export function AppWindow({ w, z, onClose, onMin, onMax, onFocus, children }: Props) {
   const [pos, setPos] = useState(w.pos);
-  const [size] = useState(w.size);
+  // Read straight from the prop — nothing here resizes a window locally, and the
+  // useState copy this replaced froze the launch size, so the shell's clamp on a
+  // shrinking viewport never reached the DOM.
+  const size = w.size;
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
 
   useEffect(() => { setPos(w.pos); }, [w.pos]);

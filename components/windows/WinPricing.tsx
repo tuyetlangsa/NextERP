@@ -748,7 +748,7 @@ export function WinPricing() {
                   <Inject services={[Edit, Toolbar]} />
                 </GridComponent>
               </div>
-              <div style={{ flex: 1, padding: 16, overflow: "auto" }}>
+              <div style={{ flex: 1, minHeight: 0, padding: 16, overflow: "auto" }}>
                 {selectedVariant ? (
                   <div style={{ fontSize: 13 }}>
                     <h4 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>

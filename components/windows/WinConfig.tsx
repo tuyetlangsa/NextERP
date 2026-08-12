@@ -137,7 +137,7 @@ export function WinConfig() {
         }
       />
 
-      <div className="win-body" style={{ flex: 1, overflow: "auto", padding: "0", display: "flex", flexDirection: "column" }}>
+      <div className="win-body" style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "0", display: "flex", flexDirection: "column" }}>
         {GROUP_ORDER.map((g) => {
           const items = grouped.get(g.key) ?? [];
           if (items.length === 0) return null;

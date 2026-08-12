@@ -387,7 +387,7 @@ export function WinAreaMenuCategory() {
             />
           </div>
 
-          <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             {categories.loading && <LoadingBar text="Đang tải nhóm hàng..." />}
             {loadingAssignments && <LoadingBar text="Đang tải gán nhóm menu..." />}
             {!selectedAreaId ? (

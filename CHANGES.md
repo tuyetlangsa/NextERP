@@ -4,6 +4,26 @@ Branch: `main`
 
 ---
 
+## 0. Responsive: ERP vỡ layout trên màn hình bị phóng đại — 2026-08-13
+
+**Triệu chứng**: cùng một bản build, máy này bình thường, máy kia "mọi trang đều to quá", component che nhau, form create tràn khỏi cửa sổ, lưới dưới cùng bị cắt mất.
+
+**Nguyên nhân gốc — không phải độ phân giải, mà là mức phóng đại của HĐH.** Windows ở 125–150% biến màn 1920×1080 thành viewport CSS chỉ ~1280×648. Toàn bộ layout ERP được dựng với giả định còn nhiều chỗ theo chiều dọc. Cả `globals.css` 3288 dòng chỉ có **đúng một** media query (`max-width: 720px`) — không có breakpoint nào theo chiều cao.
+
+Ba lỗi kỹ thuật cụ thể:
+
+**1. Bẫy `min-height: auto` của flexbox.** Con của flex column mặc định "không co dưới kích thước nội dung". Vùng cuộn thiếu `min-height: 0` sẽ **đẩy phần tử kế tiếp ra khỏi khung** thay vì tự cuộn. Đã vá: `.dgrid-wrap`, `.data-list`, `.detail-panel-body`, `.sched-grid-wrap`, cùng 3 container dọc inline trong `WinConfig`, `WinAreaMenuCategory`, `WinPricing`. Đây chính là lý do pane cấu hình của Set Menu mất lưới "Loại lựa chọn" — hai `.dgrid-wrap` xếp chồng, mỗi cái đòi đủ chiều cao bảng.
+
+**2. Dialog cỡ cứng, không chặn chiều cao.** 6/7 dialog mở bằng `width="760px"`/`520px`/`820px`... không cái nào có `max-height`. Thêm một luật chung cho `.e-dialog`: `max-width: calc(100vw - 24px)`, `max-height: calc(100vh - 56px)`, thân dialog thành vùng cuộn duy nhất. Chặn ở đây thay vì ở từng nơi gọi, nên dialog viết sau không tái phạm được. Bề rộng px vẫn giữ khi còn vừa — luật này chỉ bao giờ thu nhỏ.
+
+**3. Cửa sổ chỉ đo kích thước đúng một lần.** `AppWindow` chụp `w.size` vào `useState` rồi không đọc lại prop, nên kích thước đóng băng ở lúc mở. Đổi màn hình / đổi mức phóng đại sau đó là cửa sổ to hơn desktop, mép dưới và mép phải không với tới. Đã đọc thẳng từ prop, thêm clamp khi `resize` (chỉ thu nhỏ, không phóng to lại), và chặn cascade `+24px` không đẩy cửa sổ ra ngoài màn hình.
+
+**Khác**: `.vsplit` (chỉ `WinSetMenu` dùng) đổi từ 50/50 sang 30/70 khi `max-height: 820px` — pane trên là lưới phân trang, chịu được nhỏ; pane dưới xếp một form và hai bảng. Hai lưới chiều cao cứng (`ItemBomTab` 260px, `ItemUomConversionTab` 220px) chuyển sang co theo khung.
+
+⚠️ **Chưa sửa**: `.sched-create-modal` cố tình đặt `overflow: visible !important; max-height: none` để dropdown bên trong không bị cắt — cap lại là cắt dropdown, không cap thì tràn màn hình. Sửa đúng phải cho dropdown render qua portal.
+
+---
+
 ## 0. Công thức chế biến: sửa nguyên liệu ngay trên lưới (`ItemBomTab`) — 2026-08-13
 
 Bỏ form chi tiết phía trên lưới. Giờ thêm/sửa **inline** trong chính lưới nguyên liệu, chế độ `mode: "Batch"` (cùng mẫu với lưới pivot của `WinPricing`).
