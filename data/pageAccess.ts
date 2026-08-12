@@ -20,6 +20,7 @@ export const SUBSYSTEM_PAGE_CODE: Record<string, string> = {
   choice: "nexterp.choice_categories",
   setmenu: "nexterp.set_menu",
   "kitchen-station": "nexterp.kitchen_stations",
+  recipe: "nexterp.recipes",
 
   // Kho
   stock: "nexterp.stock",

@@ -2,7 +2,7 @@ import {
   LayoutGrid, Building2, MapPin, Utensils, ListOrdered, Layers, Tags,
   Users, CalendarClock, Settings, BarChart3, Sparkles, ChefHat, Ban,
   Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download, Upload,
-  Search, Settings2, Pencil, Check,
+  Search, Settings2, Pencil, Check, CookingPot,
   HelpCircle, ChevronDown, ChevronRight, Folder, Package, ArrowLeftRight, Repeat, ArrowLeft, Copy,
   PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
@@ -10,6 +10,7 @@ import {
 export type SubsystemIconKey =
   | "counter" | "area" | "area-menu-category" | "table" | "floorplan"
   | "items"   | "uom"  | "uom-conversion" | "choice" | "setmenu" | "kitchen-station"
+  | "recipe"
   | "stock" | "stock-movement"
   | "pricing" | "discount" | "service-charge"
   | "users"   | "shifts" | "schedule" | "config" | "cancellation-reason"
@@ -27,6 +28,7 @@ export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
   choice:          Tags,
   setmenu:         Layers,
   "kitchen-station": ChefHat,
+  recipe:          CookingPot,
   stock: Package,
   "stock-movement": ArrowLeftRight,
   pricing:         Tags,
@@ -45,7 +47,7 @@ export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
 export const subsystemIconKey: Record<string, SubsystemIconKey> = {
   counter: "counter", area: "area", "area-menu-category": "area-menu-category", table: "table", floorplan: "floorplan",
   items: "items", uom: "uom", "uom-conversion": "uom-conversion", choice: "choice", setmenu: "setmenu",
-  "kitchen-station": "kitchen-station",
+  "kitchen-station": "kitchen-station", recipe: "recipe",
   stock: "stock",
   "stock-movement": "stock-movement",
   pricing: "pricing", discount: "discount", "service-charge": "service-charge",

@@ -53,6 +53,32 @@ export interface ItemListRow {
   primaryCategoryName: string | null;
 }
 
+/** Row of the recipe window's item grid — GET /api/items/recipes. */
+export interface RecipeItemRow {
+  id: number;
+  code: string;
+  name: string;
+  baseUomCode: string;
+  baseUomName: string;
+  hasRecipe: boolean;
+  isActive: boolean;
+  bomLineCount: number;
+  activeBomLineCount: number;
+  kitchenStationId: number | null;
+  kitchenStationName: string | null;
+  primaryCategoryId: number | null;
+  primaryCategoryName: string | null;
+}
+
+/** Result of flipping Item.HasRecipe — PUT /api/items/{id}/recipe-flag. */
+export interface ItemRecipeFlag {
+  id: number;
+  code: string;
+  name: string;
+  hasRecipe: boolean;
+  bomLineCount: number;
+}
+
 export interface ItemCategoryAssignment {
   categoryId: number;
   name: string;

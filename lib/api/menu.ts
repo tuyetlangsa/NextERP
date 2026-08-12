@@ -1,7 +1,15 @@
 "use client";
 
 import { http } from "@/lib/http/client";
-import type { Category, ItemDetail, ItemListRow, Page, Uom } from "@/types/api/menu";
+import type {
+  Category,
+  ItemDetail,
+  ItemListRow,
+  ItemRecipeFlag,
+  Page,
+  RecipeItemRow,
+  Uom,
+} from "@/types/api/menu";
 import type { ListQuery } from "./restaurant";
 
 export interface UomUpsert {
@@ -63,8 +71,17 @@ export interface ItemListQuery extends ListQuery {
   pageSize?: number;
 }
 
+export interface RecipeItemListQuery extends ItemListQuery {
+  /** true = dishes that already have a recipe; false = items eligible to get one. */
+  hasRecipe?: boolean;
+}
+
 export const itemsApi = {
   list: (q: ItemListQuery = {}) => http.get<Page<ItemListRow>>("/api/items", { params: q }),
+  listRecipes: (q: RecipeItemListQuery = {}) =>
+    http.get<Page<RecipeItemRow>>("/api/items/recipes", { params: q }),
+  setRecipeFlag: (id: number, hasRecipe: boolean) =>
+    http.put<ItemRecipeFlag>(`/api/items/${id}/recipe-flag`, { hasRecipe }),
   get: (id: number) => http.get<ItemDetail>(`/api/items/${id}`),
   create: (body: ItemUpsert) => http.post<ItemDetail>("/api/items", body),
   update: (id: number, body: ItemUpsert) => http.put<ItemDetail>(`/api/items/${id}`, body),
