@@ -21,6 +21,7 @@ import { WinSetMenu } from "@/components/windows/WinSetMenu";
 import { WinDiscountPolicy } from "@/components/windows/WinDiscountPolicy";
 import { WinServiceCharge } from "@/components/windows/WinServiceCharge";
 import { WinKitchenStation } from "@/components/windows/WinKitchenStation";
+import { WinRecipe } from "@/components/windows/WinRecipe";
 import { WinCancellationReason } from "@/components/windows/WinCancellationReason";
 import { WinShift } from "@/components/windows/WinShift";
 import { WinStock } from "@/components/windows/WinStock";
@@ -48,6 +49,7 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinDiscountPolicy,
   WinServiceCharge,
   WinKitchenStation,
+  WinRecipe,
   WinCancellationReason,
   WinShift,
   WinStock,

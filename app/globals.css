@@ -1388,12 +1388,32 @@ svg:not([width]) {
 }
 
 /* Staff account detail dialog */
+/* Size the dialog against `.e-dlg-container` (which tracks the host window)
+   instead of fixed pixels. `!important` is required: Syncfusion writes inline
+   `height`/`max-height` from `setMaxHeight()`, and that clamp is computed from
+   `window.innerHeight` — not from the ERP window — so on a short viewport the
+   dialog would otherwise stick out of its own window. */
+.staff-account-dialog.e-dialog {
+  width: min(760px, calc(100% - 24px)) !important;
+  height: min(680px, calc(100% - 24px)) !important;
+  max-width: calc(100% - 24px) !important;
+  max-height: calc(100% - 24px) !important;
+}
+/* Every section below is a row of the dialog's flex column so the tree is the
+   ONLY scroll region. Without min-height:0 the flex items refuse to shrink and
+   push the tree out past the dialog edge. When the window is too short to fit
+   the tree's min-height, `.e-dlg-content` takes over with a single scrollbar. */
 .staff-account-dialog .e-dlg-content {
   padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .staff-account-dialog-body {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .staff-account-dialog-toolbar {
   display: flex;
@@ -1401,6 +1421,7 @@ svg:not([width]) {
   gap: 8px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .staff-account-dialog-toolbar-spacer {
   flex: 1;
@@ -1413,6 +1434,7 @@ svg:not([width]) {
   color: var(--fg-muted);
 }
 .staff-account-dialog-alert {
+  flex-shrink: 0;
   margin: 12px 20px 0;
   padding: 8px 12px;
   font-size: 12px;
@@ -1445,13 +1467,14 @@ svg:not([width]) {
   display: flex;
   gap: 24px;
   padding: 16px 20px;
+  flex-shrink: 0;
 }
 .staff-account-dialog-form-main {
   flex: 1;
   min-width: 0;
 }
 .staff-account-dialog-form-side {
-  width: 200px;
+  width: 260px;
   flex-shrink: 0;
   padding-left: 20px;
   border-left: 1px solid var(--border);
@@ -1473,12 +1496,19 @@ svg:not([width]) {
   border: 1px solid var(--border-strong);
   border-radius: 6px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* Floor for the whole box (tabs 37 + hint 25 + ~120 of tree). A min-height:0
+     here would let the box collapse and defeat any floor set on the tree. */
+  min-height: 184px;
 }
 .staff-account-dialog-perms-tabs {
   display: flex;
   align-items: stretch;
   background: var(--accent-bg);
   border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
 }
 .staff-account-dialog-perms-tab {
   padding: 8px 16px;
@@ -1502,9 +1532,11 @@ svg:not([width]) {
   color: #71717a;
   background: #fafafa;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .staff-account-dialog-perms-tree {
-  max-height: 260px;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 8px 12px;
 }

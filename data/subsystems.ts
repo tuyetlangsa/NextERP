@@ -14,6 +14,7 @@ export const subsystems: Subsystem[] = [
   { id: "choice",  label: "Loại lựa chọn",      description: "Choice Categories & Modifiers",   group: "menu",    showOnDesktop: true, win: "WinChoice" },
   { id: "setmenu", label: "Set Menu",           description: "Combo & Main Components",         group: "menu",    showOnDesktop: true, win: "WinSetMenu" },
   { id: "kitchen-station", label: "Bếp con",    description: "Kitchen Station — gán bếp cho món", group: "menu",  showOnDesktop: true, win: "WinKitchenStation" },
+  { id: "recipe",  label: "Công thức chế biến", description: "Định lượng nguyên liệu cho từng món", group: "menu", showOnDesktop: true, win: "WinRecipe" },
   // Inventory
   { id: "stock", label: "Tồn kho", description: "Dashboard tồn kho & cảnh báo sắp hết", group: "inventory", showOnDesktop: true, win: "WinStock" },
   { id: "stock-movement", label: "Nhập/Xuất kho", description: "Sổ kho append-only", group: "inventory", showOnDesktop: true, win: "WinStockMovement" },
