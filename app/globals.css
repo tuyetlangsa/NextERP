@@ -969,12 +969,15 @@ svg:not([width]) {
    when reference UX requires dynamic columns / inline-edit cells). */
 .dgrid-wrap {
   flex: 1;
-  /* A flex child defaults to min-height:auto, i.e. "never shrink below my
-     content". Without this the table demands its full natural height and pushes
-     whatever follows it out of the panel instead of scrolling — which is how the
-     Set Menu config pane loses its "Loại lựa chọn" grid off the bottom edge on a
-     short screen, with two of these stacked in one column. */
-  min-height: 0;
+  /* Deliberately NOT min-height:0. These sit inside panes that already scroll
+     (Set Menu stacks two of them under a form whose fixed parts alone exceed the
+     pane on a short screen). With min-height:0 the flex basis of 0 wins and both
+     tables collapse to nothing — measured at 0px, the grid gone rather than
+     merely clipped. A floor keeps a few rows visible and lets the parent pane
+     scroll to the rest, which is the behaviour that was wanted.
+     Call sites needing something else set it inline: WinChoice uses 0 to allow
+     collapse, WinDiscountPolicy uses 180. */
+  min-height: 120px;
   overflow: auto;
   background: var(--panel-bg);
 }

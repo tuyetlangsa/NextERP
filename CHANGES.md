@@ -12,7 +12,16 @@ Branch: `main`
 
 Ba lỗi kỹ thuật cụ thể:
 
-**1. Bẫy `min-height: auto` của flexbox.** Con của flex column mặc định "không co dưới kích thước nội dung". Vùng cuộn thiếu `min-height: 0` sẽ **đẩy phần tử kế tiếp ra khỏi khung** thay vì tự cuộn. Đã vá: `.dgrid-wrap`, `.data-list`, `.detail-panel-body`, `.sched-grid-wrap`, cùng 3 container dọc inline trong `WinConfig`, `WinAreaMenuCategory`, `WinPricing`. Đây chính là lý do pane cấu hình của Set Menu mất lưới "Loại lựa chọn" — hai `.dgrid-wrap` xếp chồng, mỗi cái đòi đủ chiều cao bảng.
+**1. Bẫy `min-height: auto` của flexbox.** Con của flex column mặc định "không co dưới kích thước nội dung". Vùng cuộn thiếu `min-height: 0` sẽ **đẩy phần tử kế tiếp ra khỏi khung** thay vì tự cuộn. Đã vá: `.data-list`, `.detail-panel-body`, `.sched-grid-wrap`, cùng 3 container dọc inline trong `WinConfig`, `WinAreaMenuCategory`, `WinPricing`.
+
+**1b. `.dgrid-wrap` thì NGƯỢC LẠI — đo trên trình duyệt mới ra.** Ban đầu tôi cũng đặt `min-height: 0` cho nó. Sai. Các `.dgrid-wrap` nằm trong pane **vốn đã cuộn được**; đặt `min-height: 0` thì `flex-basis: 0` thắng và **cả hai bảng co về đúng 0px** — lưới biến mất hẳn, còn tệ hơn bị cắt. Đo tại cửa sổ 1280×608:
+
+| `.dgrid-wrap` | chiều cao đo được | pane cuộn |
+|---|---|---|
+| `min-height: 0` | **0px, 0px** | 211→241 |
+| `min-height: 120px` | **120px, 120px** | 211→481 ✅ |
+
+Nên chốt `min-height: 120px`: giữ vài dòng luôn nhìn thấy, phần còn lại cuộn trong pane. Nơi nào cần khác thì đã tự đặt inline (`WinChoice` = 0 để cho co, `WinDiscountPolicy` = 180).
 
 **2. Dialog cỡ cứng, không chặn chiều cao.** 6/7 dialog mở bằng `width="760px"`/`520px`/`820px`... không cái nào có `max-height`. Thêm một luật chung cho `.e-dialog`: `max-width: calc(100vw - 24px)`, `max-height: calc(100vh - 56px)`, thân dialog thành vùng cuộn duy nhất. Chặn ở đây thay vì ở từng nơi gọi, nên dialog viết sau không tái phạm được. Bề rộng px vẫn giữ khi còn vừa — luật này chỉ bao giờ thu nhỏ.
 
