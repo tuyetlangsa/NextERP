@@ -435,13 +435,12 @@ export function WinStaffAccount() {
     setResetPwdOpen(false);
   }, []);
 
-  const handleDialogBeforeClose = useCallback(
-    (args: { cancel?: boolean }) => {
-      args.cancel = true;
-      closeDialog();
-    },
-    [closeDialog]
-  );
+  // NEVER set args.cancel here: React drives `visible`, and Syncfusion routes a
+  // `visible=false` prop change through hide() -> beforeClose. Cancelling it
+  // aborts the hide, so the (now empty) dialog shell stays on screen after Lưu.
+  const handleDialogBeforeClose = useCallback(() => {
+    closeDialog();
+  }, [closeDialog]);
 
   const handleApplyRoleDefault = useCallback(async () => {
     const role = roles.find(r => r.id === form.roleId);
@@ -740,9 +739,10 @@ export function WinStaffAccount() {
         </div>
       </div>
 
-      {/* Detail dialog — always mounted; Syncfusion breaks if wrapped in {open && ...} */}
+      {/* Detail dialog — always mounted; Syncfusion breaks if wrapped in {open && ...}.
+          No width/height props: the size must be relative to the host window, so it
+          lives in the `.staff-account-dialog` CSS rule instead. */}
       <DialogComponent
-        width="760px"
         cssClass="staff-account-dialog"
         target={dialogTarget ?? undefined}
         header={
@@ -755,8 +755,15 @@ export function WinStaffAccount() {
         beforeClose={handleDialogBeforeClose}
         isModal
       >
+        {/* The body wrapper must exist on the FIRST render, even while closed:
+            Dialog.setTargetContent() runs once at init and moves whatever is
+            already inside the root element into `.e-dlg-content`. If children
+            are null at that moment the content box is built empty, and every
+            node React adds later becomes a SIBLING of `.e-dlg-content` — it
+            then escapes the dialog's scroll box and spills out of the form. */}
+        <div className="staff-account-dialog-body" style={{ position: "relative" }}>
         {dialogOpen ? (
-          <div className="staff-account-dialog-body" style={{ position: "relative" }}>
+          <>
           <div className="staff-account-dialog-toolbar">
             <button type="button" className="tb-btn primary" onClick={handleSave}>
               Lưu
@@ -850,22 +857,6 @@ export function WinStaffAccount() {
                   />
                 </Field>
               )}
-              <Field label="Điện thoại">
-                <input
-                  value={form.phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, phone: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                />
-              </Field>
               <div className="staff-account-dialog-checks">
                 <label>
                   <input
@@ -898,6 +889,25 @@ export function WinStaffAccount() {
                   value={form.roleId ?? undefined}
                   change={(e: DropDownChangeEventArgs) =>
                     setForm((f) => ({ ...f, roleId: e.value as number }))
+                  }
+                />
+              </Field>
+              {/* Phone/email live here rather than stacked on the left: the form
+                  is flex-shrink:0, so every row it adds is a row taken from the
+                  permission tree below it on every screen size. */}
+              <Field label="Điện thoại">
+                <input
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
                   }
                 />
               </Field>
@@ -1084,8 +1094,9 @@ export function WinStaffAccount() {
               </div>
             </div>
           )}
-          </div>
+          </>
         ) : null}
+        </div>
       </DialogComponent>
 
       <DialogComponent
