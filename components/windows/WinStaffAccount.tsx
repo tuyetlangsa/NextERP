@@ -500,8 +500,17 @@ export function WinStaffAccount() {
     setSaveSuccess(`Đã đặt lại mật khẩu cho tài khoản ${form.username}.`);
   }, [selectedAccountId, resetPwdForm, form.username, closeResetPassword]);
 
-  const collectCheckedCodes = (ref: React.RefObject<TreeViewComponent | null>): string[] => {
-    const ids = (ref.current?.getAllCheckedNodes() ?? []) as string[];
+  /**
+   * Null when the tree is not mounted — the catalogue failed to load, so nothing
+   * on screen represents the user's intent. The caller must skip that PUT rather
+   * than send the empty list, which the API would honour by revoking everything.
+   */
+  const collectCheckedCodes = (
+    ref: React.RefObject<TreeViewComponent | null>
+  ): string[] | null => {
+    const tree = ref.current;
+    if (!tree) return null;
+    const ids = (tree.getAllCheckedNodes() ?? []) as string[];
     return ids.filter(id => !id.startsWith("m-") && !id.startsWith("g-")); // leaf codes only
   };
 
@@ -529,11 +538,17 @@ export function WinStaffAccount() {
       if (!res.isSuccess) { setSaveError(formatApiError(res)); return; }
     }
 
-    const pageRes = await accessApi.setPageAccess(accountId, collectCheckedCodes(pageTreeRef));
-    if (!pageRes.isSuccess) { setSaveError(formatApiError(pageRes)); return; }
+    const pageCodes = collectCheckedCodes(pageTreeRef);
+    if (pageCodes !== null) {
+      const pageRes = await accessApi.setPageAccess(accountId, pageCodes);
+      if (!pageRes.isSuccess) { setSaveError(formatApiError(pageRes)); return; }
+    }
 
-    const permRes = await accessApi.setPermissions(accountId, collectCheckedCodes(permTreeRef));
-    if (!permRes.isSuccess) { setSaveError(formatApiError(permRes)); return; }
+    const permCodes = collectCheckedCodes(permTreeRef);
+    if (permCodes !== null) {
+      const permRes = await accessApi.setPermissions(accountId, permCodes);
+      if (!permRes.isSuccess) { setSaveError(formatApiError(permRes)); return; }
+    }
 
     closeDialog();
     accountsRes.reload();
@@ -949,9 +964,15 @@ export function WinStaffAccount() {
                 : "Tick cả nhóm để cấp toàn bộ quyền trong nhóm, hoặc mở nhóm ra tick từng quyền. Dấu − = cấp một phần."}
             </div>
 
+            {/* Both trees stay mounted and the inactive one is hidden, never
+                unmounted. Save reads the checked nodes off the tree instances,
+                so a tab swapped out by a ternary left its ref null and silently
+                saved an empty list — wiping whichever half the user was not
+                looking at. Hiding keeps both refs alive, and also keeps edits
+                made on one tab when the user switches to the other. */}
             <div className="staff-account-dialog-perms-tree">
-              {bottomTab === "menu" ? (
-                pageTree.nodes.length === 0 ? (
+              <div style={{ display: bottomTab === "menu" ? undefined : "none", height: "100%" }}>
+                {pageTree.nodes.length === 0 ? (
                   <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
                     {isCreate ? "Đang tải danh mục trang..." : "Không có dữ liệu trang."}
                   </div>
@@ -967,24 +988,27 @@ export function WinStaffAccount() {
                     fullRowSelect={false}
                     checkedNodes={pageTree.checked}
                   />
-                )
-              ) : permTree.nodes.length === 0 ? (
-                <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
-                  {isCreate ? "Đang tải danh mục quyền..." : "Không có dữ liệu quyền."}
-                </div>
-              ) : (
-                <TreeViewComponent
-                  key={`permtree-${selectedAccountId}-${permTree.nodes.length}`}
-                  ref={permTreeRef}
-                  cssClass="access-check-tree"
-                  fields={permTreeFields}
-                  showCheckBox
-                  autoCheck
-                  loadOnDemand={false}
-                  fullRowSelect={false}
-                  checkedNodes={permTree.checked}
-                />
-              )}
+                )}
+              </div>
+              <div style={{ display: bottomTab === "menu" ? "none" : undefined, height: "100%" }}>
+                {permTree.nodes.length === 0 ? (
+                  <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
+                    {isCreate ? "Đang tải danh mục quyền..." : "Không có dữ liệu quyền."}
+                  </div>
+                ) : (
+                  <TreeViewComponent
+                    key={`permtree-${selectedAccountId}-${permTree.nodes.length}`}
+                    ref={permTreeRef}
+                    cssClass="access-check-tree"
+                    fields={permTreeFields}
+                    showCheckBox
+                    autoCheck
+                    loadOnDemand={false}
+                    fullRowSelect={false}
+                    checkedNodes={permTree.checked}
+                  />
+                )}
+              </div>
             </div>
           </div>
 

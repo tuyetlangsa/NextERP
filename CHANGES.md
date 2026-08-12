@@ -4,6 +4,28 @@ Branch: `main`
 
 ---
 
+## 0. Lưu tài khoản làm mất một nửa quyền (`WinStaffAccount`) — 2026-08-13
+
+**Triệu chứng**: cập nhật Quyền chức năng → mất sạch Truy cập trang; cập nhật Truy cập trang → mất sạch Quyền chức năng.
+
+**Nguyên nhân**: hai cây tick render bằng ternary — `bottomTab === "menu" ? <TreeView ref={pageTreeRef}/> : <TreeView ref={permTreeRef}/>` — nên **mỗi lúc chỉ một cây được mount**. Cây kia unmount, React set `ref.current = null`. Mà `handleSave` **luôn gọi cả hai** API, và `collectCheckedCodes` có `?? []`:
+
+```ts
+const ids = (ref.current?.getAllCheckedNodes() ?? []) as string[]   // null → []
+```
+
+→ `setPageAccess(id, [])`. Backend làm đúng replace-semantics: thay toàn bộ bằng rỗng = thu hồi hết. Không lỗi, không cảnh báo.
+
+**Sửa** — hai lớp:
+1. Cả hai cây **luôn mount**, cái không active ẩn bằng `display: none`. Ref sống cả hai. Đồng thời sửa luôn một lỗi ngầm khác: trước đây sửa tab này rồi chuyển sang tab kia là mất luôn phần vừa sửa.
+2. `collectCheckedCodes` trả `null` (không phải `[]`) khi cây chưa mount; `handleSave` **bỏ qua** PUT tương ứng. Chặn nốt trường hợp danh mục tải lỗi (`nodes.length === 0`) — lúc đó không có gì trên màn hình đại diện cho ý muốn của người dùng, nên không được gửi gì cả.
+
+**Backend vô can** — `SetStaffPageAccess` / `SetStaffPermissions` ghi hai bảng riêng, không đụng nhau.
+
+⚠️ **Dữ liệu đã mất không tự khôi phục.** Tài khoản nào từng được sửa qua màn này đều đã bị xoá một nửa — phải cấp lại tay.
+
+---
+
 ## 0. Khoá ĐVT gốc khi sửa hàng hoá (`WinItem`) — 2026-08-09
 
 - Select **ĐVT** ở tab Thông tin `disabled` khi đang **sửa** (`isEdit = editingId != null`), kèm tooltip giải thích. Lúc **tạo mới** vẫn chọn bình thường.
