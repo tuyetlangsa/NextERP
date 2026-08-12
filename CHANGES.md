@@ -4,6 +4,21 @@ Branch: `main`
 
 ---
 
+## 0. Công thức chế biến: sửa nguyên liệu ngay trên lưới (`ItemBomTab`) — 2026-08-13
+
+Bỏ form chi tiết phía trên lưới. Giờ thêm/sửa **inline** trong chính lưới nguyên liệu, chế độ `mode: "Batch"` (cùng mẫu với lưới pivot của `WinPricing`).
+
+- **Thêm**: nút `Add` nằm **trên thanh công cụ của lưới**, chèn dòng trống ở đầu. Không còn nút "Thêm" rời bên ngoài.
+- **Sửa**: gõ thẳng vào ô — SL (`numericedit`), Active (`booleanedit`).
+- **Lưu / Xoá**: vẫn là hai nút ngoài như cũ. `Xoá` đánh dấu dòng đang chọn, `Lưu` mới thực sự commit tất cả (thêm + sửa + xoá) trong một lượt.
+- **Nguyên liệu và Đơn vị chỉ đặt được lúc thêm mới** — `cellEdit` huỷ việc sửa hai cột này trên dòng đã lưu, vì `UpdateBomLine` chỉ nhận `quantity` + `isActive`; cho gõ vào sẽ hiện một thay đổi mà lệnh lưu âm thầm bỏ qua. Muốn đổi thì xoá dòng rồi thêm lại.
+- **Dropdown Đơn vị phụ thuộc Nguyên liệu**: chọn nguyên liệu xong sẽ nạp base Uom + các quy đổi đang bật của nó (cache theo `materialItemId`, nạp khi cần). Không mặc định cứng về base — hiện có **60 dòng BOM** đang dùng đơn vị khác base.
+- **Thứ tự commit**: xoá → sửa → thêm. Nhờ vậy xoá một nguyên liệu rồi thêm lại chính nó trong cùng một lần Lưu vẫn chạy, không đụng unique index.
+- **Chặn trùng phía FE** trước khi gọi API, tính cả các dòng vừa đánh dấu xoá. Unique là `(SellableItemId, MaterialItemId)` — **không** gồm Uom — nên một nguyên liệu chỉ được một dòng dù đơn vị khác nhau.
+- `grid.endEdit()` chạy trước khi đọc `getBatchChanges()`, để giá trị vừa gõ mà chưa rời ô không bị mất khi bấm thẳng vào Lưu.
+
+---
+
 ## 0. Lưu tài khoản làm mất một nửa quyền (`WinStaffAccount`) — 2026-08-13
 
 **Triệu chứng**: cập nhật Quyền chức năng → mất sạch Truy cập trang; cập nhật Truy cập trang → mất sạch Quyền chức năng.

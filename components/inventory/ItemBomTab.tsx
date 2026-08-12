@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
+  Edit,
   GridComponent,
   Inject,
   Page,
   Sort,
+  Toolbar,
+  type EditSettingsModel,
 } from "@syncfusion/ej2-react-grids";
-import { Field } from "@/components/ui/DetailPanel";
-import { ChromeIcons } from "@/components/desktop/icons";
 import {
   bomLinesApi,
   bomMaterialsLookupApi,
@@ -19,27 +20,11 @@ import {
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
 import { mockBomLines } from "@/data/mock";
-import type { BaseResponse } from "@/lib/http/types";
-import type {
-  BomLine,
-  BomMaterialLookup,
-  ItemUomConversion,
-} from "@/types/api/inventory";
+import type { BomLine, BomMaterialLookup } from "@/types/api/inventory";
 
-const EMPTY_CONVERSIONS: BaseResponse<ItemUomConversion[]> = {
-  isSuccess: true,
-  message: "",
-  data: [],
-  type: null,
-  title: null,
-  status: null,
-  detail: null,
-  extensions: null,
-  statusCode: 200,
-};
-
-type Draft = {
-  id?: number;
+/** One grid row. `id` is 0 for a row the user just added and has not saved. */
+type Row = {
+  id: number;
   materialItemId: number;
   quantity: number;
   uomId: number;
@@ -48,333 +33,377 @@ type Draft = {
 
 type UomOption = { uomId: number; label: string };
 
+const EDIT_SETTINGS: EditSettingsModel = {
+  allowAdding: true,
+  allowEditing: true,
+  allowDeleting: true,
+  mode: "Batch",
+  newRowPosition: "Top",
+};
+
 interface Props {
   itemId: number;
 }
 
 export function ItemBomTab({ itemId }: Props) {
-  const bomLines = useResource(
-    () => bomLinesApi.list(itemId),
-    { fallback: mockBomLines.filter(b => b.sellableItemId === itemId), deps: [itemId] }
-  );
+  const bomLines = useResource(() => bomLinesApi.list(itemId), {
+    fallback: mockBomLines.filter(b => b.sellableItemId === itemId),
+    deps: [itemId],
+  });
 
-  // Spec §4: material picker uses the dedicated lookup which already returns only
-  // IsStockable=true && HasRecipe=false items, each carrying its base Uom.
+  // Spec §4: this lookup already returns only IsStockable=true && HasRecipe=false
+  // items, each carrying its base Uom.
   const materials = useResource(() => bomMaterialsLookupApi.list(), { deps: [] });
 
-  const list = bomLines.data ?? [];
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const initRef = useRef(false);
+  const gridRef = useRef<GridComponent | null>(null);
 
-  const sel = list.find(b => b.id === selectedId) ?? null;
+  /**
+   * materialItemId → the Uoms its quantity may be expressed in (its base plus each
+   * active conversion). Filled on demand: a saved row cannot change its Uom, so the
+   * only material whose options are ever needed is the one just picked on a new row.
+   * A ref, not state — the dropdown reads it during the grid's own edit event, and a
+   * re-render there would tear down the editor being created.
+   */
+  const uomCache = useRef(new Map<number, UomOption[]>());
+
+  const list = useMemo<BomLine[]>(() => bomLines.data ?? [], [bomLines.data]);
   const materialList = useMemo<BomMaterialLookup[]>(
     () => materials.data ?? [],
     [materials.data]
   );
 
-  // Hide this item (self-loop) and materials already in the recipe (avoid 409
-  // DuplicateMaterial), except the one bound to the row being edited.
-  const selectableMaterials = useMemo(() => {
-    const used = new Set(list.map(b => b.materialItemId));
-    return materialList.filter(
-      m =>
-        m.itemId !== itemId &&
-        (!used.has(m.itemId) || sel?.materialItemId === m.itemId)
-    );
-  }, [materialList, list, itemId, sel?.materialItemId]);
+  const materialById = useMemo(() => {
+    const m = new Map<number, BomMaterialLookup>();
+    for (const x of materialList) m.set(x.itemId, x);
+    return m;
+  }, [materialList]);
 
-  // Uom dropdown (create only): base Uom of the chosen material + its active
-  // conversions. Spec §4: quantity must be expressed in a Uom that converts to
-  // the material's base.
-  const draftMaterialId = draft?.materialItemId ?? 0;
-  const selectedMaterial = useMemo(
-    () => materialList.find(m => m.itemId === draftMaterialId) ?? null,
-    [materialList, draftMaterialId]
-  );
-  const materialConversions = useResource(
+  const rows = useMemo<Row[]>(
     () =>
-      draftMaterialId > 0 && !sel
-        ? itemUomConversionsApi.list(draftMaterialId, { isActive: true })
-        : Promise.resolve(EMPTY_CONVERSIONS),
-    { deps: [draftMaterialId, sel?.id ?? 0] }
+      list.map(b => ({
+        id: b.id,
+        materialItemId: b.materialItemId,
+        quantity: b.quantity,
+        uomId: b.uomId,
+        isActive: b.isActive,
+      })),
+    [list]
   );
 
-  const uomOptions = useMemo<UomOption[]>(() => {
-    if (!selectedMaterial) return [];
-    const base: UomOption = {
-      uomId: selectedMaterial.baseUomId,
-      label: `${selectedMaterial.baseUomCode} — ${selectedMaterial.baseUomName} (cơ bản)`,
-    };
-    const convs = (materialConversions.data ?? []).map(c => ({
-      uomId: c.uomId,
-      label: `${c.uomCode} — ${c.uomName} (1 = ${c.factorToBase} ${selectedMaterial.baseUomCode})`,
-    }));
-    return [base, ...convs];
-  }, [selectedMaterial, materialConversions.data]);
-
-  useEffect(() => {
-    initRef.current = false;
-    setSelectedId(null);
-    setDraft(null);
-    setErrorMsg(null);
-  }, [itemId]);
-
-  useEffect(() => {
-    if (!initRef.current && list.length > 0) {
-      initRef.current = true;
-      const first = list[0];
-      setSelectedId(first.id);
-      setDraft({
-        id: first.id,
-        materialItemId: first.materialItemId,
-        quantity: first.quantity,
-        uomId: first.uomId,
-        isActive: first.isActive,
-      });
-    }
+  /** Uom labels for rows already saved, whose material may not be in the lookup. */
+  const savedUomLabel = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const b of list) m.set(b.uomId, b.uomCode);
+    return m;
   }, [list]);
 
-  // When creating, keep the Uom valid for the selected material: snap to its base
-  // Uom whenever the current choice isn't offered (material switch / async load).
-  useEffect(() => {
-    if (sel || !selectedMaterial || !draft) return;
-    if (!uomOptions.some(o => o.uomId === draft.uomId)) {
-      setDraft(d => (d ? { ...d, uomId: selectedMaterial.baseUomId } : d));
-    }
-  }, [sel, selectedMaterial, uomOptions, draft]);
+  const savedMaterialLabel = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const b of list) m.set(b.materialItemId, `${b.materialItemCode} — ${b.materialItemName}`);
+    return m;
+  }, [list]);
 
-  const handleRowSelected = (args: { data: BomLine | BomLine[] }) => {
-    const row = Array.isArray(args.data) ? args.data[0] : args.data;
-    if (!row?.id || row.id === selectedId) return;
-    setSelectedId(row.id);
-    setDraft({
-      id: row.id,
-      materialItemId: row.materialItemId,
-      quantity: row.quantity,
-      uomId: row.uomId,
-      isActive: row.isActive,
-    });
-    setErrorMsg(null);
+  // Exclude this item (self-loop) and materials already on the recipe — the unique
+  // index is (SellableItemId, MaterialItemId), so a second line for the same
+  // material is rejected regardless of its Uom.
+  const materialOptions = useMemo(
+    () =>
+      materialList
+        .filter(m => m.itemId !== itemId)
+        .map(m => ({ itemId: m.itemId, label: `${m.code} — ${m.name}` })),
+    [materialList, itemId]
+  );
+
+  const baseUomOption = useCallback(
+    (materialId: number): UomOption[] => {
+      const m = materialById.get(materialId);
+      return m
+        ? [{ uomId: m.baseUomId, label: `${m.baseUomCode} — ${m.baseUomName} (cơ bản)` }]
+        : [];
+    },
+    [materialById]
+  );
+
+  /** Warms the cache so the Uom dropdown has the conversions by the time it opens. */
+  const loadUomOptions = useCallback(
+    async (materialId: number) => {
+      if (materialId <= 0 || uomCache.current.has(materialId)) return;
+      const m = materialById.get(materialId);
+      if (!m) return;
+      // Seed with the base immediately; a slow fetch then only adds to it.
+      uomCache.current.set(materialId, baseUomOption(materialId));
+      const res = await itemUomConversionsApi.list(materialId, { isActive: true });
+      if (!res.isSuccess || !res.data) return;
+      uomCache.current.set(materialId, [
+        ...baseUomOption(materialId),
+        ...res.data.map(c => ({
+          uomId: c.uomId,
+          label: `${c.uomCode} — ${c.uomName} (1 = ${c.factorToBase} ${m.baseUomCode})`,
+        })),
+      ]);
+    },
+    [materialById, baseUomOption]
+  );
+
+  // ── Display ───────────────────────────────────────────────────────────────
+  const materialText = (_f: string, data: object) => {
+    const id = (data as Row).materialItemId;
+    return savedMaterialLabel.get(id) ?? materialOptions.find(o => o.itemId === id)?.label ?? "";
   };
 
-  const handleCreate = () => {
-    const firstMat = selectableMaterials[0];
-    if (!firstMat) {
-      setErrorMsg("Không còn nguyên liệu quản kho nào để thêm.");
+  const uomText = (_f: string, data: object) => {
+    const row = data as Row;
+    const cached = uomCache.current.get(row.materialItemId)?.find(o => o.uomId === row.uomId);
+    return cached?.label.split(" — ")[0] ?? savedUomLabel.get(row.uomId) ?? "";
+  };
+
+  // ── Edit wiring ───────────────────────────────────────────────────────────
+  type CellArgs = {
+    columnName?: string;
+    rowData?: Row;
+    cancel?: boolean;
+    column?: { edit?: { params?: Record<string, unknown> } };
+    value?: unknown;
+    cell?: HTMLElement;
+  };
+
+  /**
+   * Material and Uom are fixed once a line exists — UpdateBomLine accepts only
+   * quantity and isActive, so letting either be typed over would show an edit the
+   * save silently drops. Changing them means deleting the line and adding it back.
+   */
+  const handleCellEdit = (args: CellArgs) => {
+    const isSaved = (args.rowData?.id ?? 0) > 0;
+    const col = args.columnName;
+
+    if (isSaved && (col === "materialItemId" || col === "uomId")) {
+      args.cancel = true;
       return;
     }
-    setSelectedId(null);
-    setDraft({
-      materialItemId: firstMat.itemId,
-      quantity: 0.1,
-      uomId: firstMat.baseUomId,
-      isActive: true,
-    });
-    setErrorMsg(null);
+
+    if (col === "uomId" && args.column?.edit?.params) {
+      const materialId = args.rowData?.materialItemId ?? 0;
+      const options = uomCache.current.get(materialId) ?? baseUomOption(materialId);
+      // The editor is constructed after this event, so it picks up the swap.
+      args.column.edit.params.dataSource = options;
+    }
   };
 
-  const validateDraft = (d: Draft): string | null => {
-    if (d.materialItemId === itemId) return "Nguyên liệu không thể trùng với món bán.";
-    if (d.quantity <= 0) return "Số lượng phải lớn hơn 0.";
-    if (!d.uomId) return "Vui lòng chọn đơn vị tính.";
+  /** Picking a material resets the Uom to its base and fetches its conversions. */
+  const handleCellSaved = (args: CellArgs) => {
+    if (args.columnName !== "materialItemId") return;
+    const materialId = Number(args.value ?? 0);
+    if (materialId <= 0) return;
+    void loadUomOptions(materialId);
+
+    const m = materialById.get(materialId);
+    const grid = gridRef.current;
+    if (!m || !grid) return;
+
+    // The row index comes from the cell that was just edited, not from
+    // selectedRowIndex — in batch mode the selection can sit on a different row,
+    // and writing the Uom into the wrong line would be silent and wrong. If the
+    // index cannot be resolved, leave it: validation still refuses uomId = 0.
+    const tr = args.cell?.closest("tr");
+    const rowIndex = tr instanceof HTMLTableRowElement ? tr.rowIndex - 1 : -1;
+    if (rowIndex >= 0) {
+      grid.updateCell(rowIndex, "uomId", m.baseUomId);
+    }
+  };
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+  const validate = (added: Row[], changed: Row[], survivingIds: Set<number>): string | null => {
+    for (const r of changed) {
+      if (r.quantity <= 0) return "Số lượng phải lớn hơn 0.";
+    }
+    const used = new Set<number>();
+    for (const b of list) {
+      if (survivingIds.has(b.id)) used.add(b.materialItemId);
+    }
+    for (const r of added) {
+      if (!r.materialItemId) return "Vui lòng chọn nguyên liệu cho dòng mới.";
+      if (r.materialItemId === itemId) return "Nguyên liệu không thể trùng với món bán.";
+      if (r.quantity <= 0) return "Số lượng phải lớn hơn 0.";
+      if (!r.uomId) return "Vui lòng chọn đơn vị tính.";
+      if (used.has(r.materialItemId)) {
+        const label = materialOptions.find(o => o.itemId === r.materialItemId)?.label ?? "";
+        return `Nguyên liệu "${label}" đã có trong công thức. Mỗi nguyên liệu chỉ được khai một dòng.`;
+      }
+      used.add(r.materialItemId);
+    }
     return null;
   };
 
   const handleSave = async () => {
-    if (!draft) return;
-    const validation = validateDraft(draft);
-    if (validation) {
-      setErrorMsg(validation);
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    // Commits the cell still under the cursor, so a value typed but not tabbed
+    // out of is not lost when the user goes straight to Lưu.
+    grid.endEdit();
+
+    const changes = grid.getBatchChanges() as {
+      addedRecords?: Row[];
+      changedRecords?: Row[];
+      deletedRecords?: Row[];
+    };
+    const added = changes.addedRecords ?? [];
+    const changed = (changes.changedRecords ?? []).filter(r => r.id > 0);
+    const deleted = (changes.deletedRecords ?? []).filter(r => r.id > 0);
+
+    if (added.length === 0 && changed.length === 0 && deleted.length === 0) {
+      setErrorMsg("Chưa có thay đổi nào để lưu.");
       return;
     }
+
+    const deletedIds = new Set(deleted.map(r => r.id));
+    const surviving = new Set(list.map(b => b.id).filter(id => !deletedIds.has(id)));
+    const invalid = validate(added, changed, surviving);
+    if (invalid) {
+      setErrorMsg(invalid);
+      return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
-    const res = sel
-      ? await bomLinesApi.update(itemId, sel.id, {
-          quantity: draft.quantity,
-          isActive: draft.isActive,
-        })
-      : await bomLinesApi.create(itemId, {
-          materialItemId: draft.materialItemId,
-          quantity: draft.quantity,
-          uomId: draft.uomId,
-          isActive: draft.isActive,
-        });
+    const failures: string[] = [];
 
-    if (res.isSuccess) {
-      await bomLines.reload();
-      setSelectedId(res.data.id);
-      setDraft({
-        id: res.data.id,
-        materialItemId: res.data.materialItemId,
-        quantity: res.data.quantity,
-        uomId: res.data.uomId,
-        isActive: res.data.isActive,
+    // Deletes first: frees a material so the same save can re-add it on a new line.
+    for (const r of deleted) {
+      const res = await bomLinesApi.remove(itemId, r.id);
+      if (!res.isSuccess) failures.push(formatApiError(res));
+    }
+    for (const r of changed) {
+      const res = await bomLinesApi.update(itemId, r.id, {
+        quantity: r.quantity,
+        isActive: r.isActive,
       });
-    } else {
-      setErrorMsg(formatApiError(res));
+      if (!res.isSuccess) failures.push(formatApiError(res));
     }
+    for (const r of added) {
+      const res = await bomLinesApi.create(itemId, {
+        materialItemId: r.materialItemId,
+        quantity: r.quantity,
+        uomId: r.uomId,
+        isActive: r.isActive ?? true,
+      });
+      if (!res.isSuccess) failures.push(formatApiError(res));
+    }
+
+    await bomLines.reload();
     setSaving(false);
+    setErrorMsg(failures.length > 0 ? failures.join("\n") : null);
   };
 
-  const handleDelete = async () => {
-    if (!sel) return;
-    if (!window.confirm(`Xoá nguyên liệu "${sel.materialItemCode} — ${sel.materialItemName}"?`)) return;
-    setSaving(true);
+  /** Marks the selected row deleted in the batch; Lưu is what actually removes it. */
+  const handleDelete = () => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    if (grid.selectedRowIndex < 0) {
+      setErrorMsg("Chọn một dòng nguyên liệu để xoá.");
+      return;
+    }
     setErrorMsg(null);
-    const res = await bomLinesApi.remove(itemId, sel.id);
-    if (res.isSuccess) {
-      initRef.current = false;
-      await bomLines.reload();
-      setSelectedId(null);
-      setDraft(null);
-    } else {
-      setErrorMsg(formatApiError(res));
-    }
-    setSaving(false);
+    grid.deleteRecord();
   };
-
-  const formatMaterial = (row: BomLine) =>
-    `${row.materialItemCode} — ${row.materialItemName}`;
-
-  const listDisplay = list.map(b => ({
-    ...b,
-    materialDisplay: formatMaterial(b),
-  }));
 
   return (
     <div style={{ padding: 12 }}>
       <div style={{ fontSize: 11, color: "var(--fg-muted)", marginBottom: 8 }}>
         Nguyên liệu cần cho 1 đơn vị món bán. Chỉ chọn hàng quản kho, không có công thức riêng.
+        Bấm <strong>Thêm</strong> trên lưới để chèn dòng mới, sửa trực tiếp trong ô, rồi bấm{" "}
+        <strong>Lưu</strong>. Nguyên liệu và đơn vị chỉ đặt được lúc thêm mới.
       </div>
 
-      {draft && (
-        <div
-          style={{
-            border: "1px solid var(--border)",
-            borderRadius: 4,
-            padding: 12,
-            marginBottom: 12,
-            background: "#fafafa",
-          }}
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={saving}
+          style={{ padding: "6px 12px", fontSize: 12, border: 0, borderRadius: 4, background: "var(--accent)", color: "#fff" }}
         >
-          <Field label="Nguyên liệu" required>
-            {sel ? (
-              <input value={formatMaterial(sel)} disabled />
-            ) : (
-              <select
-                value={draft.materialItemId}
-                onChange={e => {
-                  const id = Number(e.target.value);
-                  const m = materialList.find(x => x.itemId === id);
-                  setDraft({ ...draft, materialItemId: id, uomId: m ? m.baseUomId : draft.uomId });
-                }}
-              >
-                {selectableMaterials.map(m => (
-                  <option key={m.itemId} value={m.itemId}>
-                    {m.code} — {m.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Số lượng" required>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              value={draft.quantity}
-              onChange={e => setDraft({ ...draft, quantity: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label="Đơn vị" required>
-            {sel ? (
-              <input value={`${sel.uomCode} — ${sel.uomName}`} disabled />
-            ) : (
-              <select
-                value={draft.uomId}
-                onChange={e => setDraft({ ...draft, uomId: Number(e.target.value) })}
-              >
-                {uomOptions.map(o => (
-                  <option key={o.uomId} value={o.uomId}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Kích hoạt">
-            <input
-              type="checkbox"
-              checked={draft.isActive}
-              onChange={e => setDraft({ ...draft, isActive: e.target.checked })}
-            />
-          </Field>
-          {errorMsg && (
-            <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>
-              {errorMsg}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={saving}
-              style={{ padding: "6px 12px", fontSize: 12, border: "1px solid var(--border-strong)", borderRadius: 4, background: "#fff" }}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <ChromeIcons.Plus /> Thêm
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              style={{ padding: "6px 12px", fontSize: 12, border: 0, borderRadius: 4, background: "var(--accent)", color: "#fff" }}
-            >
-              {saving ? "Đang lưu..." : "Lưu"}
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!sel || saving}
-              style={{ padding: "6px 12px", fontSize: 12, border: 0, borderRadius: 4, background: "var(--danger)", color: "#fff" }}
-            >
-              Xoá
-            </button>
-          </div>
+          {saving ? "Đang lưu..." : "Lưu"}
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={saving}
+          style={{ padding: "6px 12px", fontSize: 12, border: 0, borderRadius: 4, background: "var(--danger)", color: "#fff" }}
+        >
+          Xoá
+        </button>
+      </div>
+
+      {errorMsg && (
+        <div style={{ color: "var(--danger)", fontSize: 12, marginBottom: 8, whiteSpace: "pre-wrap" }}>
+          {errorMsg}
         </div>
       )}
 
-      {!draft && (
-        <button
-          type="button"
-          onClick={handleCreate}
-          style={{ marginBottom: 12, padding: "6px 12px", fontSize: 12, border: "1px solid var(--border-strong)", borderRadius: 4, background: "#fff" }}
-        >
-          Thêm dòng công thức
-        </button>
-      )}
-
       <GridComponent
-        dataSource={listDisplay}
+        key={`bom-${itemId}-${rows.length}`}
+        ref={(g: GridComponent | null) => { gridRef.current = g; }}
+        dataSource={rows}
+        editSettings={EDIT_SETTINGS}
+        toolbar={["Add"]}
+        cellEdit={handleCellEdit}
+        cellSaved={handleCellSaved}
         allowSorting
         allowPaging
         pageSettings={{ pageSize: 10 }}
-        rowSelected={handleRowSelected}
-        selectedRowIndex={selectedId !== null ? list.findIndex(b => b.id === selectedId) : -1}
-        height={220}
+        height={260}
       >
         <ColumnsDirective>
-          <ColumnDirective field="materialDisplay" headerText="Nguyên liệu" width="220" />
-          <ColumnDirective field="quantity" headerText="SL" width="90" format="N4" textAlign="Right" />
-          <ColumnDirective field="uomCode" headerText="Uom" width="80" />
-          <ColumnDirective field="isActive" headerText="Active" width="90" displayAsCheckBox />
+          <ColumnDirective field="id" headerText="ID" width="60" isPrimaryKey={true} visible={false} />
+          <ColumnDirective
+            field="materialItemId"
+            headerText="Nguyên liệu"
+            width="240"
+            editType="dropdownedit"
+            valueAccessor={materialText}
+            edit={{
+              params: {
+                dataSource: materialOptions,
+                fields: { text: "label", value: "itemId" },
+                allowFiltering: true,
+                popupHeight: "220px",
+              },
+            }}
+          />
+          <ColumnDirective
+            field="quantity"
+            headerText="SL"
+            width="100"
+            format="N4"
+            textAlign="Right"
+            editType="numericedit"
+            edit={{ params: { min: 0, step: 0.1, decimals: 4, format: "n4" } }}
+          />
+          <ColumnDirective
+            field="uomId"
+            headerText="Uom"
+            width="150"
+            editType="dropdownedit"
+            valueAccessor={uomText}
+            edit={{
+              params: {
+                dataSource: [] as UomOption[],
+                fields: { text: "label", value: "uomId" },
+                popupHeight: "220px",
+              },
+            }}
+          />
+          <ColumnDirective
+            field="isActive"
+            headerText="Active"
+            width="90"
+            editType="booleanedit"
+            displayAsCheckBox
+          />
         </ColumnsDirective>
-        <Inject services={[Page, Sort]} />
+        <Inject services={[Page, Sort, Edit, Toolbar]} />
       </GridComponent>
     </div>
   );
