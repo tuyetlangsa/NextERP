@@ -22,6 +22,18 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Biểu đồ Top bán chạy không hiện — trục và tên trường đảo ngược — 2026-08-14
+
+**Triệu chứng**: tab Top bán chạy chỉ có lưới dữ liệu, phần biểu đồ phía trên trống trơn — không cột, không nhãn trục danh mục.
+
+**Nguyên nhân**: với series `type="Bar"`, Syncfusion coi `xName` là trường **danh mục** và `yName` là trường **số liệu** — quy ước này giữ nguyên bất kể `Bar` hay `Column`, chỉ khác chiều vẽ (`requireInvertedAxis` tự đảo trục lúc render). Code cũ gán ngược: `xName="totalRevenue"` (số), `yName="itemName"` (danh mục), cùng với `primaryYAxis.valueType: "Category"` — khớp với field sai. Kết quả: series group render `width/height = 0`, không có rect nào được vẽ; trục danh mục (itemName) không hề xuất hiện.
+
+**Xác minh bằng thực nghiệm**, không suy đoán: gọi thẳng `chart.ej2_instances[0]`, đảo `xName`/`yName` + `valueType` của hai trục, gọi `refresh()` — series group từ `[0,0]` nhảy lên `[687,199]` với 10 rect, ảnh chụp hiện đủ 10 cột kèm tên món. Sau đó áp lại đúng cấu hình vào file thật, build sạch lại từ đầu, chụp ảnh xác nhận không phải do can thiệp console.
+
+**Sửa**: `primaryXAxis.valueType = "Category"`, `primaryYAxis` giữ `labelFormat: "N0"` (số mặc định); `xName="itemName"`, `yName="totalRevenue"`.
+
+---
+
 ## 0. Quét toàn bộ 26 window ở 1280×648 — 4 lỗi thật — 2026-08-13
 
 Dựng bộ đo tự động (headless Chrome qua CDP, viewport ghim **1280×648** = màn 1920×1080 ở scale 150%), mở lần lượt từng window, chọn một nhóm + một dòng để pane chi tiết render, rồi đếm phần tử **bị cắt ngoài khung mà không ancestor nào cuộn tới được**. Kết quả: **6 window bị cờ**, trong đó **4 lỗi thật**.
