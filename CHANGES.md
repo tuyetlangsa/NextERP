@@ -22,6 +22,16 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Gỡ hết nút Trợ giúp — 2026-08-14
+
+Bỏ **19 nút** "Trợ giúp" trên 19 window — mọi window có toolbar đều mang một cái ở góc phải.
+
+Cùng lý do với đợt gỡ Nhập/Xuất dữ liệu: **không nút nào có `onClick`**, chúng chỉ là chỗ giữ sẵn từ lúc dựng khung. `WinToolbar` khai `right?` là optional và đã có guard `right ? ... : null`, nên bỏ prop đi là an toàn — không window nào dùng `right` cho thứ gì khác ngoài nút này.
+
+Đã kiểm trên trình duyệt 19/19 window: không còn nút nào khớp "Trợ giúp".
+
+---
+
 ## 0. Công thức chế biến bỏ inline edit; Quy đổi ĐVT hiện đủ 3 cột — 2026-08-14
 
 **① Bỏ inline batch editing ở lưới nguyên liệu, quay về mẫu chuẩn.**

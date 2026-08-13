@@ -533,7 +533,6 @@ export function WinPricing() {
             <TB icon={ChromeIcons.Fn}>Chức năng</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body" style={{ flexDirection: "column" }}>

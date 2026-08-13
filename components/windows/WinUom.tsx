@@ -117,7 +117,6 @@ export function WinUom() {
             <TB icon={ChromeIcons.Refresh} onClick={() => uoms.reload()}>Làm mới</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">

@@ -157,7 +157,6 @@ export function WinArea() {
             </select>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">

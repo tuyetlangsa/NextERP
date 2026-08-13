@@ -382,7 +382,6 @@ export function WinChoice() {
             </TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       {(errorMsg || successMsg) && (

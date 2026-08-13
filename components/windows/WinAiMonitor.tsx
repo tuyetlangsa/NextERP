@@ -179,7 +179,6 @@ export function WinAiMonitor() {
             <TB kind={days === 30 ? "primary" : "default"} onClick={() => setDays(30)}>30 ngày</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", background: "var(--window-chrome)" }}>

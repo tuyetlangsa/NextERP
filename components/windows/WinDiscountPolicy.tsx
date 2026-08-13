@@ -502,7 +502,6 @@ export function WinDiscountPolicy() {
             </TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       {(errorMsg || successMsg) && (

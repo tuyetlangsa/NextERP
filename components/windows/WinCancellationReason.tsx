@@ -190,7 +190,6 @@ export function WinCancellationReason() {
             <TB icon={ChromeIcons.Refresh} onClick={() => reasons.reload()}>Làm mới</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">
