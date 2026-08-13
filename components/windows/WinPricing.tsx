@@ -531,8 +531,6 @@ export function WinPricing() {
             </TB>
             <TB icon={ChromeIcons.Search}>Tìm kiếm</TB>
             <TB icon={ChromeIcons.Fn}>Chức năng</TB>
-            <TB icon={ChromeIcons.Import}>Nhập dữ liệu</TB>
-            <TB icon={ChromeIcons.Export}>Xuất dữ liệu</TB>
           </>
         }
         right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}

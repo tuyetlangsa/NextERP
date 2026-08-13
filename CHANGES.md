@@ -22,6 +22,18 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Gỡ hết nút Nhập/Xuất dữ liệu — 2026-08-14
+
+Bỏ **6 nút** "Xuất dữ liệu" / "Nhập dữ liệu" trên 5 window: `WinArea`, `WinUom`, `WinTable`, `WinCounter`, `WinPricing` (window cuối có cả hai).
+
+**Cả 6 nút đều không có `onClick`** — chúng là UI mockup từ lúc dựng khung, bấm vào không xảy ra gì. Gỡ đi không mất chức năng nào, chỉ bớt thứ hứa hẹn một tính năng chưa hỗ trợ.
+
+Dọn kèm: `reportsApi.exportReport` thành dead code sau khi `ReportToolbar` (nút PDF/Excel) bị gỡ hôm nay — không còn ai gọi, đã xoá. Giữ lại `http.getBlob` vì đó là helper HTTP tổng quát cùng nhóm với `get`/`post`, không thuộc riêng tính năng xuất file.
+
+Đã kiểm trên trình duyệt 6 window: không còn nút nào khớp `Xuất dữ liệu|Nhập dữ liệu|PDF|Excel`; toolbar còn đúng các nút có chức năng thật. Quét lại layout: sạch.
+
+---
+
 ## 0. Lỗi khi bấm cây nhóm hàng + thu nhỏ thanh phân trang — 2026-08-14
 
 **① `Cannot read properties of undefined (reading 'id')` khi bấm category** (`WinRecipe.tsx:114`)

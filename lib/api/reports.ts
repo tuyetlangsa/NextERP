@@ -44,9 +44,4 @@ export const reportsApi = {
 
   stockAlert: (params: { search?: string; lowStock?: boolean }) =>
     http.get<StockAlertRow[]>("/api/reports/stock-alert", { params: qs(params) }),
-
-  exportReport: (reportType: string, format: "pdf" | "excel", filter: Record<string, unknown>) =>
-    http.getBlob(`/api/reports/${reportType}/export`, {
-      params: qs({ ...filter, format }),
-    }),
 };

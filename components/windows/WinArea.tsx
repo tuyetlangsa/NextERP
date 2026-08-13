@@ -145,7 +145,6 @@ export function WinArea() {
             <TB icon={ChromeIcons.Trash} onClick={handleDelete} kind="danger" disabled={!sel || saving}>Xoá</TB>
             <div className="tb-divider" />
             <TB icon={ChromeIcons.Refresh} onClick={() => areas.reload()}>Làm mới</TB>
-            <TB icon={ChromeIcons.Export}>Xuất dữ liệu</TB>
             <div className="tb-divider" />
             <span className="tb-help">Quầy:</span>
             <select
