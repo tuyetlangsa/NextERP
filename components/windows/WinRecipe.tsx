@@ -292,7 +292,10 @@ export function WinRecipe() {
             <ErrorBar text={actionError} onRetry={() => setActionError(null)} />
           )}
 
-          <div style={{ flex: "0 0 46%", overflow: "hidden", minHeight: 140 }}>
+          {/* The dish list is scanned and paginated, the pane below is worked in
+              — so the split leans downward, enough for the whole ingredient form
+              plus its grid without either needing to scroll. */}
+          <div style={{ flex: "0 0 37%", overflow: "hidden", minHeight: 140 }}>
             <GridComponent
               dataSource={rows}
               allowSorting
@@ -350,13 +353,13 @@ export function WinRecipe() {
             </GridComponent>
           </div>
 
-          {/* auto: the ingredient grid keeps a 240px floor, so on a short window
-              it is taller than this pane and the overflow has to be reachable. */}
+          {/* hidden: ItemBomTab lays itself out at height 100% with its own
+              internal scroll regions, so this pane never needs to scroll. */}
           <div
             style={{
               flex: 1,
               minHeight: 0,
-              overflow: "auto",
+              overflow: "hidden",
               borderTop: "1px solid var(--border-strong)",
             }}
           >

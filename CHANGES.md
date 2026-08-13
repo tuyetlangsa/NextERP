@@ -22,6 +22,33 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Công thức chế biến bỏ inline edit; Quy đổi ĐVT hiện đủ 3 cột — 2026-08-14
+
+**① Bỏ inline batch editing ở lưới nguyên liệu, quay về mẫu chuẩn.**
+
+Chế độ `mode: "Batch"` sinh ra một chuỗi lỗi liên tiếp (`col.edit.create is not a function`, rồi `col.edit.read`, `[object Object]` ở ô SL/Active, `uomId = 0` khi lưu, dropdown rỗng) — tất cả bắt nguồn từ việc React re-apply column props đè lên editor mà Syncfusion đã trộn sẵn. Đổi sang **mẫu master-detail** như các window ERP khác: form bên trái, lưới bên phải, nút Thêm/Lưu/Xoá.
+
+Bố cục dùng chiều ngang thay vì chiều dọc — pane dưới của `WinRecipe` chỉ cao ~250px, xếp form chồng lên lưới thì lưới chỉ còn 1-2 dòng.
+
+Để form hiện **đủ mọi field không cần cuộn** (đo được: cần 183px, có 182px):
+- Nút chuyển thành thanh gọn ở đầu panel thay vì thanh có padding ở đáy (−32px)
+- Số lượng và Đơn vị nằm cạnh nhau — chúng đọc như một giá trị ("150 g") (−54px)
+- Bỏ dòng hint trùng với header phía trên (−34px)
+- `.bom-form .field` thắt `margin-bottom` 12 → 6, **scoped** nên không đụng form ở nơi khác (−18px)
+- Chia dọc `WinRecipe` 46% → 37% cho danh sách món (+45px)
+
+**② Quy đổi ĐVT: panel trái hiện đủ 3 cột.**
+
+Panel cố định `360px` nhưng tổng 3 cột là `440px` → tràn, phải cuộn ngang, và mã hàng bị cắt (`DOUONG_NGOT…`). Panel → `480px`, cột `160/200/100` = 460. Đo lại: `needsHScroll: false`, header 1 dòng.
+
+**③ Lỗi thật phát hiện khi kiểm ②: lưới không bind dữ liệu.**
+
+Grid hiển thị "No records to display" trong khi API trả về **31 items** và status bar cũng ghi "31 hàng". Syncfusion bind `dataSource` **một lần lúc mount** và không nhận rows nếu response về sau đó — đúng vấn đề mà comment ở `WinStock.tsx:71-73` đã ghi và xử lý bằng cách buộc `key` theo data identity. `WinUomConversion` thiếu mẫu này. Đã thêm; đo lại: `rows: 0` → **25**. Áp cùng cách cho `ItemBomTab`.
+
+Quét lại 25/25 window: sạch.
+
+---
+
 ## 0. Gỡ hết nút Nhập/Xuất dữ liệu — 2026-08-14
 
 Bỏ **6 nút** "Xuất dữ liệu" / "Nhập dữ liệu" trên 5 window: `WinArea`, `WinUom`, `WinTable`, `WinCounter`, `WinPricing` (window cuối có cả hai).

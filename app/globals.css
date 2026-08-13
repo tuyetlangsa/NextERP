@@ -671,6 +671,15 @@ button {
 .field-checkbox {
   margin-bottom: 12px;
 }
+/* The recipe window's ingredient form sits in a pane roughly 250px tall and has
+   to show every field without scrolling. Scoped so the roomier default spacing
+   stays everywhere else. */
+.bom-form .field {
+  margin-bottom: 6px;
+}
+.bom-form .field-checkbox {
+  margin-bottom: 4px;
+}
 .field-checkbox-label {
   display: inline-flex;
   align-items: center;
