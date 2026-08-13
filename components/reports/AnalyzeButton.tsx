@@ -13,10 +13,10 @@ export function AnalyzeButton({ reportName, data }: { reportName: string; data: 
       type="button"
       onClick={() => !disabled && requestAiAnalysis({ reportName, data })}
       disabled={disabled}
-      className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="px-3 py-1.5 text-sm text-purple-700 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 disabled:opacity-40 disabled:cursor-not-allowed"
       title="Gửi dữ liệu báo cáo này cho Trợ lý AI phân tích"
     >
-      {"\u{1F916}"} Phân tích bằng AI
+      Phân tích bằng AI
     </button>
   );
 }

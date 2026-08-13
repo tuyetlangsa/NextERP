@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -33,6 +33,15 @@ export function WinUomConversion() {
     () => items.data ?? [],
     [items.data]
   );
+
+  // Same reason as WinStock: Syncfusion binds its dataSource once at mount and
+  // does not pick the rows up if the response lands afterwards, leaving the list
+  // stuck on "No records to display" while the count in the status bar says 31.
+  // Tying the grid key to data identity remounts it when the real rows arrive.
+  const [gridVersion, setGridVersion] = useState(0);
+  useEffect(() => {
+    setGridVersion(v => v + 1);
+  }, [items.data]);
   const uomList = uoms.data ?? [];
 
   const filtered = useMemo(() => {
@@ -59,11 +68,13 @@ export function WinUomConversion() {
     <>
       <WinToolbar
         left={<TB icon={ChromeIcons.Refresh} onClick={() => items.reload()}>Làm mới</TB>}
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">
-        <div className="data-list" style={{ flex: "0 0 360px", borderRight: "1px solid var(--border)" }}>
+        {/* Wide enough for all three columns at their declared widths (160+210+90
+            = 460) so the list never scrolls sideways. The pane on the right only
+            holds a short create form, so it can give up the space. */}
+        <div className="data-list" style={{ flex: "0 0 480px", borderRight: "1px solid var(--border)" }}>
           <div className="grid-filterbar">
             <strong style={{ fontSize: 13 }}>Hàng hoá</strong>
             <div className="tb-divider" />
@@ -82,6 +93,7 @@ export function WinUomConversion() {
           {items.isApiError && <ErrorBar text={items.error ?? ""} onRetry={() => items.reload()} />}
 
           <GridComponent
+            key={`uomconv-items-${gridVersion}`}
             dataSource={filtered}
             allowSorting
             allowPaging
@@ -95,8 +107,10 @@ export function WinUomConversion() {
             height="100%"
           >
             <ColumnsDirective>
-              <ColumnDirective field="code" headerText="Mã hàng" width="140" />
+              {/* Codes run to "DOUONG_NGOT_213" — 140 was clipping them. */}
+              <ColumnDirective field="code" headerText="Mã hàng" width="160" />
               <ColumnDirective field="name" headerText="Tên hàng" width="200" />
+              {/* 100, not 90 — "ĐVT gốc" wrapped onto two header lines below that. */}
               <ColumnDirective field="baseUomCode" headerText="ĐVT gốc" width="100" />
             </ColumnsDirective>
             <Inject services={[Page, Sort]} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -8,6 +8,7 @@ import {
   Inject,
   Page,
   Sort,
+  type RowDataBoundEventArgs,
 } from "@syncfusion/ej2-react-grids";
 import {
   TreeViewComponent,
@@ -38,6 +39,7 @@ export function WinRecipe() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const treeRef = useRef<TreeViewComponent | null>(null);
 
   const categories = useResource(() => categoriesApi.list());
   const categoryList = useMemo<Category[]>(() => categories.data ?? [], [categories.data]);
@@ -109,8 +111,25 @@ export function WinRecipe() {
     []
   );
 
-  const handleTreeSelect = (args: { nodeData: { id: string | number } }) => {
-    const raw = String(args.nodeData.id);
+  /**
+   * Shared by nodeSelected and nodeClicked, which carry different payloads:
+   * NodeSelectEventArgs has `nodeData`, NodeClickEventArgs only has `event` and
+   * `node`. Reading nodeData.id unconditionally threw on every click. Both are
+   * wired because a click on the already-selected node fires only nodeClicked.
+   */
+  const handleTreeSelect = (args: {
+    nodeData?: { id?: string | number };
+    node?: HTMLElement;
+  }) => {
+    let raw: string | undefined;
+    if (args.nodeData?.id != null) {
+      raw = String(args.nodeData.id);
+    } else if (args.node) {
+      const data = treeRef.current?.getNode(args.node) as { id?: string | number } | undefined;
+      if (data?.id != null) raw = String(data.id);
+    }
+    if (raw === undefined) return;
+
     setSelectedItemId(null);
     setActionError(null);
     if (raw === "all") {
@@ -153,6 +172,14 @@ export function WinRecipe() {
     setSelectedItemId(null);
     items.reload();
   };
+
+  /** Whole-row flag for a dish whose recipe would deduct nothing when sold. */
+  const rowDataBound = useCallback((args: RowDataBoundEventArgs) => {
+    const row = args.data as RecipeItemRow;
+    if (row.hasRecipe && row.activeBomLineCount === 0 && args.row) {
+      (args.row as HTMLElement).style.backgroundColor = "#fef2f2";
+    }
+  }, []);
 
   const warnTemplate = useCallback(
     (r: RecipeItemRow) =>
@@ -231,6 +258,7 @@ export function WinRecipe() {
           {!categories.loading && (
             <TreeViewComponent
               key={`cat-tree-${categoryList.length}`}
+              ref={(t: TreeViewComponent | null) => { treeRef.current = t; }}
               fields={treeFields}
               nodeTemplate={renderTreeNode}
               nodeSelected={handleTreeSelect}
@@ -264,13 +292,17 @@ export function WinRecipe() {
             <ErrorBar text={actionError} onRetry={() => setActionError(null)} />
           )}
 
-          <div style={{ flex: "0 0 46%", overflow: "hidden", minHeight: 140 }}>
+          {/* The dish list is scanned and paginated, the pane below is worked in
+              — so the split leans downward, enough for the whole ingredient form
+              plus its grid without either needing to scroll. */}
+          <div style={{ flex: "0 0 37%", overflow: "hidden", minHeight: 140 }}>
             <GridComponent
               dataSource={rows}
               allowSorting
               allowPaging
               pageSettings={{ pageSize: 25 }}
               rowSelected={handleRowSelected}
+              rowDataBound={rowDataBound}
               selectedRowIndex={
                 selectedItemId !== null ? rows.findIndex(r => r.id === selectedItemId) : -1
               }
@@ -321,13 +353,13 @@ export function WinRecipe() {
             </GridComponent>
           </div>
 
-          {/* auto: the ingredient grid keeps a 240px floor, so on a short window
-              it is taller than this pane and the overflow has to be reachable. */}
+          {/* hidden: ItemBomTab lays itself out at height 100% with its own
+              internal scroll regions, so this pane never needs to scroll. */}
           <div
             style={{
               flex: 1,
               minHeight: 0,
-              overflow: "auto",
+              overflow: "hidden",
               borderTop: "1px solid var(--border-strong)",
             }}
           >

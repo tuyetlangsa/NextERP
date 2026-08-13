@@ -119,7 +119,7 @@ export function ItemSalesDetailTab({
           {data.bills.map((bill) => (
             <details
               key={`${bill.ticketId}-${expandKey}`}
-              {...({ defaultOpen: allExpanded || bill.ticketId === ticketId } as any)}
+              open={allExpanded || bill.ticketId === ticketId}
               className="border border-gray-200 rounded-lg overflow-hidden"
             >
               <summary className="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer text-sm">

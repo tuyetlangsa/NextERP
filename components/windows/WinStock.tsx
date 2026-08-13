@@ -98,7 +98,6 @@ export function WinStock() {
             <TB icon={ChromeIcons.Refresh} onClick={() => stock.reload()}>Làm mới</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">

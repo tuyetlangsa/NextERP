@@ -671,6 +671,15 @@ button {
 .field-checkbox {
   margin-bottom: 12px;
 }
+/* The recipe window's ingredient form sits in a pane roughly 250px tall and has
+   to show every field without scrolling. Scoped so the roomier default spacing
+   stays everywhere else. */
+.bom-form .field {
+  margin-bottom: 6px;
+}
+.bom-form .field-checkbox {
+  margin-bottom: 4px;
+}
 .field-checkbox-label {
   display: inline-flex;
   align-items: center;
@@ -760,6 +769,31 @@ button {
 .e-grid .e-gridheader,
 .e-grid .e-gridcontent {
   border-color: var(--border-strong) !important;
+}
+
+/* Syncfusion's stock pager is sized for a touch target: 55px tall with 32x37
+   number buttons at 14px. In a desktop ERP window that is a lot of vertical
+   space spent on navigation, and on a short screen it competes with the rows
+   themselves. Purely cosmetic — measured before and after, the grid keeps the
+   same content height, row count and page state, and paging still works. */
+.e-grid .e-gridpager {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.e-grid .e-gridpager .e-pagercontainer {
+  margin: 0;
+}
+.e-grid .e-gridpager .e-numericitem,
+.e-grid .e-gridpager .e-pagercontainer .e-icons {
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 5px;
+  font-size: 11px;
+}
+.e-grid .e-gridpager .e-parentmsgbar {
+  padding-top: 3px;
+  font-size: 11px;
 }
 
 /* ============ LOGIN ============ */
@@ -1400,11 +1434,16 @@ svg:not([width]) {
 }
 
 /* Bootstrap5 fullrow stretches to the whole TreeView container, which leaks
-   the highlight beyond the tree pane. Disable the fullrow background entirely
-   and paint only `.e-text-content` — that node hugs the actual node width. */
+   the highlight beyond the tree pane. Make it invisible and paint only
+   `.e-text-content` — that node hugs the actual node width.
+
+   It must stay in the layout: TreeView hit-tests clicks against .e-fullrow
+   (fullRowSelect is on by default), so `display: none` here silently killed
+   selection — most visibly in the category DropDownTree, where the popup
+   opened and highlighted nodes but never committed a value. */
 .e-treeview .e-list-item .e-fullrow {
   background: transparent !important;
-  display: none;
+  border-color: transparent !important;
 }
 .e-treeview .e-list-item > .e-text-content {
   background: transparent;

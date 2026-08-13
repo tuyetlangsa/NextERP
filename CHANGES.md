@@ -4,6 +4,199 @@ Branch: `main`
 
 ---
 
+## 0. Sửa 2 lỗi của lưới công thức inline — 2026-08-13
+
+**① `col.edit.create is not a function` khi bấm Add.**
+Module `Edit` của Syncfusion trộn editor dựng sẵn (`create`/`read`/`write`) vào `column.edit` **một lần duy nhất lúc khởi tạo** (`ej2-grids.es5.js:49677`). Mọi thứ React áp lại sau đó đều ghi đè object đã trộn bằng literal `{ params }` trơ — và lần sửa ô kế tiếp ném lỗi (`create` hay `read`, tuỳ cái nào chạm trước).
+Đo được: cột `materialItemId` còn `editKeys: ["params"]`, `create` = `undefined`, trong khi cột khác giữ `["parent","params"]`.
+Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền vào lưới bằng một mảng `columns` ổn định thay vì `<ColumnDirective>` con. Cùng một identity qua mọi lần render ⇒ React không áp lại ⇒ bản trộn sống sót. Hệ quả: cột không thể closure vào state, nên dữ liệu chúng cần nằm ở `LOOKUPS` cấp module, cập nhật trong `useEffect` (**không** trong lúc render — chính việc chạm vào các object này khi render đã gây ra lỗi).
+
+**② "Không thể thay đổi nguyên liệu của dòng công thức" khi chỉ sửa SL.**
+`PUT /api/items/{itemId}/bom/{id}` nhận **cả dòng**, không phải patch: handler so `materialItemId` + `uomId` nhận được với giá trị đang lưu và **từ chối nếu khác** (`UpdateBomLine.cs:59-70`). FE gửi mỗi `{quantity, isActive}` → hai trường kia về 0 → luôn dính bẫy đó.
+**Lỗi có sẵn từ trước**, không phải do đợt viết lại — code cũ cũng gửi thiếu y hệt, tức sửa SL của dòng công thức **chưa bao giờ chạy**.
+Đo trực tiếp trên API: payload cũ → **400 `BomLine.CannotChangeMaterial`**; payload đủ 4 trường → **200**, SL 60→61 (đã khôi phục về 60).
+
+**Kèm theo**: dòng thêm mới tự lấy đơn vị gốc của nguyên liệu nếu `uomId` còn trống lúc Lưu. Trước đó nó chỉ được điền qua sự kiện `cellSaved`, nên phụ thuộc vào việc lưới có bắn đúng sự kiện cho ô đó hay không.
+
+**Đã kiểm end-to-end** ở 1280×648: thêm dòng → chọn nguyên liệu → SL 7.5 → Lưu → persist với `uomId` tự điền; lưới còn 2 dòng, không lỗi. Dữ liệu test đã xoá khỏi DB.
+
+---
+
+## 0. Không chọn được nhóm chính — `.e-fullrow { display: none }` — 2026-08-14
+
+**Triệu chứng**: cây nhóm chính bung ra bình thường, bấm vào một nhóm thì node sáng lên nhưng **tên trong ô không đổi**.
+
+**Nguyên nhân — CSS, không phải React.** `globals.css` đặt `.e-treeview .e-list-item .e-fullrow { display: none }` để chặn highlight tràn hết chiều rộng panel. Nhưng Syncfusion TreeView **hit-test click vào chính `.e-fullrow`** (`fullRowSelect` mặc định bật). Ẩn nó đi thì click vẫn tới `li`, node vẫn nhận `e-node-focus`, nhưng **selection không bao giờ được commit**.
+
+Đo được: cả `mousedown`/`mouseup`/`click` đều tới đúng `.e-list-item`, `defaultPrevented: false` ở mọi phase, z-index không bị chặn (popup 1003 > dialog 1002 > overlay 1001) — vậy mà `value` đứng yên. Tiêm lại `display: block` cho `.e-fullrow` là chọn được ngay.
+
+**Sửa**: bỏ `display: none`, giữ nguyên ý đồ bằng `background` + `border-color` trong suốt. `.e-fullrow` là `position: absolute` nên hiện lại **không chiếm chỗ trong layout**.
+
+**Đã kiểm tác dụng phụ trên cả 4 window có cây** (`WinItem`, `WinRecipe`, `WinPricing`, `WinStaffAccount`):
+
+| | |
+|---|---|
+| `position` | `absolute` — không đẩy layout |
+| `background` / `border` | `rgba(0,0,0,0)` — không có highlight tràn |
+| Tràn ngang | không |
+| Chọn node | được, ở cả 4 |
+
+Ảnh chụp xác nhận highlight vẫn ôm sát chữ đúng như trước. Quét lại 25/25 window: sạch.
+
+*Ghi chú*: trước đó tôi kết luận nhầm rằng click-test thất bại là "giới hạn automation". Không phải — CDP click mô phỏng đúng người dùng và **đã tái hiện đúng bug**; chính `dispatchEvent` thủ công mới là thứ đi tắt qua hit-test và làm tôi tưởng mọi thứ ổn.
+
+---
+
+## 0. Nhóm chính (`WinItem`) đổi sang cây thả xuống — 2026-08-14
+
+Trường "Nhóm chính" ở tab Thông tin là một `<select>` phẳng, độ sâu giả lập bằng `"— ".repeat(level)`. Với 29 nhóm lồng nhiều cấp thì rất khó đọc.
+
+Thay bằng **`DropDownTreeComponent`** — bung ra đúng cây phân cấp giống cây thư mục ở panel trái. Dữ liệu dựng riêng từ `categoryList`, **bỏ node ảo "Tất cả Item"** vì ô này bắt buộc kết thúc ở một nhóm cụ thể; `value` là id nhóm nên handler dùng thẳng.
+
+Bắt **cả `select` lẫn `change`**: hai sự kiện bắn ở điều kiện khác nhau (`select` mỗi lần chọn node, `change` khi giá trị chốt lại), lấy một cái làm draft lệch nhịp trong lúc test.
+
+**Đã kiểm trên trình duyệt**: popup mở đúng 29 node đúng phân cấp (Hàng bán → Khai vị → Gỏi & Nộm…), chọn node → `value: ["8"]`, `text: "Cơm"`, ô hiển thị "Cơm", React không đè lại giá trị, 0 lỗi console.
+
+*Ghi chú kiểm thử*: click bằng `Input.dispatchMouseEvent` của CDP và bằng `.click()` đơn lẻ đều **không** kích hoạt selection — Syncfusion cần đủ chuỗi `mousedown → mouseup → click`. Đó là giới hạn của automation, không phải lỗi: gửi đủ chuỗi thì chọn được ngay.
+
+---
+
+## 0. Dropdown nguyên liệu trùng key khi chọn NVL — 2026-08-14
+
+**Triệu chứng**: `Encountered two children with the same key, 1` ở `ItemBomTab` khi chọn nguyên liệu.
+
+**Nguyên nhân**: `uomOptions` ghép `[base] + [các quy đổi]`. Dữ liệu cũ có **2 dòng quy đổi trỏ vào chính đơn vị gốc** (`item_uom_conversions.uom_id = items.base_uom_id`, cả hai đều `uomId = 1` — Thịt bò tươi, Rau ăn lẩu). Những dòng này tạo trước khi API bắt đầu từ chối chúng (`ItemUomConversion.SameAsBaseUom`, 09/08), nên vẫn nằm trong DB.
+
+Chúng **vô tác dụng ở backend** — `UomConverter.FactorAsync` short-circuit trên base trước khi đọc bảng — nhưng ở FE thì đụng key với entry base.
+
+**Sửa**: lọc bỏ quy đổi trùng `baseUomId` trước khi ghép. Khớp đúng hành vi backend: base thắng.
+
+Kiểm lại: `uomValues: ["1"]`, không trùng, 0 lỗi console.
+
+*(Không xoá 2 dòng dữ liệu cũ — chúng vô hại và việc xoá dữ liệu là quyết định của bạn.)*
+
+---
+
+## 0. Gỡ hết nút Trợ giúp — 2026-08-14
+
+Bỏ **19 nút** "Trợ giúp" trên 19 window — mọi window có toolbar đều mang một cái ở góc phải.
+
+Cùng lý do với đợt gỡ Nhập/Xuất dữ liệu: **không nút nào có `onClick`**, chúng chỉ là chỗ giữ sẵn từ lúc dựng khung. `WinToolbar` khai `right?` là optional và đã có guard `right ? ... : null`, nên bỏ prop đi là an toàn — không window nào dùng `right` cho thứ gì khác ngoài nút này.
+
+Đã kiểm trên trình duyệt 19/19 window: không còn nút nào khớp "Trợ giúp".
+
+---
+
+## 0. Công thức chế biến bỏ inline edit; Quy đổi ĐVT hiện đủ 3 cột — 2026-08-14
+
+**① Bỏ inline batch editing ở lưới nguyên liệu, quay về mẫu chuẩn.**
+
+Chế độ `mode: "Batch"` sinh ra một chuỗi lỗi liên tiếp (`col.edit.create is not a function`, rồi `col.edit.read`, `[object Object]` ở ô SL/Active, `uomId = 0` khi lưu, dropdown rỗng) — tất cả bắt nguồn từ việc React re-apply column props đè lên editor mà Syncfusion đã trộn sẵn. Đổi sang **mẫu master-detail** như các window ERP khác: form bên trái, lưới bên phải, nút Thêm/Lưu/Xoá.
+
+Bố cục dùng chiều ngang thay vì chiều dọc — pane dưới của `WinRecipe` chỉ cao ~250px, xếp form chồng lên lưới thì lưới chỉ còn 1-2 dòng.
+
+Để form hiện **đủ mọi field không cần cuộn** (đo được: cần 183px, có 182px):
+- Nút chuyển thành thanh gọn ở đầu panel thay vì thanh có padding ở đáy (−32px)
+- Số lượng và Đơn vị nằm cạnh nhau — chúng đọc như một giá trị ("150 g") (−54px)
+- Bỏ dòng hint trùng với header phía trên (−34px)
+- `.bom-form .field` thắt `margin-bottom` 12 → 6, **scoped** nên không đụng form ở nơi khác (−18px)
+- Chia dọc `WinRecipe` 46% → 37% cho danh sách món (+45px)
+
+**② Quy đổi ĐVT: panel trái hiện đủ 3 cột.**
+
+Panel cố định `360px` nhưng tổng 3 cột là `440px` → tràn, phải cuộn ngang, và mã hàng bị cắt (`DOUONG_NGOT…`). Panel → `480px`, cột `160/200/100` = 460. Đo lại: `needsHScroll: false`, header 1 dòng.
+
+**③ Lỗi thật phát hiện khi kiểm ②: lưới không bind dữ liệu.**
+
+Grid hiển thị "No records to display" trong khi API trả về **31 items** và status bar cũng ghi "31 hàng". Syncfusion bind `dataSource` **một lần lúc mount** và không nhận rows nếu response về sau đó — đúng vấn đề mà comment ở `WinStock.tsx:71-73` đã ghi và xử lý bằng cách buộc `key` theo data identity. `WinUomConversion` thiếu mẫu này. Đã thêm; đo lại: `rows: 0` → **25**. Áp cùng cách cho `ItemBomTab`.
+
+Quét lại 25/25 window: sạch.
+
+---
+
+## 0. Gỡ hết nút Nhập/Xuất dữ liệu — 2026-08-14
+
+Bỏ **6 nút** "Xuất dữ liệu" / "Nhập dữ liệu" trên 5 window: `WinArea`, `WinUom`, `WinTable`, `WinCounter`, `WinPricing` (window cuối có cả hai).
+
+**Cả 6 nút đều không có `onClick`** — chúng là UI mockup từ lúc dựng khung, bấm vào không xảy ra gì. Gỡ đi không mất chức năng nào, chỉ bớt thứ hứa hẹn một tính năng chưa hỗ trợ.
+
+Dọn kèm: `reportsApi.exportReport` thành dead code sau khi `ReportToolbar` (nút PDF/Excel) bị gỡ hôm nay — không còn ai gọi, đã xoá. Giữ lại `http.getBlob` vì đó là helper HTTP tổng quát cùng nhóm với `get`/`post`, không thuộc riêng tính năng xuất file.
+
+Đã kiểm trên trình duyệt 6 window: không còn nút nào khớp `Xuất dữ liệu|Nhập dữ liệu|PDF|Excel`; toolbar còn đúng các nút có chức năng thật. Quét lại layout: sạch.
+
+---
+
+## 0. Lỗi khi bấm cây nhóm hàng + thu nhỏ thanh phân trang — 2026-08-14
+
+**① `Cannot read properties of undefined (reading 'id')` khi bấm category** (`WinRecipe.tsx:114`)
+
+`nodeSelected` và `nodeClicked` dùng chung một handler, nhưng **payload của chúng khác nhau**: `NodeSelectEventArgs` có `nodeData`, còn `NodeClickEventArgs` **chỉ có** `event` + `node` (`treeview.d.ts:223-232`). Handler đọc thẳng `args.nodeData.id` nên mỗi lần `nodeClicked` fire là throw.
+
+Không phải "chỉ lỗi lần đầu" — nó throw **mọi lần bấm**, chỉ là overlay của Next.js dev gộp lỗi trùng nên trông như lần đầu. Chức năng lọc vẫn chạy vì `nodeSelected` fire song song và set được category; riêng khi bấm lại **đúng node đang chọn** thì chỉ `nodeClicked` fire, và lúc đó không có gì cứu.
+
+`WinStaffAccount.tsx:244-256` **đã có bản sửa đúng** cho cùng lỗi này từ trước (thử `nodeData?.id` rồi fallback `tree.getNode(args.node)`) — chỉ `WinRecipe` bị bỏ sót. Áp lại cùng mẫu, thêm `treeRef`.
+
+**② Thanh phân trang nhỏ lại — toàn hệ thống**
+
+Pager mặc định của Syncfusion cỡ cho màn cảm ứng: cao **55px**, nút số **32×37px**, font **14px**. Trên cửa sổ ERP desktop đó là quá nhiều chiều dọc dành cho điều hướng, nhất là màn thấp. Thêm override ở `globals.css` cho `.e-grid .e-gridpager`: cao **43px**, nút **24×24**, font **11px**.
+
+**Có break gì không — đã đo, không:**
+
+| | Trước | Sau |
+|---|---|---|
+| Chiều cao pager | 55px | **43px** |
+| Nút số | 32×37 | **24×24** |
+| Chiều cao vùng dữ liệu (`e-content`) | 360 | **360** (không đổi) |
+| Số dòng hiển thị | 25 | **25** (không đổi) |
+| Chuyển trang bằng chuột thật | ✓ | **✓** (trang 1→2→1, dữ liệu đổi đúng) |
+
+Thuần CSS, không chạm JS của lưới — Syncfusion tính chiều cao vùng cuộn lúc khởi tạo và không đọc lại kích thước pager. Quét lại **25/25 window**: 0 phần tử ngoài khung, 0 vùng cuộn co sập.
+
+---
+
+## 0. Tô đỏ cả dòng cho món thiếu nguyên liệu — Công thức chế biến — 2026-08-14
+
+Trước đó cờ báo "đã bật công thức nhưng 0 nguyên liệu" chỉ là một icon `⚠` rộng 46px ở cột cuối — dễ lướt qua trên lưới nhiều dòng. Giờ tô nền cả dòng (`#fef2f2`) qua `rowDataBound`, cùng mẫu đã dùng ở `WinStock` cho cảnh báo sắp hết hàng.
+
+Điều kiện tô: `hasRecipe && activeBomLineCount === 0` — đúng những món tab "Có công thức" (lọc theo `Item.HasRecipe`, xem `ListRecipeItems.cs:67`) hiển thị nhưng chưa khai nguyên liệu nào, nên bán ra sẽ **không trừ kho**.
+
+Kiểm trên dữ liệu thật: 200 món có công thức, **159 món (gần 80%) đang thiếu nguyên liệu** — con số status bar vốn đã đếm nhưng dễ bị bỏ qua vì không có gì nổi bật trên lưới.
+
+---
+
+## 0. Bỏ xuất PDF/Excel; nút Phân tích AI tinh gọn — 2026-08-14
+
+- **Bỏ hẳn nút "PDF" và "Excel"** trên thanh công cụ Báo cáo, theo yêu cầu. `ReportToolbar.tsx` chỉ tồn tại để render hai nút này (gọi `reportsApi.exportReport`) và không còn nơi nào khác dùng, nên xoá luôn cả component thay vì để lại file chết.
+- **Nút "Phân tích bằng AI"**: bỏ icon 🤖, đổi từ nền tím đặc (`bg-purple-600 text-white`) sang nền tím rất nhạt viền mảnh (`bg-purple-50 text-purple-700 border-purple-200`) — tinh tế hơn, đứng cạnh các nút khác trong Báo cáo mà không lấn.
+
+---
+
+## 0. Lỗi console + tính năng mở rộng hoá đơn không chạy — tab Bán hàng — 2026-08-14
+
+**Triệu chứng bạn báo**: mở tab Bán hàng trong Báo cáo → lỗi console `React does not recognize the defaultOpen prop`.
+
+**Nguyên nhân**: `ItemSalesDetailTab.tsx:122` dùng `<details {...({ defaultOpen: ... } as any)}>`. `defaultOpen` **không tồn tại** — kiểm `@types/react`: `DetailsHTMLAttributes` chỉ khai `open?: boolean`, không có bản `default*`. Dấu `as any` chỉ né được lỗi biên dịch TypeScript, không phải tên hợp lệ.
+
+**Không chỉ là lỗi console — tính năng đã chết theo.** React không nhận diện prop lạ này nên hạ nó thành custom attribute `defaultopen` (viết thường) gắn vào DOM — không phải attribute HTML chuẩn, nên trình duyệt **bỏ qua hoàn toàn**. Hệ quả: nút "Mở rộng tất cả" và hành vi tự mở đúng hoá đơn đang xem (`ticketId` khớp) **chưa bao giờ hoạt động** — mọi `<details>` luôn đóng bất kể state.
+
+**Sửa**: đổi thành `open={allExpanded || bill.ticketId === ticketId}` — prop gốc, đã có type sẵn, không cần ép kiểu. Vì mỗi dòng đã có `key={\`\${bill.ticketId}-\${expandKey}\`}`, bấm "Mở rộng tất cả" tăng `expandKey` → toàn bộ `<details>` bị remount → nhận đúng `open` mới; còn thao tác click tay vào từng `<summary>` giữa hai lần bấm nút không bị ghi đè, vì React chỉ chạm DOM khi giá trị prop `open` thật sự đổi giữa hai lần render của cùng instance.
+
+**Đã kiểm trên trình duyệt**: mở tab Bán hàng → 0 lỗi console; bấm "Mở rộng tất cả" → 20/20 dòng hoá đơn mở ra (trước đó luôn là 0/20 dù đã bấm).
+
+---
+
+## 0. Biểu đồ Top bán chạy không hiện — trục và tên trường đảo ngược — 2026-08-14
+
+**Triệu chứng**: tab Top bán chạy chỉ có lưới dữ liệu, phần biểu đồ phía trên trống trơn — không cột, không nhãn trục danh mục.
+
+**Nguyên nhân**: với series `type="Bar"`, Syncfusion coi `xName` là trường **danh mục** và `yName` là trường **số liệu** — quy ước này giữ nguyên bất kể `Bar` hay `Column`, chỉ khác chiều vẽ (`requireInvertedAxis` tự đảo trục lúc render). Code cũ gán ngược: `xName="totalRevenue"` (số), `yName="itemName"` (danh mục), cùng với `primaryYAxis.valueType: "Category"` — khớp với field sai. Kết quả: series group render `width/height = 0`, không có rect nào được vẽ; trục danh mục (itemName) không hề xuất hiện.
+
+**Xác minh bằng thực nghiệm**, không suy đoán: gọi thẳng `chart.ej2_instances[0]`, đảo `xName`/`yName` + `valueType` của hai trục, gọi `refresh()` — series group từ `[0,0]` nhảy lên `[687,199]` với 10 rect, ảnh chụp hiện đủ 10 cột kèm tên món. Sau đó áp lại đúng cấu hình vào file thật, build sạch lại từ đầu, chụp ảnh xác nhận không phải do can thiệp console.
+
+**Sửa**: `primaryXAxis.valueType = "Category"`, `primaryYAxis` giữ `labelFormat: "N0"` (số mặc định); `xName="itemName"`, `yName="totalRevenue"`.
+
+---
+
 ## 0. Quét toàn bộ 26 window ở 1280×648 — 4 lỗi thật — 2026-08-13
 
 Dựng bộ đo tự động (headless Chrome qua CDP, viewport ghim **1280×648** = màn 1920×1080 ở scale 150%), mở lần lượt từng window, chọn một nhóm + một dòng để pane chi tiết render, rồi đếm phần tử **bị cắt ngoài khung mà không ancestor nào cuộn tới được**. Kết quả: **6 window bị cờ**, trong đó **4 lỗi thật**.

@@ -12,7 +12,6 @@ import { lookupsApi } from "@/lib/api/lookups";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { LoadingBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { ReportToolbar } from "@/components/reports/ReportToolbar";
 import {
   ReportFilterBar,
   defaultFilterValues,
@@ -42,19 +41,6 @@ const TAB_LABELS = [
   "Ca làm việc",
   "Nguyên liệu",
   "Tồn kho",
-];
-
-const TAB_REPORT_TYPES = [
-  "revenue",
-  "revenue",
-  "revenue-detail",
-  "items-detail",
-  "categories",
-  "items",
-  "top-sellers",
-  "shift",
-  "ingredient-consumption",
-  "stock-alert",
 ];
 
 /**
@@ -113,11 +99,6 @@ export function WinReports() {
 
   return (
     <div className="flex flex-col" style={{ flex: 1, minHeight: 0 }}>
-      <ReportToolbar
-        reportType={TAB_REPORT_TYPES[activeTab]}
-        filters={filterParams}
-        disabled={loading}
-      />
       <TabComponent
         selectedItem={activeTab}
         selecting={(args: any) => {

@@ -115,10 +115,8 @@ export function WinUom() {
             <TB icon={ChromeIcons.Trash} onClick={handleDelete} kind="danger" disabled={!sel || saving}>Xoá</TB>
             <div className="tb-divider" />
             <TB icon={ChromeIcons.Refresh} onClick={() => uoms.reload()}>Làm mới</TB>
-            <TB icon={ChromeIcons.Export}>Xuất dữ liệu</TB>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">

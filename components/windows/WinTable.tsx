@@ -258,7 +258,6 @@ export function WinTable() {
             <TB icon={ChromeIcons.Trash} onClick={handleDelete} kind="danger" disabled={!sel || saving}>Xoá</TB>
             <div className="tb-divider" />
             <TB icon={ChromeIcons.Refresh} onClick={() => tables.reload()}>Làm mới</TB>
-            <TB icon={ChromeIcons.Export}>Xuất dữ liệu</TB>
             <div className="tb-divider" />
             <span className="tb-help">Quầy:</span>
             <select
@@ -284,7 +283,6 @@ export function WinTable() {
             </select>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       <div className="win-body">

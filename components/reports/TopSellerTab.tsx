@@ -108,8 +108,8 @@ export function TopSellerTab({
         <>
           <div className="h-80 mb-4">
             <ChartComponent
-              primaryXAxis={{ labelFormat: "N0" }}
-              primaryYAxis={{ valueType: "Category" }}
+              primaryXAxis={{ valueType: "Category" }}
+              primaryYAxis={{ labelFormat: "N0" }}
               legendSettings={{ visible: false }}
               tooltip={{ enable: true, format: "${point.y}: <b>${point.x}</b>" }}
             >
@@ -120,8 +120,8 @@ export function TopSellerTab({
                 <SeriesDirective
                   type="Bar"
                   dataSource={data}
-                  xName="totalRevenue"
-                  yName="itemName"
+                  xName="itemName"
+                  yName="totalRevenue"
                   name="Doanh thu"
                 />
               </SeriesCollectionDirective>

@@ -275,7 +275,6 @@ export function WinAreaMenuCategory() {
             </select>
           </>
         }
-        right={<TB icon={ChromeIcons.Help}>Trợ giúp</TB>}
       />
 
       {(errorMsg || successMsg) && (
