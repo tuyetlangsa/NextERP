@@ -22,6 +22,20 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Lỗi console + tính năng mở rộng hoá đơn không chạy — tab Bán hàng — 2026-08-14
+
+**Triệu chứng bạn báo**: mở tab Bán hàng trong Báo cáo → lỗi console `React does not recognize the defaultOpen prop`.
+
+**Nguyên nhân**: `ItemSalesDetailTab.tsx:122` dùng `<details {...({ defaultOpen: ... } as any)}>`. `defaultOpen` **không tồn tại** — kiểm `@types/react`: `DetailsHTMLAttributes` chỉ khai `open?: boolean`, không có bản `default*`. Dấu `as any` chỉ né được lỗi biên dịch TypeScript, không phải tên hợp lệ.
+
+**Không chỉ là lỗi console — tính năng đã chết theo.** React không nhận diện prop lạ này nên hạ nó thành custom attribute `defaultopen` (viết thường) gắn vào DOM — không phải attribute HTML chuẩn, nên trình duyệt **bỏ qua hoàn toàn**. Hệ quả: nút "Mở rộng tất cả" và hành vi tự mở đúng hoá đơn đang xem (`ticketId` khớp) **chưa bao giờ hoạt động** — mọi `<details>` luôn đóng bất kể state.
+
+**Sửa**: đổi thành `open={allExpanded || bill.ticketId === ticketId}` — prop gốc, đã có type sẵn, không cần ép kiểu. Vì mỗi dòng đã có `key={\`\${bill.ticketId}-\${expandKey}\`}`, bấm "Mở rộng tất cả" tăng `expandKey` → toàn bộ `<details>` bị remount → nhận đúng `open` mới; còn thao tác click tay vào từng `<summary>` giữa hai lần bấm nút không bị ghi đè, vì React chỉ chạm DOM khi giá trị prop `open` thật sự đổi giữa hai lần render của cùng instance.
+
+**Đã kiểm trên trình duyệt**: mở tab Bán hàng → 0 lỗi console; bấm "Mở rộng tất cả" → 20/20 dòng hoá đơn mở ra (trước đó luôn là 0/20 dù đã bấm).
+
+---
+
 ## 0. Biểu đồ Top bán chạy không hiện — trục và tên trường đảo ngược — 2026-08-14
 
 **Triệu chứng**: tab Top bán chạy chỉ có lưới dữ liệu, phần biểu đồ phía trên trống trơn — không cột, không nhãn trục danh mục.
