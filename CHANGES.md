@@ -22,6 +22,16 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Tô đỏ cả dòng cho món thiếu nguyên liệu — Công thức chế biến — 2026-08-14
+
+Trước đó cờ báo "đã bật công thức nhưng 0 nguyên liệu" chỉ là một icon `⚠` rộng 46px ở cột cuối — dễ lướt qua trên lưới nhiều dòng. Giờ tô nền cả dòng (`#fef2f2`) qua `rowDataBound`, cùng mẫu đã dùng ở `WinStock` cho cảnh báo sắp hết hàng.
+
+Điều kiện tô: `hasRecipe && activeBomLineCount === 0` — đúng những món tab "Có công thức" (lọc theo `Item.HasRecipe`, xem `ListRecipeItems.cs:67`) hiển thị nhưng chưa khai nguyên liệu nào, nên bán ra sẽ **không trừ kho**.
+
+Kiểm trên dữ liệu thật: 200 món có công thức, **159 món (gần 80%) đang thiếu nguyên liệu** — con số status bar vốn đã đếm nhưng dễ bị bỏ qua vì không có gì nổi bật trên lưới.
+
+---
+
 ## 0. Bỏ xuất PDF/Excel; nút Phân tích AI tinh gọn — 2026-08-14
 
 - **Bỏ hẳn nút "PDF" và "Excel"** trên thanh công cụ Báo cáo, theo yêu cầu. `ReportToolbar.tsx` chỉ tồn tại để render hai nút này (gọi `reportsApi.exportReport`) và không còn nơi nào khác dùng, nên xoá luôn cả component thay vì để lại file chết.

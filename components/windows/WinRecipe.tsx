@@ -8,6 +8,7 @@ import {
   Inject,
   Page,
   Sort,
+  type RowDataBoundEventArgs,
 } from "@syncfusion/ej2-react-grids";
 import {
   TreeViewComponent,
@@ -154,6 +155,14 @@ export function WinRecipe() {
     items.reload();
   };
 
+  /** Whole-row flag for a dish whose recipe would deduct nothing when sold. */
+  const rowDataBound = useCallback((args: RowDataBoundEventArgs) => {
+    const row = args.data as RecipeItemRow;
+    if (row.hasRecipe && row.activeBomLineCount === 0 && args.row) {
+      (args.row as HTMLElement).style.backgroundColor = "#fef2f2";
+    }
+  }, []);
+
   const warnTemplate = useCallback(
     (r: RecipeItemRow) =>
       r.hasRecipe && r.activeBomLineCount === 0 ? (
@@ -271,6 +280,7 @@ export function WinRecipe() {
               allowPaging
               pageSettings={{ pageSize: 25 }}
               rowSelected={handleRowSelected}
+              rowDataBound={rowDataBound}
               selectedRowIndex={
                 selectedItemId !== null ? rows.findIndex(r => r.id === selectedItemId) : -1
               }
