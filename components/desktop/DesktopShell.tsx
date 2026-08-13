@@ -84,6 +84,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     return () => clearInterval(t);
   }, []);
 
+
   useEffect(() => {
     let active = true;
     accessApi.myMenu().then(res => {
@@ -107,16 +108,9 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     }
     const newZ = zMax + 1;
     setZMax(newZ);
-    const offset = windows.length * 24;
     const next: AppWindowState = {
       id: def.id,
       def,
-      pos: { x: 80 + offset, y: 50 + offset },
-      size: {
-        width: Math.min(window.innerWidth - 120, 1280),
-        height: Math.min(window.innerHeight - 140, 760),
-      },
-      maximized: false,
       minimized: false,
       z: newZ,
     };
@@ -132,7 +126,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
   };
   const close = (id: string) => setWindows(ws => ws.filter(w => w.id !== id));
   const min = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, minimized: true } : w)));
-  const max = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, maximized: !w.maximized } : w)));
 
   const launchRef = useRef(launch);
   launchRef.current = launch;
@@ -194,7 +187,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
             z={w.z}
             onClose={() => close(w.id)}
             onMin={() => min(w.id)}
-            onMax={() => max(w.id)}
             onFocus={() => focus(w.id)}
           >
             {Comp ? <Comp /> : (

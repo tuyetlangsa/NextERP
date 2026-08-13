@@ -321,6 +321,8 @@ export function WinRecipe() {
             </GridComponent>
           </div>
 
+          {/* auto: the ingredient grid keeps a 240px floor, so on a short window
+              it is taller than this pane and the overflow has to be reachable. */}
           <div
             style={{
               flex: 1,
@@ -340,13 +342,14 @@ export function WinRecipe() {
                 Chọn một món ở danh sách trên để khai báo nguyên liệu cho công thức của món đó.
               </div>
             ) : (
-              <div>
+              <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <div
                   style={{
                     padding: "10px 12px",
                     borderBottom: "1px solid var(--border)",
                     fontSize: 13,
                     fontWeight: 600,
+                    flexShrink: 0,
                   }}
                 >
                   {selectedItem.code} — {selectedItem.name}
@@ -359,7 +362,9 @@ export function WinRecipe() {
                     </span>
                   )}
                 </div>
-                <ItemBomTab key={selectedItem.id} itemId={selectedItem.id} />
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <ItemBomTab key={selectedItem.id} itemId={selectedItem.id} />
+                </div>
               </div>
             )}
           </div>

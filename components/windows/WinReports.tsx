@@ -112,7 +112,7 @@ export function WinReports() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <ReportToolbar
         reportType={TAB_REPORT_TYPES[activeTab]}
         filters={filterParams}
