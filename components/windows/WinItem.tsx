@@ -14,6 +14,12 @@ import {
   TreeViewComponent,
   type FieldsSettingsModel,
 } from "@syncfusion/ej2-react-navigations";
+import { DropDownTreeComponent } from "@syncfusion/ej2-react-dropdowns";
+import type {
+  FieldsModel as DdtFieldsModel,
+  DdtChangeEventArgs,
+  DdtSelectEventArgs,
+} from "@syncfusion/ej2-dropdowns";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
 import { ensureSyncfusionLicense } from "@/lib/syncfusion-license";
 import { WinToolbar, TB } from "@/components/ui/WinToolbar";
@@ -74,6 +80,7 @@ function renderInfoTab(
   mainCategoryId: number | null,
   setMainCategoryOnly: (id: number) => void,
   isEdit: boolean,
+  mainCategoryFields: DdtFieldsModel,
 ) {
   return (
     <div style={{ padding: 12 }}>
@@ -91,18 +98,28 @@ function renderInfoTab(
         />
       </Field>
       <Field label="Nhóm chính" required>
-        <select
-          value={mainCategoryId ?? ""}
-          onChange={e => e.target.value && setMainCategoryOnly(Number(e.target.value))}
-        >
-          <option value="" disabled>(Chọn nhóm chính)</option>
-          {categoryList.map(c => (
-            <option key={c.id} value={c.id}>
-              {"— ".repeat(c.level)}
-              {c.name}
-            </option>
-          ))}
-        </select>
+        {/* A real tree rather than a <select> padded with em-dashes: the category
+            hierarchy is what the user is navigating, and the flat list made depth
+            guesswork. Same shape as the tree in the left pane. */}
+        <DropDownTreeComponent
+          fields={mainCategoryFields}
+          value={mainCategoryId != null ? [String(mainCategoryId)] : []}
+          placeholder="(Chọn nhóm chính)"
+          popupHeight="260px"
+          changeOnBlur={false}
+          // Both events, because they fire under different conditions: `select`
+          // on every node pick, `change` when the committed value settles. Taking
+          // only one left the draft out of step in testing.
+          select={(e: DdtSelectEventArgs) => {
+            if (e.action !== "select") return;
+            const id = Number((e.itemData as { id?: string })?.id);
+            if (Number.isFinite(id)) setMainCategoryOnly(id);
+          }}
+          change={(e: DdtChangeEventArgs) => {
+            const picked = e.value?.[0];
+            if (picked) setMainCategoryOnly(Number(picked));
+          }}
+        />
       </Field>
       <Field label="ĐVT" required>
         {/* Tồn kho, quy đổi đơn vị và công thức đều tính theo đơn vị này, và không
@@ -429,6 +446,41 @@ export function WinItem() {
         child: roots,
       },
     ] as unknown as { [key: string]: object }[];
+  }, [categoryList]);
+
+  /**
+   * Same hierarchy as the left pane, minus its "Tất cả Item" root — this picker
+   * has to end on a real category. Values are the plain category ids so the
+   * change handler can use them directly.
+   */
+  const mainCategoryFields: DdtFieldsModel = useMemo(() => {
+    type Node = { id: string; text: string; expanded: boolean; child?: Node[] };
+    const byParent = new Map<number | null, Category[]>();
+    for (const c of categoryList) {
+      const k = c.parentId ?? null;
+      const arr = byParent.get(k);
+      if (arr) arr.push(c);
+      else byParent.set(k, [c]);
+    }
+    for (const arr of byParent.values()) {
+      arr.sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name));
+    }
+    const build = (cat: Category): Node => {
+      const kids = (byParent.get(cat.id) ?? []).map(build);
+      return {
+        id: String(cat.id),
+        text: cat.name,
+        expanded: true,
+        ...(kids.length ? { child: kids } : {}),
+      };
+    };
+    return {
+      dataSource: (byParent.get(null) ?? []).map(build) as unknown as { [key: string]: object }[],
+      value: "id",
+      text: "text",
+      child: "child",
+      expanded: "expanded",
+    };
   }, [categoryList]);
 
   // Memoize fields — inline object literal would make TreeView re-mount the
@@ -941,7 +993,7 @@ export function WinItem() {
               ))}
             </div>
             <div style={{ display: selectedTab === "info" ? "block" : "none" }}>
-              {renderInfoTab(draft, setDraft, uomList, stationList, categoryListDfs, mainCategoryId, setMainCategoryOnly, editingId != null)}
+              {renderInfoTab(draft, setDraft, uomList, stationList, categoryListDfs, mainCategoryId, setMainCategoryOnly, editingId != null, mainCategoryFields)}
             </div>
             <div style={{ display: selectedTab === "image" ? "block" : "none" }}>
               {renderImageTab(draft, setDraft, uploading, handleFileUpload)}

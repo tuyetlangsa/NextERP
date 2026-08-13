@@ -22,6 +22,20 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Nhóm chính (`WinItem`) đổi sang cây thả xuống — 2026-08-14
+
+Trường "Nhóm chính" ở tab Thông tin là một `<select>` phẳng, độ sâu giả lập bằng `"— ".repeat(level)`. Với 29 nhóm lồng nhiều cấp thì rất khó đọc.
+
+Thay bằng **`DropDownTreeComponent`** — bung ra đúng cây phân cấp giống cây thư mục ở panel trái. Dữ liệu dựng riêng từ `categoryList`, **bỏ node ảo "Tất cả Item"** vì ô này bắt buộc kết thúc ở một nhóm cụ thể; `value` là id nhóm nên handler dùng thẳng.
+
+Bắt **cả `select` lẫn `change`**: hai sự kiện bắn ở điều kiện khác nhau (`select` mỗi lần chọn node, `change` khi giá trị chốt lại), lấy một cái làm draft lệch nhịp trong lúc test.
+
+**Đã kiểm trên trình duyệt**: popup mở đúng 29 node đúng phân cấp (Hàng bán → Khai vị → Gỏi & Nộm…), chọn node → `value: ["8"]`, `text: "Cơm"`, ô hiển thị "Cơm", React không đè lại giá trị, 0 lỗi console.
+
+*Ghi chú kiểm thử*: click bằng `Input.dispatchMouseEvent` của CDP và bằng `.click()` đơn lẻ đều **không** kích hoạt selection — Syncfusion cần đủ chuỗi `mousedown → mouseup → click`. Đó là giới hạn của automation, không phải lỗi: gửi đủ chuỗi thì chọn được ngay.
+
+---
+
 ## 0. Dropdown nguyên liệu trùng key khi chọn NVL — 2026-08-14
 
 **Triệu chứng**: `Encountered two children with the same key, 1` ở `ItemBomTab` khi chọn nguyên liệu.
