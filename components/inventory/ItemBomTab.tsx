@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ColumnDirective,
-  ColumnsDirective,
   Edit,
   GridComponent,
   Inject,
   Page,
   Sort,
   Toolbar,
+  type ColumnModel,
   type EditSettingsModel,
 } from "@syncfusion/ej2-react-grids";
 import {
@@ -32,6 +31,81 @@ type Row = {
 };
 
 type UomOption = { uomId: number; label: string };
+
+/**
+ * The whole column definition lives at module scope, and the grid is handed it
+ * as one stable `columns` array rather than as <ColumnDirective> children.
+ *
+ * Why: the Edit module merges the built-in editor — its create/read/write —
+ * into `column.edit` once, at init. Anything React re-applies afterwards
+ * overwrites that merged object with the bare `{ params }` literal, and the next
+ * edit throws "col.edit.create is not a function" (or `.read`, depending on
+ * which one it reaches first). Passing the same array identity on every render
+ * means React never re-applies, so the merge survives.
+ *
+ * The consequence is that the columns cannot close over component state, so the
+ * per-item data they need lives in LOOKUPS below and is refreshed imperatively.
+ */
+const LOOKUPS = {
+  materialLabel: new Map<number, string>(),
+  uomLabel: new Map<number, string>(),
+  /** materialItemId → the Uoms its quantity may be expressed in. */
+  uomOptions: new Map<number, UomOption[]>(),
+  materialOptions: [] as { itemId: number; label: string }[],
+};
+
+const materialText = (_f: string, data: object) => {
+  const id = (data as Row).materialItemId;
+  if (!id) return "";
+  return LOOKUPS.materialLabel.get(id)
+    ?? LOOKUPS.materialOptions.find(o => o.itemId === id)?.label
+    ?? "";
+};
+
+const uomText = (_f: string, data: object) => {
+  const row = data as Row;
+  if (!row.uomId) return "";
+  const known = LOOKUPS.uomLabel.get(row.uomId);
+  if (known) return known;
+  const opt = LOOKUPS.uomOptions.get(row.materialItemId)?.find(o => o.uomId === row.uomId);
+  return opt ? opt.label.split(" — ")[0] : "";
+};
+
+const MATERIAL_EDIT = {
+  params: {
+    dataSource: [] as { itemId: number; label: string }[],
+    fields: { text: "label", value: "itemId" },
+    allowFiltering: true,
+    popupHeight: "220px",
+  },
+};
+const QUANTITY_EDIT = { params: { min: 0, step: 0.1, decimals: 4, format: "n4" } };
+const UOM_EDIT = {
+  params: {
+    dataSource: [] as UomOption[],
+    fields: { text: "label", value: "uomId" },
+    popupHeight: "220px",
+  },
+};
+
+const BOM_COLUMNS: ColumnModel[] = [
+  { field: "id", headerText: "ID", width: "60", isPrimaryKey: true, visible: false },
+  {
+    field: "materialItemId", headerText: "Nguyên liệu", width: "240",
+    editType: "dropdownedit", valueAccessor: materialText, edit: MATERIAL_EDIT,
+  },
+  {
+    field: "quantity", headerText: "SL", width: "100", format: "N4", textAlign: "Right",
+    editType: "numericedit", edit: QUANTITY_EDIT,
+  },
+  {
+    field: "uomId", headerText: "Uom", width: "150",
+    editType: "dropdownedit", valueAccessor: uomText, edit: UOM_EDIT,
+  },
+  { field: "isActive", headerText: "Active", width: "90", editType: "booleanedit", displayAsCheckBox: true },
+];
+
+const PAGE_SETTINGS = { pageSize: 10 };
 
 const EDIT_SETTINGS: EditSettingsModel = {
   allowAdding: true,
@@ -59,15 +133,6 @@ export function ItemBomTab({ itemId }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const gridRef = useRef<GridComponent | null>(null);
 
-  /**
-   * materialItemId → the Uoms its quantity may be expressed in (its base plus each
-   * active conversion). Filled on demand: a saved row cannot change its Uom, so the
-   * only material whose options are ever needed is the one just picked on a new row.
-   * A ref, not state — the dropdown reads it during the grid's own edit event, and a
-   * re-render there would tear down the editor being created.
-   */
-  const uomCache = useRef(new Map<number, UomOption[]>());
-
   const list = useMemo<BomLine[]>(() => bomLines.data ?? [], [bomLines.data]);
   const materialList = useMemo<BomMaterialLookup[]>(
     () => materials.data ?? [],
@@ -92,17 +157,17 @@ export function ItemBomTab({ itemId }: Props) {
     [list]
   );
 
-  /** Uom labels for rows already saved, whose material may not be in the lookup. */
-  const savedUomLabel = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const b of list) m.set(b.uomId, b.uomCode);
-    return m;
-  }, [list]);
-
-  const savedMaterialLabel = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const b of list) m.set(b.materialItemId, `${b.materialItemCode} — ${b.materialItemName}`);
-    return m;
+  // LOOKUPS feeds the module-level valueAccessors, which cannot close over
+  // state. Written in an effect, never during render: touching these objects
+  // while rendering is what made React re-apply the column props and wipe the
+  // merged editors.
+  useEffect(() => {
+    LOOKUPS.materialLabel.clear();
+    LOOKUPS.uomLabel.clear();
+    for (const b of list) {
+      LOOKUPS.materialLabel.set(b.materialItemId, `${b.materialItemCode} — ${b.materialItemName}`);
+      LOOKUPS.uomLabel.set(b.uomId, b.uomCode);
+    }
   }, [list]);
 
   // Exclude this item (self-loop) and materials already on the recipe — the unique
@@ -115,6 +180,8 @@ export function ItemBomTab({ itemId }: Props) {
         .map(m => ({ itemId: m.itemId, label: `${m.code} — ${m.name}` })),
     [materialList, itemId]
   );
+
+  useEffect(() => { LOOKUPS.materialOptions = materialOptions; }, [materialOptions]);
 
   const baseUomOption = useCallback(
     (materialId: number): UomOption[] => {
@@ -129,14 +196,14 @@ export function ItemBomTab({ itemId }: Props) {
   /** Warms the cache so the Uom dropdown has the conversions by the time it opens. */
   const loadUomOptions = useCallback(
     async (materialId: number) => {
-      if (materialId <= 0 || uomCache.current.has(materialId)) return;
+      if (materialId <= 0 || LOOKUPS.uomOptions.has(materialId)) return;
       const m = materialById.get(materialId);
       if (!m) return;
       // Seed with the base immediately; a slow fetch then only adds to it.
-      uomCache.current.set(materialId, baseUomOption(materialId));
+      LOOKUPS.uomOptions.set(materialId, baseUomOption(materialId));
       const res = await itemUomConversionsApi.list(materialId, { isActive: true });
       if (!res.isSuccess || !res.data) return;
-      uomCache.current.set(materialId, [
+      LOOKUPS.uomOptions.set(materialId, [
         ...baseUomOption(materialId),
         ...res.data.map(c => ({
           uomId: c.uomId,
@@ -147,24 +214,11 @@ export function ItemBomTab({ itemId }: Props) {
     [materialById, baseUomOption]
   );
 
-  // ── Display ───────────────────────────────────────────────────────────────
-  const materialText = (_f: string, data: object) => {
-    const id = (data as Row).materialItemId;
-    return savedMaterialLabel.get(id) ?? materialOptions.find(o => o.itemId === id)?.label ?? "";
-  };
-
-  const uomText = (_f: string, data: object) => {
-    const row = data as Row;
-    const cached = uomCache.current.get(row.materialItemId)?.find(o => o.uomId === row.uomId);
-    return cached?.label.split(" — ")[0] ?? savedUomLabel.get(row.uomId) ?? "";
-  };
-
   // ── Edit wiring ───────────────────────────────────────────────────────────
   type CellArgs = {
     columnName?: string;
     rowData?: Row;
     cancel?: boolean;
-    column?: { edit?: { params?: Record<string, unknown> } };
     value?: unknown;
     cell?: HTMLElement;
   };
@@ -183,11 +237,17 @@ export function ItemBomTab({ itemId }: Props) {
       return;
     }
 
-    if (col === "uomId" && args.column?.edit?.params) {
+    // Both lists are filled here, never during render. Touching one of these
+    // config objects while rendering makes the React wrapper see a changed prop
+    // and re-apply it over the merged editor, which drops the built-in `create`
+    // and makes the next Add throw. Mutating them from the grid's own event
+    // happens outside React's reconciliation, so the merge survives.
+    if (col === "materialItemId") {
+      MATERIAL_EDIT.params.dataSource = materialOptions;
+    }
+    if (col === "uomId") {
       const materialId = args.rowData?.materialItemId ?? 0;
-      const options = uomCache.current.get(materialId) ?? baseUomOption(materialId);
-      // The editor is constructed after this event, so it picks up the swap.
-      args.column.edit.params.dataSource = options;
+      UOM_EDIT.params.dataSource = LOOKUPS.uomOptions.get(materialId) ?? baseUomOption(materialId);
     }
   };
 
@@ -258,6 +318,17 @@ export function ItemBomTab({ itemId }: Props) {
       return;
     }
 
+    // Fall back to the material's own base unit. handleCellSaved normally fills
+    // this in the moment a material is picked, but that depends on the grid
+    // firing cellSaved for that particular cell; a row committed some other way
+    // would otherwise fail validation on a unit the user never had to choose.
+    for (const r of added) {
+      if (!r.uomId && r.materialItemId) {
+        const base = materialById.get(r.materialItemId)?.baseUomId;
+        if (base) r.uomId = base;
+      }
+    }
+
     const deletedIds = new Set(deleted.map(r => r.id));
     const surviving = new Set(list.map(b => b.id).filter(id => !deletedIds.has(id)));
     const invalid = validate(added, changed, surviving);
@@ -277,7 +348,9 @@ export function ItemBomTab({ itemId }: Props) {
     }
     for (const r of changed) {
       const res = await bomLinesApi.update(itemId, r.id, {
+        materialItemId: r.materialItemId,
         quantity: r.quantity,
+        uomId: r.uomId,
         isActive: r.isActive,
       });
       if (!res.isSuccess) failures.push(formatApiError(res));
@@ -368,57 +441,10 @@ export function ItemBomTab({ itemId }: Props) {
         cellSaved={handleCellSaved}
         allowSorting
         allowPaging
-        pageSettings={{ pageSize: 10 }}
+        pageSettings={PAGE_SETTINGS}
+        columns={BOM_COLUMNS}
         height="100%"
       >
-        <ColumnsDirective>
-          <ColumnDirective field="id" headerText="ID" width="60" isPrimaryKey={true} visible={false} />
-          <ColumnDirective
-            field="materialItemId"
-            headerText="Nguyên liệu"
-            width="240"
-            editType="dropdownedit"
-            valueAccessor={materialText}
-            edit={{
-              params: {
-                dataSource: materialOptions,
-                fields: { text: "label", value: "itemId" },
-                allowFiltering: true,
-                popupHeight: "220px",
-              },
-            }}
-          />
-          <ColumnDirective
-            field="quantity"
-            headerText="SL"
-            width="100"
-            format="N4"
-            textAlign="Right"
-            editType="numericedit"
-            edit={{ params: { min: 0, step: 0.1, decimals: 4, format: "n4" } }}
-          />
-          <ColumnDirective
-            field="uomId"
-            headerText="Uom"
-            width="150"
-            editType="dropdownedit"
-            valueAccessor={uomText}
-            edit={{
-              params: {
-                dataSource: [] as UomOption[],
-                fields: { text: "label", value: "uomId" },
-                popupHeight: "220px",
-              },
-            }}
-          />
-          <ColumnDirective
-            field="isActive"
-            headerText="Active"
-            width="90"
-            editType="booleanedit"
-            displayAsCheckBox
-          />
-        </ColumnsDirective>
         <Inject services={[Page, Sort, Edit, Toolbar]} />
       </GridComponent>
       </div>

@@ -4,6 +4,24 @@ Branch: `main`
 
 ---
 
+## 0. Sửa 2 lỗi của lưới công thức inline — 2026-08-13
+
+**① `col.edit.create is not a function` khi bấm Add.**
+Module `Edit` của Syncfusion trộn editor dựng sẵn (`create`/`read`/`write`) vào `column.edit` **một lần duy nhất lúc khởi tạo** (`ej2-grids.es5.js:49677`). Mọi thứ React áp lại sau đó đều ghi đè object đã trộn bằng literal `{ params }` trơ — và lần sửa ô kế tiếp ném lỗi (`create` hay `read`, tuỳ cái nào chạm trước).
+Đo được: cột `materialItemId` còn `editKeys: ["params"]`, `create` = `undefined`, trong khi cột khác giữ `["parent","params"]`.
+Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền vào lưới bằng một mảng `columns` ổn định thay vì `<ColumnDirective>` con. Cùng một identity qua mọi lần render ⇒ React không áp lại ⇒ bản trộn sống sót. Hệ quả: cột không thể closure vào state, nên dữ liệu chúng cần nằm ở `LOOKUPS` cấp module, cập nhật trong `useEffect` (**không** trong lúc render — chính việc chạm vào các object này khi render đã gây ra lỗi).
+
+**② "Không thể thay đổi nguyên liệu của dòng công thức" khi chỉ sửa SL.**
+`PUT /api/items/{itemId}/bom/{id}` nhận **cả dòng**, không phải patch: handler so `materialItemId` + `uomId` nhận được với giá trị đang lưu và **từ chối nếu khác** (`UpdateBomLine.cs:59-70`). FE gửi mỗi `{quantity, isActive}` → hai trường kia về 0 → luôn dính bẫy đó.
+**Lỗi có sẵn từ trước**, không phải do đợt viết lại — code cũ cũng gửi thiếu y hệt, tức sửa SL của dòng công thức **chưa bao giờ chạy**.
+Đo trực tiếp trên API: payload cũ → **400 `BomLine.CannotChangeMaterial`**; payload đủ 4 trường → **200**, SL 60→61 (đã khôi phục về 60).
+
+**Kèm theo**: dòng thêm mới tự lấy đơn vị gốc của nguyên liệu nếu `uomId` còn trống lúc Lưu. Trước đó nó chỉ được điền qua sự kiện `cellSaved`, nên phụ thuộc vào việc lưới có bắn đúng sự kiện cho ô đó hay không.
+
+**Đã kiểm end-to-end** ở 1280×648: thêm dòng → chọn nguyên liệu → SL 7.5 → Lưu → persist với `uomId` tự điền; lưới còn 2 dòng, không lỗi. Dữ liệu test đã xoá khỏi DB.
+
+---
+
 ## 0. Quét toàn bộ 26 window ở 1280×648 — 4 lỗi thật — 2026-08-13
 
 Dựng bộ đo tự động (headless Chrome qua CDP, viewport ghim **1280×648** = màn 1920×1080 ở scale 150%), mở lần lượt từng window, chọn một nhóm + một dòng để pane chi tiết render, rồi đếm phần tử **bị cắt ngoài khung mà không ancestor nào cuộn tới được**. Kết quả: **6 window bị cờ**, trong đó **4 lỗi thật**.

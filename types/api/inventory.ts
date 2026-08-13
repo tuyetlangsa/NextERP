@@ -47,8 +47,17 @@ export interface BomLineUpsert {
   isActive: boolean;
 }
 
+/**
+ * PUT .../bom/{id} takes the whole line, not a patch: the handler compares the
+ * materialItemId and uomId it receives against the stored ones and refuses the
+ * write if they differ. Omitting them sends 0 and always trips that check
+ * ("Không thể thay đổi nguyên liệu của dòng công thức"), so they must be echoed
+ * back unchanged.
+ */
 export interface BomLineUpdate {
+  materialItemId: number;
   quantity: number;
+  uomId: number;
   isActive: boolean;
 }
 
