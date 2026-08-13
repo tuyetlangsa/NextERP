@@ -353,7 +353,11 @@ export function ItemBomTab({ itemId }: Props) {
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: 0 }}>
+      {/* A floor, not 0: this tab lands in panes as short as ~86px (the recipe
+          window splits its height with the dish list), and there the grid's
+          height="100%" left the data area at literally zero rows. The pane
+          above scrolls, so overshooting it is fine; collapsing is not. */}
+      <div style={{ flex: 1, minHeight: 240 }}>
       <GridComponent
         key={`bom-${itemId}-${rows.length}`}
         ref={(g: GridComponent | null) => { gridRef.current = g; }}

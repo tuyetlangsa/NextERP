@@ -695,11 +695,20 @@ button {
 /* ============ DATA LIST ============ */
 .data-list {
   flex: 1;
-  min-height: 0; /* see .dgrid-wrap */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--panel-bg);
   overflow: hidden;
+}
+/* A Syncfusion grid asked for height="100%" sizes its scroll area against the
+   whole pane and then appends the pager below it, so the page numbers land past
+   the bottom edge — unclickable, and on a short screen the last data rows go
+   with them. min-height:0 lets the flex item shrink to what is actually left.
+   Measured in Tồn kho at a 1280x648 viewport: pager +24px past the window
+   before, -28px inside after. */
+.data-list > .e-grid {
+  min-height: 0;
 }
 
 /* ============ SYNCFUSION GRID — minimal Linear-mono tweaks ============ */
@@ -1313,6 +1322,18 @@ svg:not([width]) {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+/* Syncfusion ships .e-treeview with overflow:hidden. Squeezed inside a flex
+   column it then clips its own tail while reporting no overflow, so the pane
+   around it sees nothing to scroll and every branch below the fold becomes
+   unreachable — 319px of categories in Công thức chế biến, 538px in Bảng giá
+   bán, at a 1280x648 viewport. Letting the tree take its natural height hands
+   the scrolling back to whichever pane wraps it.
+
+   Not scoped to .user-tree: WinPricing and WinStaffAccount wrap their trees in
+   their own scrolling divs, and the bug is the tree's, not the wrapper's. */
+.e-treeview {
+  overflow: visible;
 }
 
 /* ============================================================

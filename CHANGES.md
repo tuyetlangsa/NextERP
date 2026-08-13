@@ -4,6 +4,34 @@ Branch: `main`
 
 ---
 
+## 0. Quét toàn bộ 26 window ở 1280×648 — 4 lỗi thật — 2026-08-13
+
+Dựng bộ đo tự động (headless Chrome qua CDP, viewport ghim **1280×648** = màn 1920×1080 ở scale 150%), mở lần lượt từng window, chọn một nhóm + một dòng để pane chi tiết render, rồi đếm phần tử **bị cắt ngoài khung mà không ancestor nào cuộn tới được**. Kết quả: **6 window bị cờ**, trong đó **4 lỗi thật**.
+
+**① Cây danh mục tự cắt mất phần đuôi — nặng nhất.**
+Syncfusion ship `.e-treeview` với `overflow: hidden`. Bị ép trong flex column, nó cắt phần thừa của **chính nó** và báo ra ngoài là "không có gì tràn" — nên pane bao ngoài (có `overflow: auto`) thấy `scrollHeight === clientHeight` và **không cuộn**. Mọi nhóm hàng bên dưới nếp gấp là **không cách nào tới được**.
+Đo: `Công thức chế biến` treeview client **461** / scroll **780** → mất **319px**. `Bảng giá bán` mất **538px**.
+Sửa: `.e-treeview { overflow: visible }` — để cây lấy đúng chiều cao tự nhiên, trả việc cuộn về cho pane. Sau sửa: `.user-tree` scroll 500 → **819**, cuộn được.
+Không khoá vào `.user-tree` vì `WinPricing` / `WinStaffAccount` tự bọc div riêng — lỗi là của cây, không phải của vỏ.
+
+**② Lưới có phân trang đẩy thanh số trang ra ngoài.**
+`height="100%"` khiến Syncfusion tính vùng cuộn theo cả pane rồi **gắn thêm pager bên dưới** → số trang nằm dưới mép, bấm không được, và trên màn thấp thì mấy dòng cuối đi theo.
+Đo `Tồn kho`: pager **+24px** ngoài khung → sau sửa **−28px** (nằm trong). Sửa: `.data-list > .e-grid { min-height: 0 }` — một luật cho cả **16 window** dùng `.data-list`.
+
+**③ Root của window dùng `height: 100%` trong flex column.**
+`100%` tính theo **cả** `.win` (608px) chứ không phải phần còn lại sau thanh tiêu đề (568px) → tràn 39px. `WinPricing.tsx:520` và `WinReports.tsx:115`. Sửa: `flex: 1; min-height: 0`.
+
+**④ Hồi quy do chính đợt sửa sáng nay.**
+Đổi `ItemBomTab` từ `height={260}` sang `height="100%"` làm lưới nguyên liệu co sập trong pane hẹp của `WinRecipe` — đo được `e-content` client **0** / scroll 40, tức **không còn dòng nào**. Sửa: khung lưới có sàn `minHeight: 240` (không phải 0), và pane của `WinRecipe` trả về `overflow: auto` để với tới phần vượt sàn. Sau sửa: content **72px**.
+
+**Hai cờ là dương tính giả**, đã siết lại bộ đo: nhánh cây đang thu gọn (bị ancestor `height: 0; overflow: hidden` che) và header lưới Syncfusion (cắt có chủ đích, cuộn ngang đồng bộ với body).
+
+**Kết quả cuối: 25/25 window mở được đều sạch** — 0 phần tử ngoài khung, 0 vùng cuộn co sập. (`Sơ đồ bàn` chưa làm, không mở được.)
+
+Bộ đo giữ ở scratchpad (`cdp.mjs`, `scan-all.mjs`) — chạy lại được mà không cần extension trình duyệt.
+
+---
+
 ## 0. Cửa sổ ERP luôn toàn màn hình — 2026-08-13
 
 Bỏ hẳn chế độ cửa sổ nổi: không còn kéo thả, không còn nút Phóng to/Khôi phục, không còn kích thước riêng từng cửa sổ. Mở lên là chiếm trọn desktop. Thanh tiêu đề chỉ còn **Thu nhỏ** và **Đóng** (thu nhỏ giữ lại vì đó là cách taskbar chuyển giữa các cửa sổ đang mở).

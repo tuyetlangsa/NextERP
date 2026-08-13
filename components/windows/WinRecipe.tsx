@@ -321,15 +321,13 @@ export function WinRecipe() {
             </GridComponent>
           </div>
 
-          {/* hidden, not auto: the ingredient grid inside is a flex child that
-              takes the leftover height and scrolls itself. Letting this pane
-              scroll instead would give that grid an indefinite height, which
-              collapses a Syncfusion grid asking for height 100%. */}
+          {/* auto: the ingredient grid keeps a 240px floor, so on a short window
+              it is taller than this pane and the overflow has to be reachable. */}
           <div
             style={{
               flex: 1,
               minHeight: 0,
-              overflow: "hidden",
+              overflow: "auto",
               borderTop: "1px solid var(--border-strong)",
             }}
           >
