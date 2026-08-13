@@ -95,10 +95,16 @@ export function ItemBomTab({ itemId }: Props) {
       uomId: selectedMaterial.baseUomId,
       label: `${selectedMaterial.baseUomCode} — ${selectedMaterial.baseUomName} (cơ bản)`,
     };
-    const convs = (materialConversions.data ?? []).map(c => ({
-      uomId: c.uomId,
-      label: `${c.uomCode} — ${c.uomName} (1 = ${formatQty(c.factorToBase)} ${selectedMaterial.baseUomCode})`,
-    }));
+    // Drop a conversion that points at the base unit itself. Such rows exist in
+    // older data (the API only started refusing them on 2026-08-09) and they are
+    // inert server-side — UomConverter short-circuits on the base before reading
+    // the table — but here they collided with the base entry on the same key.
+    const convs = (materialConversions.data ?? [])
+      .filter(c => c.uomId !== selectedMaterial.baseUomId)
+      .map(c => ({
+        uomId: c.uomId,
+        label: `${c.uomCode} — ${c.uomName} (1 = ${formatQty(c.factorToBase)} ${selectedMaterial.baseUomCode})`,
+      }));
     return [base, ...convs];
   }, [selectedMaterial, materialConversions.data]);
 

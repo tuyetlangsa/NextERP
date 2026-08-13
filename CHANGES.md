@@ -22,6 +22,22 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Dropdown nguyên liệu trùng key khi chọn NVL — 2026-08-14
+
+**Triệu chứng**: `Encountered two children with the same key, 1` ở `ItemBomTab` khi chọn nguyên liệu.
+
+**Nguyên nhân**: `uomOptions` ghép `[base] + [các quy đổi]`. Dữ liệu cũ có **2 dòng quy đổi trỏ vào chính đơn vị gốc** (`item_uom_conversions.uom_id = items.base_uom_id`, cả hai đều `uomId = 1` — Thịt bò tươi, Rau ăn lẩu). Những dòng này tạo trước khi API bắt đầu từ chối chúng (`ItemUomConversion.SameAsBaseUom`, 09/08), nên vẫn nằm trong DB.
+
+Chúng **vô tác dụng ở backend** — `UomConverter.FactorAsync` short-circuit trên base trước khi đọc bảng — nhưng ở FE thì đụng key với entry base.
+
+**Sửa**: lọc bỏ quy đổi trùng `baseUomId` trước khi ghép. Khớp đúng hành vi backend: base thắng.
+
+Kiểm lại: `uomValues: ["1"]`, không trùng, 0 lỗi console.
+
+*(Không xoá 2 dòng dữ liệu cũ — chúng vô hại và việc xoá dữ liệu là quyết định của bạn.)*
+
+---
+
 ## 0. Gỡ hết nút Trợ giúp — 2026-08-14
 
 Bỏ **19 nút** "Trợ giúp" trên 19 window — mọi window có toolbar đều mang một cái ở góc phải.
