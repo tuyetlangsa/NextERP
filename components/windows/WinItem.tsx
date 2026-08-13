@@ -101,15 +101,24 @@ function renderInfoTab(
         {/* A real tree rather than a <select> padded with em-dashes: the category
             hierarchy is what the user is navigating, and the flat list made depth
             guesswork. Same shape as the tree in the left pane. */}
+        {/* Uncontrolled on purpose. Passing `value` on every render let React
+            re-apply the old id over the pick the user had just made, so the field
+            snapped back. The key seeds it once per item and the events carry the
+            choice into the draft from there. */}
         <DropDownTreeComponent
+          // Keyed on the catalogue only. Anything that changes while the form is
+          // open — the code the user is typing, for instance — must NOT remount
+          // this, or the pick is thrown away mid-edit.
+          key={`maincat-${
+            Array.isArray(mainCategoryFields.dataSource) ? mainCategoryFields.dataSource.length : 0
+          }`}
           fields={mainCategoryFields}
-          value={mainCategoryId != null ? [String(mainCategoryId)] : []}
+          value={mainCategoryId != null ? [String(mainCategoryId)] : undefined}
           placeholder="(Chọn nhóm chính)"
           popupHeight="260px"
           changeOnBlur={false}
-          // Both events, because they fire under different conditions: `select`
-          // on every node pick, `change` when the committed value settles. Taking
-          // only one left the draft out of step in testing.
+          // Both events: `select` fires on every node pick, `change` when the
+          // value settles. Relying on either alone left the draft out of step.
           select={(e: DdtSelectEventArgs) => {
             if (e.action !== "select") return;
             const id = Number((e.itemData as { id?: string })?.id);
