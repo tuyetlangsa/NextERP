@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ColumnDirective,
   ColumnsDirective,
@@ -39,6 +39,7 @@ export function WinRecipe() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const treeRef = useRef<TreeViewComponent | null>(null);
 
   const categories = useResource(() => categoriesApi.list());
   const categoryList = useMemo<Category[]>(() => categories.data ?? [], [categories.data]);
@@ -110,8 +111,25 @@ export function WinRecipe() {
     []
   );
 
-  const handleTreeSelect = (args: { nodeData: { id: string | number } }) => {
-    const raw = String(args.nodeData.id);
+  /**
+   * Shared by nodeSelected and nodeClicked, which carry different payloads:
+   * NodeSelectEventArgs has `nodeData`, NodeClickEventArgs only has `event` and
+   * `node`. Reading nodeData.id unconditionally threw on every click. Both are
+   * wired because a click on the already-selected node fires only nodeClicked.
+   */
+  const handleTreeSelect = (args: {
+    nodeData?: { id?: string | number };
+    node?: HTMLElement;
+  }) => {
+    let raw: string | undefined;
+    if (args.nodeData?.id != null) {
+      raw = String(args.nodeData.id);
+    } else if (args.node) {
+      const data = treeRef.current?.getNode(args.node) as { id?: string | number } | undefined;
+      if (data?.id != null) raw = String(data.id);
+    }
+    if (raw === undefined) return;
+
     setSelectedItemId(null);
     setActionError(null);
     if (raw === "all") {
@@ -240,6 +258,7 @@ export function WinRecipe() {
           {!categories.loading && (
             <TreeViewComponent
               key={`cat-tree-${categoryList.length}`}
+              ref={(t: TreeViewComponent | null) => { treeRef.current = t; }}
               fields={treeFields}
               nodeTemplate={renderTreeNode}
               nodeSelected={handleTreeSelect}

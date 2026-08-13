@@ -762,6 +762,31 @@ button {
   border-color: var(--border-strong) !important;
 }
 
+/* Syncfusion's stock pager is sized for a touch target: 55px tall with 32x37
+   number buttons at 14px. In a desktop ERP window that is a lot of vertical
+   space spent on navigation, and on a short screen it competes with the rows
+   themselves. Purely cosmetic — measured before and after, the grid keeps the
+   same content height, row count and page state, and paging still works. */
+.e-grid .e-gridpager {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.e-grid .e-gridpager .e-pagercontainer {
+  margin: 0;
+}
+.e-grid .e-gridpager .e-numericitem,
+.e-grid .e-gridpager .e-pagercontainer .e-icons {
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 5px;
+  font-size: 11px;
+}
+.e-grid .e-gridpager .e-parentmsgbar {
+  padding-top: 3px;
+  font-size: 11px;
+}
+
 /* ============ LOGIN ============ */
 .login {
   position: fixed;

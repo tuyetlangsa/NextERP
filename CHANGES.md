@@ -22,6 +22,34 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Lỗi khi bấm cây nhóm hàng + thu nhỏ thanh phân trang — 2026-08-14
+
+**① `Cannot read properties of undefined (reading 'id')` khi bấm category** (`WinRecipe.tsx:114`)
+
+`nodeSelected` và `nodeClicked` dùng chung một handler, nhưng **payload của chúng khác nhau**: `NodeSelectEventArgs` có `nodeData`, còn `NodeClickEventArgs` **chỉ có** `event` + `node` (`treeview.d.ts:223-232`). Handler đọc thẳng `args.nodeData.id` nên mỗi lần `nodeClicked` fire là throw.
+
+Không phải "chỉ lỗi lần đầu" — nó throw **mọi lần bấm**, chỉ là overlay của Next.js dev gộp lỗi trùng nên trông như lần đầu. Chức năng lọc vẫn chạy vì `nodeSelected` fire song song và set được category; riêng khi bấm lại **đúng node đang chọn** thì chỉ `nodeClicked` fire, và lúc đó không có gì cứu.
+
+`WinStaffAccount.tsx:244-256` **đã có bản sửa đúng** cho cùng lỗi này từ trước (thử `nodeData?.id` rồi fallback `tree.getNode(args.node)`) — chỉ `WinRecipe` bị bỏ sót. Áp lại cùng mẫu, thêm `treeRef`.
+
+**② Thanh phân trang nhỏ lại — toàn hệ thống**
+
+Pager mặc định của Syncfusion cỡ cho màn cảm ứng: cao **55px**, nút số **32×37px**, font **14px**. Trên cửa sổ ERP desktop đó là quá nhiều chiều dọc dành cho điều hướng, nhất là màn thấp. Thêm override ở `globals.css` cho `.e-grid .e-gridpager`: cao **43px**, nút **24×24**, font **11px**.
+
+**Có break gì không — đã đo, không:**
+
+| | Trước | Sau |
+|---|---|---|
+| Chiều cao pager | 55px | **43px** |
+| Nút số | 32×37 | **24×24** |
+| Chiều cao vùng dữ liệu (`e-content`) | 360 | **360** (không đổi) |
+| Số dòng hiển thị | 25 | **25** (không đổi) |
+| Chuyển trang bằng chuột thật | ✓ | **✓** (trang 1→2→1, dữ liệu đổi đúng) |
+
+Thuần CSS, không chạm JS của lưới — Syncfusion tính chiều cao vùng cuộn lúc khởi tạo và không đọc lại kích thước pager. Quét lại **25/25 window**: 0 phần tử ngoài khung, 0 vùng cuộn co sập.
+
+---
+
 ## 0. Tô đỏ cả dòng cho món thiếu nguyên liệu — Công thức chế biến — 2026-08-14
 
 Trước đó cờ báo "đã bật công thức nhưng 0 nguyên liệu" chỉ là một icon `⚠` rộng 46px ở cột cuối — dễ lướt qua trên lưới nhiều dòng. Giờ tô nền cả dòng (`#fef2f2`) qua `rowDataBound`, cùng mẫu đã dùng ở `WinStock` cho cảnh báo sắp hết hàng.
