@@ -247,7 +247,8 @@ button {
   align-items: center;
   padding: 0 0 0 12px;
   gap: 8px;
-  cursor: move;
+  /* Not `move` — windows always fill the desktop and cannot be dragged. */
+  cursor: default;
   user-select: none;
 }
 .win-titlebar .title-icon {

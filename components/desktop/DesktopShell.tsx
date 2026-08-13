@@ -84,34 +84,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     return () => clearInterval(t);
   }, []);
 
-  /**
-   *  Windows are sized once, when they are launched. Anything that shrinks the
-   *  viewport afterwards — resizing the browser, changing the OS display scale,
-   *  moving to a smaller monitor — would otherwise leave them larger than the
-   *  desktop with their lower and right edges, and any buttons there, unreachable.
-   *  Only ever shrinks and pulls back into view; a window the user made small
-   *  stays small.
-   */
-  useEffect(() => {
-    const onResize = () => {
-      const maxW = Math.max(600, window.innerWidth - 16);
-      const maxH = Math.max(400, window.innerHeight - 56);
-      setWindows(ws =>
-        ws.map(w => {
-          const width = Math.min(w.size.width, maxW);
-          const height = Math.min(w.size.height, maxH);
-          const x = Math.max(0, Math.min(w.pos.x, window.innerWidth - width));
-          const y = Math.max(0, Math.min(w.pos.y, window.innerHeight - 40 - height));
-          if (width === w.size.width && height === w.size.height && x === w.pos.x && y === w.pos.y) {
-            return w;
-          }
-          return { ...w, size: { width, height }, pos: { x, y } };
-        })
-      );
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -136,21 +108,9 @@ export function DesktopShell({ user }: { user: SessionUser }) {
     }
     const newZ = zMax + 1;
     setZMax(newZ);
-    // The cascade offset has to stay inside the desktop. On a scaled display the
-    // viewport is short and narrow (1920x1080 at 150% is ~1280x648 CSS px), so a
-    // window sized to nearly the full width and then pushed right by the cascade
-    // hangs off the edge — with the close button among the parts you cannot reach.
-    const width = Math.max(600, Math.min(window.innerWidth - 120, 1280));
-    const height = Math.max(400, Math.min(window.innerHeight - 140, 760));
-    const rawOffset = windows.length * 24;
-    const offsetX = Math.max(0, Math.min(rawOffset, window.innerWidth - width - 80));
-    const offsetY = Math.max(0, Math.min(rawOffset, window.innerHeight - height - 90));
     const next: AppWindowState = {
       id: def.id,
       def,
-      pos: { x: 80 + offsetX, y: 50 + offsetY },
-      size: { width, height },
-      maximized: false,
       minimized: false,
       z: newZ,
     };
@@ -166,7 +126,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
   };
   const close = (id: string) => setWindows(ws => ws.filter(w => w.id !== id));
   const min = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, minimized: true } : w)));
-  const max = (id: string) => setWindows(ws => ws.map(w => (w.id === id ? { ...w, maximized: !w.maximized } : w)));
 
   const launchRef = useRef(launch);
   launchRef.current = launch;
@@ -228,7 +187,6 @@ export function DesktopShell({ user }: { user: SessionUser }) {
             z={w.z}
             onClose={() => close(w.id)}
             onMin={() => min(w.id)}
-            onMax={() => max(w.id)}
             onFocus={() => focus(w.id)}
           >
             {Comp ? <Comp /> : (

@@ -35,12 +35,10 @@ export interface Subsystem {
   win: string | null;
 }
 
+/** Windows always fill the desktop — there is no position, size or restore state. */
 export interface AppWindowState {
   id: string;
   def: Subsystem;
-  pos: { x: number; y: number };
-  size: { width: number; height: number };
-  maximized: boolean;
   minimized: boolean;
   z: number;
 }

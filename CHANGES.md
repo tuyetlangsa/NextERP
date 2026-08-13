@@ -4,6 +4,20 @@ Branch: `main`
 
 ---
 
+## 0. Cửa sổ ERP luôn toàn màn hình — 2026-08-13
+
+Bỏ hẳn chế độ cửa sổ nổi: không còn kéo thả, không còn nút Phóng to/Khôi phục, không còn kích thước riêng từng cửa sổ. Mở lên là chiếm trọn desktop. Thanh tiêu đề chỉ còn **Thu nhỏ** và **Đóng** (thu nhỏ giữ lại vì đó là cách taskbar chuyển giữa các cửa sổ đang mở).
+
+**Lý do**: chế độ nổi buộc mọi màn phải bố cục đúng ở *kích thước bất kỳ* — mà thực tế là không. Thu đủ nhỏ là pane bị cắt, nội dung biến mất sau mép. Một kích thước duy nhất xoá sạch cả lớp vấn đề đó, và không màn ERP nào được lợi từ việc đặt cạnh màn khác.
+
+**Lợi ích kèm theo — vá đúng lỗ hổng còn lại của bản responsive hôm nay**: `@media (max-height: 820px)` khoá theo **viewport**, không theo cửa sổ. Trước đây cửa sổ nhỏ trên màn cao thì luật không áp dụng. Giờ cửa sổ **luôn bằng** viewport (trừ 40px taskbar), nên hai thứ trùng nhau — media query bám đúng cửa sổ trong mọi trường hợp.
+
+**Dọn theo**: `AppWindowState` bỏ `pos`, `size`, `maximized` (không nơi nào đọc nữa); bỏ effect clamp khi resize và toàn bộ tính toán kích thước lúc mở; `.win-titlebar` đổi `cursor: move` → `default`.
+
+**Đã kiểm trên trình duyệt**: cửa sổ 1842×948 trên viewport 1842×988 (đúng 100% − 40px taskbar), `.win.maximized` bật, thanh tiêu đề còn đúng 2 nút, `cursor: default`.
+
+---
+
 ## 0. Responsive: ERP vỡ layout trên màn hình bị phóng đại — 2026-08-13
 
 **Triệu chứng**: cùng một bản build, máy này bình thường, máy kia "mọi trang đều to quá", component che nhau, form create tràn khỏi cửa sổ, lưới dưới cùng bị cắt mất.
