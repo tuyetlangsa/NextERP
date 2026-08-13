@@ -1272,11 +1272,15 @@ svg:not([width]) {
    second table drops off the bottom edge. Only .vsplit is retuned — .vsplit-half
    below is deliberately even. */
 @media (max-height: 820px) {
+  /* Grow factors on a zero basis, so the ratio is exactly 30/70. Sizing the
+     basis instead (30% / auto) measured 244/255 — near even — because the grow
+     factors then only split what is left after the bases, and the bottom's auto
+     basis is whatever its content happens to be. */
   .vsplit > .vtop {
-    flex: 1 1 30%;
+    flex: 3 1 0;
   }
   .vsplit > .vbot {
-    flex: 1.8 1 auto;
+    flex: 7 1 0;
   }
 }
 

@@ -28,20 +28,24 @@ Ba lỗi kỹ thuật cụ thể:
 
 **1. Bẫy `min-height: auto` của flexbox.** Con của flex column mặc định "không co dưới kích thước nội dung". Vùng cuộn thiếu `min-height: 0` sẽ **đẩy phần tử kế tiếp ra khỏi khung** thay vì tự cuộn. Đã vá: `.data-list`, `.detail-panel-body`, `.sched-grid-wrap`, cùng 3 container dọc inline trong `WinConfig`, `WinAreaMenuCategory`, `WinPricing`.
 
-**1b. `.dgrid-wrap` thì NGƯỢC LẠI — đo trên trình duyệt mới ra.** Ban đầu tôi cũng đặt `min-height: 0` cho nó. Sai. Các `.dgrid-wrap` nằm trong pane **vốn đã cuộn được**; đặt `min-height: 0` thì `flex-basis: 0` thắng và **cả hai bảng co về đúng 0px** — lưới biến mất hẳn, còn tệ hơn bị cắt. Đo tại cửa sổ 1280×608:
+**1b. `.dgrid-wrap` cần điều ngược lại — một sàn, không phải số 0.**
 
-| `.dgrid-wrap` | chiều cao đo được | pane cuộn |
+`.dgrid-wrap` có `overflow: auto`. Theo spec flexbox, **automatic minimum size chỉ áp dụng cho hộp `overflow: visible`**; là vùng cuộn thì minimum tự động của nó bằng **0**. Nên `min-height: auto` không bảo vệ gì cả — trong pane bị quá tải (phần cố định 241px trong khung 211px) cả hai bảng nhận 0 ngay từ CSS gốc. Đó mới là bug gốc, và `min-height: 0` mà tôi đặt lúc đầu là **vô tác dụng** chứ không phải nguyên nhân.
+
+Đo tại viewport 1280×648 (cửa sổ 1280×608) — đúng cỡ máy báo lỗi:
+
+| `.dgrid-wrap` | chiều cao | pane |
 |---|---|---|
-| `min-height: 0` | **0px, 0px** | 211→241 |
-| `min-height: 120px` | **120px, 120px** | 211→481 ✅ |
+| CSS gốc / `min-height: 0` | **0px, 0px** | 211→241 |
+| `min-height: 120px` | **120px, 120px** | 310→482, cuộn ✅ |
 
-Nên chốt `min-height: 120px`: giữ vài dòng luôn nhìn thấy, phần còn lại cuộn trong pane. Nơi nào cần khác thì đã tự đặt inline (`WinChoice` = 0 để cho co, `WinDiscountPolicy` = 180).
+Nơi nào cần khác thì đã tự đặt inline (`WinChoice` = 0 để cho co, `WinDiscountPolicy` = 180).
 
 **2. Dialog cỡ cứng, không chặn chiều cao.** 6/7 dialog mở bằng `width="760px"`/`520px`/`820px`... không cái nào có `max-height`. Thêm một luật chung cho `.e-dialog`: `max-width: calc(100vw - 24px)`, `max-height: calc(100vh - 56px)`, thân dialog thành vùng cuộn duy nhất. Chặn ở đây thay vì ở từng nơi gọi, nên dialog viết sau không tái phạm được. Bề rộng px vẫn giữ khi còn vừa — luật này chỉ bao giờ thu nhỏ.
 
 **3. Cửa sổ chỉ đo kích thước đúng một lần.** `AppWindow` chụp `w.size` vào `useState` rồi không đọc lại prop, nên kích thước đóng băng ở lúc mở. Đổi màn hình / đổi mức phóng đại sau đó là cửa sổ to hơn desktop, mép dưới và mép phải không với tới. Đã đọc thẳng từ prop, thêm clamp khi `resize` (chỉ thu nhỏ, không phóng to lại), và chặn cascade `+24px` không đẩy cửa sổ ra ngoài màn hình.
 
-**Khác**: `.vsplit` (chỉ `WinSetMenu` dùng) đổi từ 50/50 sang 30/70 khi `max-height: 820px` — pane trên là lưới phân trang, chịu được nhỏ; pane dưới xếp một form và hai bảng. Hai lưới chiều cao cứng (`ItemBomTab` 260px, `ItemUomConversionTab` 220px) chuyển sang co theo khung.
+**Khác**: `.vsplit` (chỉ `WinSetMenu` dùng) đổi từ 50/50 sang 30/70 khi `max-height: 820px`. Lần đầu viết `flex: 1 1 30%` / `flex: 1.8 1 auto` — **đo ra 244/255, gần như vẫn đều**, vì grow chỉ chia phần dư sau các basis, mà basis `auto` của pane dưới là chiều cao nội dung. Đổi sang grow trên basis 0 (`flex: 3 1 0` / `flex: 7 1 0`) mới ra đúng **150/350** — pane trên là lưới phân trang, chịu được nhỏ; pane dưới xếp một form và hai bảng. Hai lưới chiều cao cứng (`ItemBomTab` 260px, `ItemUomConversionTab` 220px) chuyển sang co theo khung.
 
 ⚠️ **Chưa sửa**: `.sched-create-modal` cố tình đặt `overflow: visible !important; max-height: none` để dropdown bên trong không bị cắt — cap lại là cắt dropdown, không cap thì tràn màn hình. Sửa đúng phải cho dropdown render qua portal.
 
