@@ -22,6 +22,13 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Bỏ xuất PDF/Excel; nút Phân tích AI tinh gọn — 2026-08-14
+
+- **Bỏ hẳn nút "PDF" và "Excel"** trên thanh công cụ Báo cáo, theo yêu cầu. `ReportToolbar.tsx` chỉ tồn tại để render hai nút này (gọi `reportsApi.exportReport`) và không còn nơi nào khác dùng, nên xoá luôn cả component thay vì để lại file chết.
+- **Nút "Phân tích bằng AI"**: bỏ icon 🤖, đổi từ nền tím đặc (`bg-purple-600 text-white`) sang nền tím rất nhạt viền mảnh (`bg-purple-50 text-purple-700 border-purple-200`) — tinh tế hơn, đứng cạnh các nút khác trong Báo cáo mà không lấn.
+
+---
+
 ## 0. Lỗi console + tính năng mở rộng hoá đơn không chạy — tab Bán hàng — 2026-08-14
 
 **Triệu chứng bạn báo**: mở tab Bán hàng trong Báo cáo → lỗi console `React does not recognize the defaultOpen prop`.
