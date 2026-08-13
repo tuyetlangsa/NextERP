@@ -1434,11 +1434,16 @@ svg:not([width]) {
 }
 
 /* Bootstrap5 fullrow stretches to the whole TreeView container, which leaks
-   the highlight beyond the tree pane. Disable the fullrow background entirely
-   and paint only `.e-text-content` — that node hugs the actual node width. */
+   the highlight beyond the tree pane. Make it invisible and paint only
+   `.e-text-content` — that node hugs the actual node width.
+
+   It must stay in the layout: TreeView hit-tests clicks against .e-fullrow
+   (fullRowSelect is on by default), so `display: none` here silently killed
+   selection — most visibly in the category DropDownTree, where the popup
+   opened and highlighted nodes but never committed a value. */
 .e-treeview .e-list-item .e-fullrow {
   background: transparent !important;
-  display: none;
+  border-color: transparent !important;
 }
 .e-treeview .e-list-item > .e-text-content {
   background: transparent;

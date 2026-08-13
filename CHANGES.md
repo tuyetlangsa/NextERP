@@ -22,6 +22,31 @@ Sửa: chuyển **toàn bộ định nghĩa cột** ra cấp module và truyền
 
 ---
 
+## 0. Không chọn được nhóm chính — `.e-fullrow { display: none }` — 2026-08-14
+
+**Triệu chứng**: cây nhóm chính bung ra bình thường, bấm vào một nhóm thì node sáng lên nhưng **tên trong ô không đổi**.
+
+**Nguyên nhân — CSS, không phải React.** `globals.css` đặt `.e-treeview .e-list-item .e-fullrow { display: none }` để chặn highlight tràn hết chiều rộng panel. Nhưng Syncfusion TreeView **hit-test click vào chính `.e-fullrow`** (`fullRowSelect` mặc định bật). Ẩn nó đi thì click vẫn tới `li`, node vẫn nhận `e-node-focus`, nhưng **selection không bao giờ được commit**.
+
+Đo được: cả `mousedown`/`mouseup`/`click` đều tới đúng `.e-list-item`, `defaultPrevented: false` ở mọi phase, z-index không bị chặn (popup 1003 > dialog 1002 > overlay 1001) — vậy mà `value` đứng yên. Tiêm lại `display: block` cho `.e-fullrow` là chọn được ngay.
+
+**Sửa**: bỏ `display: none`, giữ nguyên ý đồ bằng `background` + `border-color` trong suốt. `.e-fullrow` là `position: absolute` nên hiện lại **không chiếm chỗ trong layout**.
+
+**Đã kiểm tác dụng phụ trên cả 4 window có cây** (`WinItem`, `WinRecipe`, `WinPricing`, `WinStaffAccount`):
+
+| | |
+|---|---|
+| `position` | `absolute` — không đẩy layout |
+| `background` / `border` | `rgba(0,0,0,0)` — không có highlight tràn |
+| Tràn ngang | không |
+| Chọn node | được, ở cả 4 |
+
+Ảnh chụp xác nhận highlight vẫn ôm sát chữ đúng như trước. Quét lại 25/25 window: sạch.
+
+*Ghi chú*: trước đó tôi kết luận nhầm rằng click-test thất bại là "giới hạn automation". Không phải — CDP click mô phỏng đúng người dùng và **đã tái hiện đúng bug**; chính `dispatchEvent` thủ công mới là thứ đi tắt qua hit-test và làm tôi tưởng mọi thứ ổn.
+
+---
+
 ## 0. Nhóm chính (`WinItem`) đổi sang cây thả xuống — 2026-08-14
 
 Trường "Nhóm chính" ở tab Thông tin là một `<select>` phẳng, độ sâu giả lập bằng `"— ".repeat(level)`. Với 29 nhóm lồng nhiều cấp thì rất khó đọc.
