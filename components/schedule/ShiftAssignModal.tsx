@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Search, User, X } from "lucide-react";
-import { accessApi } from "@/lib/api/access";
 import { scheduleApi } from "@/lib/api/schedule";
 import { formatApiError } from "@/lib/http/formatError";
 import { formatDateLong, shortTime } from "@/lib/schedule/dates";
@@ -125,7 +124,7 @@ export function ShiftAssignModal({
 
   const loadCandidates = useCallback(async (roleId: number) => {
     setLoadingCandidates(true);
-    const res = await accessApi.listAccounts({ roleId, pageNumber: 1, pageSize: 200 });
+    const res = await scheduleApi.listStaffCandidates(roleId);
     setLoadingCandidates(false);
     if (res.isSuccess) {
       setCandidates(res.data.items.filter(s => s.isActive && !s.isLocked));
