@@ -593,7 +593,7 @@ export function WinPricing() {
                 template={(r: PriceTable) => <span className="mute">{fmtDate(r.createdAt)}</span>} />
               <ColumnDirective field="updatedAt" headerText="Ngày cập nhật" width="130" allowEditing={false}
                 template={(r: PriceTable) => <span className="mute">{fmtDate(r.updatedAt)}</span>} />
-              <ColumnDirective field="variantCount" headerText="Variant" width="80" textAlign="Right" allowEditing={false} />
+              <ColumnDirective field="variantCount" headerText="Số lượng cột giá" width="140" textAlign="Right" allowEditing={false} />
               <ColumnDirective field="isActive" headerText="Đang dùng" width="100" displayAsCheckBox editType="booleanedit" type="boolean" />
             </ColumnsDirective>
             <Inject services={[Sort, Edit, Toolbar]} />
@@ -715,7 +715,6 @@ export function WinPricing() {
                     <ColumnDirective field="id" headerText="ID" width="60" isPrimaryKey={true} visible={false} />
                     <ColumnDirective field="code" headerText="Code" width="110" validationRules={{ required: true }} />
                     <ColumnDirective field="name" headerText="Tên" width="160" validationRules={{ required: true }} />
-                    <ColumnDirective field="specificity" headerText="Spec" width="60" textAlign="Right" allowEditing={false} />
                     <ColumnDirective
                       headerText="Điều kiện"
                       width="220"
@@ -724,23 +723,14 @@ export function WinPricing() {
                         <span className="mute" style={{ fontSize: 11 }}>{describeVariantScope(r, areaLookup)}</span>
                       )}
                     />
-                    <ColumnDirective field="entryCount" headerText="Entry" width="70" textAlign="Right" allowEditing={false} />
-                    <ColumnDirective field="isActive" headerText="Dùng" width="70" displayAsCheckBox editType="booleanedit" type="boolean" />
                     <ColumnDirective
-                      headerText=""
-                      width="100"
+                      field="entryCount"
+                      headerText="Số lượng mặt hàng có cài đặt giá"
+                      width="210"
+                      textAlign="Right"
                       allowEditing={false}
-                      template={(r: PriceVariant) => (
-                        <button
-                          className="tb-btn"
-                          style={{ padding: "2px 8px", fontSize: 11 }}
-                          onClick={(e) => { e.stopPropagation(); openEditVariant(r); }}
-                          title="Chỉnh Time/Day/Area"
-                        >
-                          ⚙ Cấu hình
-                        </button>
-                      )}
                     />
+                    <ColumnDirective field="isActive" headerText="Dùng" width="70" displayAsCheckBox editType="booleanedit" type="boolean" />
                   </ColumnsDirective>
                   <Inject services={[Edit, Toolbar]} />
                 </GridComponent>
@@ -756,11 +746,11 @@ export function WinPricing() {
                       <div className="mute">Khung giờ</div>
                       <div>{selectedVariant.beginTime && selectedVariant.endTime
                         ? `${selectedVariant.beginTime.slice(0, 5)} – ${selectedVariant.endTime.slice(0, 5)} (end exclusive)`
-                        : "Cả ngày (NULL)"}</div>
+                        : "Cả ngày"}</div>
 
                       <div className="mute">Thứ trong tuần</div>
                       <div>{selectedVariant.dayMask === null
-                        ? "Mọi ngày (NULL)"
+                        ? "Mọi ngày"
                         : DAYS.filter(d => (selectedVariant.dayMask! & d.bit) !== 0).map(d => (
                             <span key={d.bit} className="chip" style={{ marginRight: 4 }}>{d.label}</span>
                           ))}</div>
@@ -775,7 +765,7 @@ export function WinPricing() {
                       <div className="mute">Trạng thái</div>
                       <div>{selectedVariant.isActive ? "Đang dùng" : "Tạm tắt"}</div>
 
-                      <div className="mute">Entry giá</div>
+                      <div className="mute">Số mặt hàng có giá</div>
                       <div>{selectedVariant.entryCount}</div>
                     </div>
                     <div style={{ marginTop: 16 }}>
@@ -931,7 +921,7 @@ function VariantScopeDialog({
           <legend style={{ fontSize: 12 }}>Khung giờ</legend>
           <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
             <input type="checkbox" className="cbx" checked={draft.timeAllDay} onChange={e => setDraft({ ...draft, timeAllDay: e.target.checked })} />
-            Cả ngày (NULL)
+            Cả ngày
           </label>
           {!draft.timeAllDay && (
             <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
@@ -947,7 +937,7 @@ function VariantScopeDialog({
           <legend style={{ fontSize: 12 }}>Thứ trong tuần</legend>
           <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
             <input type="checkbox" className="cbx" checked={draft.dayAllDays} onChange={e => setDraft({ ...draft, dayAllDays: e.target.checked })} />
-            Mọi ngày (NULL)
+            Mọi ngày
           </label>
           {!draft.dayAllDays && (
             <div className="chip-row" style={{ marginTop: 6 }}>
