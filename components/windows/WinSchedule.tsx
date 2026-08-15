@@ -14,7 +14,6 @@ import { TemplateConfirmDialog } from "@/components/schedule/TemplateConfirmDial
 import { SwapListPanel } from "@/components/schedule/SwapListPanel";
 import { SwapDetailPanel } from "@/components/schedule/SwapDetailPanel";
 import { scheduleApi } from "@/lib/api/schedule";
-import { accessApi } from "@/lib/api/access";
 import { authApi } from "@/lib/api/auth";
 import { lookupsApi } from "@/lib/api/lookups";
 import {
@@ -55,7 +54,7 @@ export function WinSchedule() {
   const schedulesRes = useResource(() => scheduleApi.listSchedules());
   const shiftsRes = useResource(() => lookupsApi.getShifts());
   const templatesRes = useResource(() => scheduleApi.listTemplates());
-  const rolesRes = useResource(() => accessApi.listAssignableRoles());
+  const rolesRes = useResource(() => scheduleApi.listAssignableRoles());
   const swapsRes = useResource(() => scheduleApi.listSwapRequests());
   const meRes = useResource(() => authApi.me());
 

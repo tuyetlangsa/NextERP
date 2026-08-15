@@ -288,7 +288,7 @@ export function WinChoice() {
 
     const itemIds = payload.map(p => p.itemId);
     if (new Set(itemIds).size !== itemIds.length) {
-      setErrorMsg("Mỗi modifier phải là một Item khác nhau (itemId trùng).");
+      setErrorMsg("Một món đang bị thêm hai lần vào nhóm này. Hãy xoá bớt dòng trùng.");
       return;
     }
 

@@ -2,6 +2,10 @@
 
 import { http } from "@/lib/http/client";
 import type {
+  ListAssignableRolesResponse,
+  PagedStaffAccounts,
+} from "@/types/api/access";
+import type {
   BatchAssignmentItem,
   BatchAssignmentResponse,
   EditAssignmentResponse,
@@ -23,6 +27,14 @@ import type {
  * would show "saved" data that never reached the database.
  */
 export const scheduleApi = {
+  listAssignableRoles: () =>
+    http.get<ListAssignableRolesResponse>("/api/lookups/schedule-roles"),
+
+  listStaffCandidates: (roleId: number, search?: string) =>
+    http.get<PagedStaffAccounts>("/api/lookups/schedule-staff", {
+      params: { roleId, search },
+    }),
+
   listSchedules: (q: { fromWeek?: string; toWeek?: string } = {}) =>
     http.get<ScheduleRow[]>("/api/schedules", { params: q }),
 
