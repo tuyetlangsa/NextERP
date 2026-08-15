@@ -70,6 +70,15 @@ const TAB_FILTERS: readonly TabFilterConfig[] = [
   { hideBar: true },                             // 9 Tồn kho — has its own search/lowStock controls
 ];
 
+/** API report filters are calendar dates, not UTC instants. Keep the date selected in the
+ * browser instead of letting toISOString() shift midnight back one day in UTC+ time zones. */
+function toLocalDateParam(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function WinReports() {
   const [activeTab, setActiveTab] = useState(0);
   const [filters, setFilters] = useState<ReportFilterValues>(defaultFilterValues());
@@ -87,8 +96,8 @@ export function WinReports() {
 
   const filterParams = useMemo(
     () => ({
-      fromDate: filters.fromDate.toISOString(),
-      toDate: filters.toDate.toISOString(),
+      fromDate: toLocalDateParam(filters.fromDate),
+      toDate: toLocalDateParam(filters.toDate),
       counterId: filters.counterId,
       areaId: filters.areaId,
       shiftId: filters.shiftId,
