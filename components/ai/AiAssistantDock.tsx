@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BotMessageSquare } from "lucide-react";
 import { AiChatPanel } from "@/components/ai/AiChatPanel";
 import { useAiChat } from "@/components/ai/useAiChat";
 import { subscribeAiAnalysis, buildAnalysisMessage } from "@/lib/ai/analyzeBus";
@@ -35,11 +36,16 @@ export function AiAssistantDock() {
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-[9998] h-12 w-12 rounded-full bg-blue-600 text-white text-xl shadow-lg hover:bg-blue-700"
+        className="group fixed bottom-5 right-5 z-[9998] grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg transition hover:scale-105 hover:from-sky-400 hover:to-blue-600"
         title="Trợ lý AI"
         aria-label="Trợ lý AI"
+        aria-expanded={open}
       >
-        {"\u{1F916}"}
+        <BotMessageSquare size={27} strokeWidth={2.1} aria-hidden="true" />
+        <span
+          className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"
+          aria-hidden="true"
+        />
       </button>
 
       {open && (
