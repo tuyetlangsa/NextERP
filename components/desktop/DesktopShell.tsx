@@ -69,7 +69,12 @@ const fmtClock = (d: Date) =>
 const fmtDate = (d: Date) =>
   `${d.toLocaleDateString("vi-VN", { weekday: "long" })}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 
-export function DesktopShell({ user }: { user: SessionUser }) {
+interface Props {
+  user: SessionUser;
+  onLogout: () => void;
+}
+
+export function DesktopShell({ user, onLogout }: Props) {
   const [windows, setWindows] = useState<AppWindowState[]>([]);
   const [zMax, setZMax] = useState(100);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -210,6 +215,7 @@ export function DesktopShell({ user }: { user: SessionUser }) {
         onStartToggle={() => setStartOpen(o => !o)}
         onFocus={focus}
         onMin={min}
+        onLogout={onLogout}
         user={{ username: user.username, roleCode: user.roleCode }}
         clock={clock}
       />
