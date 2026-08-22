@@ -19,6 +19,7 @@ export function configLabel(code: string): string {
     "restaurant.phone": "Số điện thoại",
     "restaurant.vat_default_percent": "VAT mặc định (%)",
     "restaurant.service_charge_default_percent": "Service charge mặc định (%)",
+    "ticket.allow_multiple_open_tickets_per_table": "Cho phép nhiều phiếu đang mở trên một bàn",
     "reservation.pre_buffer_minutes": "Pre-buffer (phút)",
     "reservation.grace_period_minutes": "Grace period (phút)",
     "reservation.min_advance_minutes": "Đặt trước tối thiểu (phút)",
