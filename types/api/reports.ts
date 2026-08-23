@@ -108,13 +108,13 @@ export interface ItemReportRow {
   totalDiscount: number; billCount: number;
 }
 
-// ─── Top Sellers (Tab 6) ───
+// ─── Top Sellers (Tab 7) ───
 export interface TopSellerRow {
   rank: number; itemId: number; itemCode: string; itemName: string;
   totalQuantity: number; totalRevenue: number; percentageOfTotal: number;
 }
 
-// ─── Top Ordering Staff by Item (Tab 7) ───
+// ─── Top Ordering Staff by Item (Tab 6) ───
 export interface TopOrderStaffRank {
   rank: number;
   staffAccountId: number;

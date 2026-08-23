@@ -20,7 +20,14 @@ export function flattenTopOrderStaffRows(
 ): TopOrderStaffGridRow[] {
   return items.flatMap((item) =>
     item.topStaff.slice(0, 3).map((staff) => ({
-      id: `${item.itemId}-${staff.staffAccountId}`,
+      id: JSON.stringify([
+        item.itemId,
+        item.itemCode,
+        item.itemName,
+        item.uomCode,
+        staff.staffAccountId,
+        staff.rank,
+      ]),
       itemId: item.itemId,
       itemCode: item.itemCode,
       itemName: item.itemName,

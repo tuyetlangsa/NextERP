@@ -48,9 +48,10 @@ export function TopOrderStaffTab({
       </div>
 
       <p className="px-1 pb-3 text-sm text-gray-600">
-        Sản lượng thuần là số bán ròng, cùng cơ sở với tab Món hàng và đã gồm các dòng hoàn món
-        không bị huỷ; số lượng và tỷ lệ có thể âm. Bộ lọc Quầy/Khu lấy theo phiếu. Tổng tỷ lệ của
-        top 3 có thể không bằng 100% vì còn nhân viên khác hoặc có hoàn món.
+        Sản lượng thuần là số lượng ròng có gán nhân viên tạo order, gồm cả hoàn món không bị huỷ
+        nên có thể âm. Chỉ đối chiếu với tab Món hàng khi không có order cũ thiếu người tạo; nếu
+        lọc Quầy/Khu, dữ liệu phiếu phải trùng snapshot hoá đơn. Tổng tỷ lệ top 3 có thể không bằng
+        100% vì còn nhân viên khác hoặc có hoàn món.
       </p>
 
       {rows.length === 0 ? (
