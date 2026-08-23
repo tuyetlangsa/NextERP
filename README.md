@@ -91,6 +91,25 @@ Nếu chưa có key, dev vẫn chạy được nhưng có banner "Trial" trên S
 
 Tất cả master-data window đã kết nối Rpom-backend qua `lib/http/client.ts` (axios + `BaseResponse<T>` envelope + JWT). Spec backend đầy đủ ở `../docs/RPOM_Logical_ERD.md`, `../docs/RPOM_Pricing_Spec.md`, `../docs/RPOM_Versioning_Strategy.md`.
 
+## Báo cáo top nhân viên theo món
+
+`WinReports` có tab **Top nhân viên theo món**, nằm sau **Món hàng**. Tab gọi
+`reportsApi.topOrderStaffByItem()` với ngày/quầy/khu, nhận response nested theo snapshot món và chỉ
+flatten cho Syncfusion Grid bằng `components/reports/topOrderStaffRows.ts`. `AnalyzeButton` phải nhận
+nguyên nested data để AI không mất nhóm/rank; grid hiển thị tối đa ba dòng staff cho mỗi món.
+
+Sản lượng là net signed từ order item không huỷ của ticket đã đóng; refund âm vẫn được tính. Phần trăm
+API có hai chữ số thập phân, UI dùng `N1`; top ba phần trăm có thể không bằng 100%. Tab không hỗ trợ
+PDF/Excel export. Kiểm helper bằng:
+
+```bash
+npm run test:top-order-staff
+```
+
+Các contract AI/reporting backend có giới hạn detail rows và permission riêng theo tool; UI không được
+tự tổng hợp detail đã truncate để suy ra KPI. Xem `RPOM_REPORTING_MODULE_GUIDE.md` ở repository gốc
+để biết ma trận quyền, nguồn invoice so với operational và giới hạn payload.
+
 ## Lưu ý quan trọng
 
 - **Next.js 16** có breaking changes so với 14/15. Đọc `node_modules/next/dist/docs/` trước khi viết route handler / server action.
