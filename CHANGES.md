@@ -4,6 +4,25 @@ Branch: `main`
 
 ---
 
+## Báo cáo top nhân viên order theo món (2026-08-23)
+
+Thêm tab **Top nhân viên theo món** ngay sau tab Món hàng. Tab gọi
+`GET /api/reports/items/top-order-staff`, dùng bộ lọc chung Ngày/Quầy/Khu, giữ nguyên response nested
+để gửi cho AI và chỉ flatten tối đa ba dòng staff/món khi đưa vào grid. Các cột thể hiện mã/tên/ĐVT,
+`Sản lượng thuần`, hạng, nhân viên order, `SL nhân viên` và `% sản lượng món`; phần trăm API là hai
+chữ số thập phân còn lưới hiển thị một chữ số.
+
+Sản lượng là **net signed**: dòng refund/replacement âm không bị bỏ, còn item đã huỷ, ticket mở/hủy và
+order legacy không có người tạo không được tính. Vì chỉ hiển thị top 3 và refund được quy về người tạo
+order refund, tổng % không bắt buộc bằng 100%. Quầy/khu của báo cáo đọc header Ticket vận hành, nên
+chỉ đối chiếu tuyệt đối với tab Món hàng khi mọi order có creator và snapshot invoice còn khớp. Tab có
+nút `Phân tích bằng AI`, không có PDF/Excel export.
+
+Thêm test runner `tsx` và `npm run test:top-order-staff` cho pure flattening helper; đây là harness tự
+động đầu tiên của NextERP cho report tab này.
+
+---
+
 ## 0. Sửa 2 lỗi của lưới công thức inline — 2026-08-13
 
 **① `col.edit.create is not a function` khi bấm Add.**
