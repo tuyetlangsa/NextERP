@@ -108,13 +108,31 @@ export interface ItemReportRow {
   totalDiscount: number; billCount: number;
 }
 
-// ─── Top Sellers (Tab 6) ───
+// ─── Top Sellers (Tab 7) ───
 export interface TopSellerRow {
   rank: number; itemId: number; itemCode: string; itemName: string;
   totalQuantity: number; totalRevenue: number; percentageOfTotal: number;
 }
 
-// ─── Shift (Tab 7) ───
+// ─── Top Ordering Staff by Item (Tab 6) ───
+export interface TopOrderStaffRank {
+  rank: number;
+  staffAccountId: number;
+  staffName: string;
+  quantity: number;
+  percentageOfItemQuantity: number;
+}
+
+export interface TopOrderStaffByItemRow {
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  uomCode: string;
+  totalQuantity: number;
+  topStaff: TopOrderStaffRank[];
+}
+
+// ─── Shift (Tab 8) ───
 export interface ShiftReportRow {
   cashDrawerSessionId: number; counterId: number; counterName: string;
   shiftId: number; shiftName: string;
@@ -127,14 +145,14 @@ export interface ShiftReportRow {
   totalReceive: number; totalPayment: number;
 }
 
-// ─── Ingredient Consumption (Tab 8) ───
+// ─── Ingredient Consumption (Tab 9) ───
 export interface IngredientConsumptionRow {
   ingredientItemId: number; ingredientCode: string; ingredientName: string;
   baseUomCode: string; totalConsumedQty: number;
   currentStock: number; percentUsed: number;
 }
 
-// ─── Stock Alert (Tab 9) ───
+// ─── Stock Alert (Tab 10) ───
 export interface StockAlertRow {
   itemId: number; itemCode: string; itemName: string;
   baseUomCode: string; baseUomName: string;
