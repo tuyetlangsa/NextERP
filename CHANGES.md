@@ -4,6 +4,18 @@ Branch: `main`
 
 ---
 
+## Validate SĐT/email khi tạo/sửa tài khoản nhân viên — 2026-08-15
+
+BE mới thêm validate định dạng SĐT/email cho `CreateStaffAccount`/`UpdateStaffAccount` (FluentValidation → RFC 7807). `formatApiError` (`lib/http/formatError.ts`) đã splice `extensions.errors[].description` nên `WinStaffAccount` **đã** hiện đúng lỗi BE qua `setSaveError(formatApiError(res))` — không phải sửa phần hiển thị.
+
+Bổ sung **chặn sớm phía client** cho phản hồi tức thì, đúng câu chữ BE:
+- `lib/validation/contact.ts` (mới) — `isValidPhone` (`^(0\d{9,10}|\+84\d{9,10})$`) + `isValidEmail` (`^[^@\s]+@[^@\s]+\.[^@\s]+$`), mirror y hệt BE (`Rpom.Application/Common/ContactValidation.cs`).
+- `WinStaffAccount.handleSave` — check SĐT + email trước khi gọi create/update; format-only (rỗng vẫn qua vì 2 field optional).
+
+ERP không có form người mua/đặt bàn/HĐĐT (thuộc POS) nên chỉ đụng tài khoản nhân viên. Không đổi schema/API.
+
+---
+
 ## 0. Sửa 2 lỗi của lưới công thức inline — 2026-08-13
 
 **① `col.edit.create is not a function` khi bấm Add.**
