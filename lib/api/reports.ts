@@ -5,6 +5,7 @@ import { http } from "@/lib/http/client";
 import type {
   RevenueResponse, DetailedRevenueResponse, ItemSalesDetailResponse,
   CategoryReportRow, ItemReportRow, TopSellerRow,
+  TopOrderStaffByItemRow,
   ShiftReportRow, IngredientConsumptionRow, StockAlertRow,
   ReportFilter,
 } from "@/types/api/reports";
@@ -35,6 +36,9 @@ export const reportsApi = {
 
   topSellers: (filter: ReportFilter & { topN?: number; by?: string }) =>
     http.get<TopSellerRow[]>("/api/reports/top-sellers", { params: qs(filter) }),
+
+  topOrderStaffByItem: (filter: ReportFilter & { itemId?: number; search?: string }) =>
+    http.get<TopOrderStaffByItemRow[]>("/api/reports/items/top-order-staff", { params: qs(filter) }),
 
   shift: (filter: ReportFilter) =>
     http.get<ShiftReportRow[]>("/api/reports/shift", { params: qs(filter) }),
