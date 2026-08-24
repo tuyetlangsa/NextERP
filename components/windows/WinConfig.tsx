@@ -153,7 +153,6 @@ export function WinConfig() {
                 <ConfigField
                   key={item.code}
                   code={item.code}
-                  label={item.code}
                   description={item.description}
                   valueType={item.valueType}
                   value={cfgDirty.current.get(item.code) ?? ""}
