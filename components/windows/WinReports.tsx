@@ -24,6 +24,7 @@ import { ItemSalesDetailTab } from "@/components/reports/ItemSalesDetailTab";
 import { CategoryTab } from "@/components/reports/CategoryTab";
 import { ItemTab } from "@/components/reports/ItemTab";
 import { TopSellerTab } from "@/components/reports/TopSellerTab";
+import { TopOrderStaffTab } from "@/components/reports/TopOrderStaffTab";
 import { ShiftTab } from "@/components/reports/ShiftTab";
 import { IngredientTab } from "@/components/reports/IngredientTab";
 import { StockAlertTab } from "@/components/reports/StockAlertTab";
@@ -37,6 +38,7 @@ const TAB_LABELS = [
   "Bán hàng",
   "Danh mục",
   "Món hàng",
+  "Top nhân viên theo món",
   "Top bán chạy",
   "Ca làm việc",
   "Nguyên liệu",
@@ -64,10 +66,11 @@ const TAB_FILTERS: readonly TabFilterConfig[] = [
   { counter: true, area: true },                 // 3 Bán hàng
   { counter: true, area: true },                 // 4 Danh mục
   { counter: true, area: true, category: true }, // 5 Món hàng
-  { counter: true, area: true },                 // 6 Top bán chạy
-  { counter: true, shift: true },                // 7 Ca làm việc
-  { counter: true },                             // 8 Nguyên liệu
-  { hideBar: true },                             // 9 Tồn kho — has its own search/lowStock controls
+  { counter: true, area: true },                 // 6 Top nhân viên theo món
+  { counter: true, area: true },                 // 7 Top bán chạy
+  { counter: true, shift: true },                // 8 Ca làm việc
+  { counter: true },                             // 9 Nguyên liệu
+  { hideBar: true },                             // 10 Tồn kho — has its own search/lowStock controls
 ];
 
 /** API report filters are calendar dates, not UTC instants. Keep the date selected in the
@@ -175,15 +178,18 @@ export function WinReports() {
           <ItemTab filters={filterParams} onLoading={setLoading} onError={setError} />
         )}
         {activeTab === 6 && (
-          <TopSellerTab filters={filterParams} onLoading={setLoading} onError={setError} />
+          <TopOrderStaffTab filters={filterParams} onLoading={setLoading} onError={setError} />
         )}
         {activeTab === 7 && (
-          <ShiftTab filters={filterParams} onLoading={setLoading} onError={setError} />
+          <TopSellerTab filters={filterParams} onLoading={setLoading} onError={setError} />
         )}
         {activeTab === 8 && (
-          <IngredientTab filters={filterParams} onLoading={setLoading} onError={setError} />
+          <ShiftTab filters={filterParams} onLoading={setLoading} onError={setError} />
         )}
         {activeTab === 9 && (
+          <IngredientTab filters={filterParams} onLoading={setLoading} onError={setError} />
+        )}
+        {activeTab === 10 && (
           <StockAlertTab onLoading={setLoading} onError={setError} />
         )}
         </ErrorBoundary>

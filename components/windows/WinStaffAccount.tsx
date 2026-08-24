@@ -27,6 +27,12 @@ import { accessApi } from "@/lib/api/access";
 import { authApi } from "@/lib/api/auth";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
+import {
+  EMAIL_FORMAT_ERROR,
+  PHONE_FORMAT_ERROR,
+  isValidEmail,
+  isValidPhone,
+} from "@/lib/validation/contact";
 import type {
   StaffAccountRow,
   StaffAccountDetail,
@@ -521,6 +527,9 @@ export function WinStaffAccount() {
     if (isCreate && (!form.username.trim() || form.password.length < 6)) {
       setSaveError("Tên đăng nhập bắt buộc và mật khẩu ≥ 6 ký tự."); return;
     }
+    // Chặn sớm với đúng thông báo BE sẽ trả (mirror ContactValidation bên BE).
+    if (!isValidPhone(form.phone)) { setSaveError(PHONE_FORMAT_ERROR); return; }
+    if (!isValidEmail(form.email)) { setSaveError(EMAIL_FORMAT_ERROR); return; }
 
     let accountId = selectedAccountId!;
     if (isCreate) {

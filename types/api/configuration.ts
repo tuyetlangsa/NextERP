@@ -1,6 +1,7 @@
 /** Functional group for ConfigValue display. Must match backend ConfigGroup enum. */
 export type ConfigGroup =
   | "RestaurantProfile"
+  | "TicketTable"
   | "Reservation"
   | "Kitchen"
   | "CustomerDisplay"

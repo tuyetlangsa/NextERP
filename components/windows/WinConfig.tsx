@@ -16,6 +16,7 @@ import type { ConfigGroup, ConfigValueItem } from "@/types/api/configuration";
 
 const GROUP_ORDER: { key: ConfigGroup; label: string }[] = [
   { key: "RestaurantProfile", label: "Thông tin nhà hàng" },
+  { key: "TicketTable",       label: "Vận hành phiếu và bàn" },
   { key: "Reservation",       label: "Đặt bàn" },
   { key: "Kitchen",           label: "Bếp (KDS & ATC)" },
   { key: "CustomerDisplay",   label: "Màn hình khách & QR" },
