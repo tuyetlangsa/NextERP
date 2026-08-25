@@ -121,6 +121,12 @@ export function WinStaffAccount() {
   const rolesRes = useResource(() => accessApi.listRoles());
   const roles = rolesRes.data?.roles ?? [];
 
+  // The role TREE keeps listing every role (a Manager account still has to appear under one),
+  // but the assignment dropdown must not offer the elevated ones — handing out OWNER there is
+  // how an account escalates itself. The backend rejects them too; this keeps the UI honest.
+  const assignableRolesRes = useResource(() => accessApi.listAssignableRoles());
+  const assignableRoles = assignableRolesRes.data?.roles ?? [];
+
   const [roleId, setRoleId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const searchRef = useRef(search);
@@ -373,7 +379,9 @@ export function WinStaffAccount() {
         fullName: "",
         phone: "",
         email: "",
-        roleId: roleId ?? roles[0]?.id ?? null,
+        // Default to the tree's current filter only when it is a role we may actually assign,
+        // otherwise the first assignable one — never roles[0], which can be OWNER.
+        roleId: assignableRoles.find(r => r.id === roleId)?.id ?? assignableRoles[0]?.id ?? null,
         isActive: true,
         isLocked: false,
       });
@@ -467,6 +475,18 @@ export function WinStaffAccount() {
       }
     }
   }, [roles, form.roleId, bottomTab]);
+
+  /** Assignable roles, plus the account's own role when that one is elevated — an existing
+   *  Owner must still render as "Owner" instead of blanking the dropdown, but the elevated
+   *  entry is only ever the current value, never a choice offered to a different account. */
+  const roleOptions = useMemo(() => {
+    const options = assignableRoles.map(r => ({ text: r.name, value: r.id }));
+    if (form.roleId != null && !options.some(o => o.value === form.roleId)) {
+      const current = roles.find(r => r.id === form.roleId);
+      if (current) options.unshift({ text: current.name, value: current.id });
+    }
+    return options;
+  }, [assignableRoles, roles, form.roleId]);
 
   const openResetPassword = useCallback(() => {
     setResetPwdForm({ password: "", confirm: "" });
@@ -908,7 +928,7 @@ export function WinStaffAccount() {
             <div className="staff-account-dialog-form-side">
               <Field label="Vai trò">
                 <DropDownListComponent
-                  dataSource={roles.map((r) => ({ text: r.name, value: r.id }))}
+                  dataSource={roleOptions}
                   fields={{ text: "text", value: "value" }}
                   value={form.roleId ?? undefined}
                   change={(e: DropDownChangeEventArgs) =>

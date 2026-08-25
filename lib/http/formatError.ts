@@ -20,6 +20,11 @@ const BUSINESS_ERROR_MESSAGES: Record<string, string> = {
   "CancellationReason.NotFound": "Không tìm thấy lý do huỷ/trả",
   "CancellationReason.CodeDuplicate": "Mã lý do đã tồn tại",
   "CancellationReason.InUse": "Lý do đã được dùng trong đơn hàng — hãy tắt kích hoạt thay vì xoá",
+  "Access.RoleNotAssignable": "Chỉ chủ nhà hàng mới được gán vai trò này",
+  "Access.CannotEditOwnPermissions":
+    "Không thể tự sửa quyền của chính mình — hãy nhờ một tài khoản quản trị khác",
+  "Access.LastPermissionAdmin":
+    "Đây là tài khoản duy nhất còn quyền phân quyền — hãy cấp quyền này cho một tài khoản khác trước",
   "Shift.NotFound": "Không tìm thấy ca làm việc",
   "Shift.CodeDuplicate": "Mã ca đã tồn tại",
   "Shift.InUse": "Ca đang được phiên quầy/hoá đơn sử dụng — hãy tắt kích hoạt thay vì xoá",
