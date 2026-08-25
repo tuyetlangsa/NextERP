@@ -24,7 +24,7 @@ import { setMenuApi } from "@/lib/api/setMenu";
 import { useResource } from "@/lib/http/useResource";
 import { formatApiError } from "@/lib/http/formatError";
 import { buildCategoryTreeNodes, findHangBanCategoryId } from "@/lib/menu/hangBan";
-import type { ChoiceCategoryListRow } from "@/types/api/choice";
+import type { ChoiceCategoryDetail, ChoiceCategoryListRow } from "@/types/api/choice";
 import type { Category, ItemListRow } from "@/types/api/menu";
 import type { SetMenuDetailInput } from "@/types/api/setMenu";
 
@@ -97,6 +97,15 @@ export function WinSetMenu() {
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
   const [selectedCompKeys, setSelectedCompKeys] = useState<Set<string>>(new Set());
   const [selectedCcKeys, setSelectedCcKeys] = useState<Set<string>>(new Set());
+
+  /** Row highlighted in the choice-category picker, whose modifiers are previewed beside it. */
+  const [ccPreviewId, setCcPreviewId] = useState<number | null>(null);
+  const [ccPreview, setCcPreview] = useState<ChoiceCategoryDetail | null>(null);
+  const [ccPreviewLoading, setCcPreviewLoading] = useState(false);
+  const [ccPreviewError, setCcPreviewError] = useState<string | null>(null);
+  /** Details already fetched this session — the list endpoint carries no modifiers. */
+  const ccDetailCache = useRef<Map<number, ChoiceCategoryDetail>>(new Map());
+  const ccPreviewSeqRef = useRef(0);
 
   const loadSeqRef = useRef(0);
   const skipRowSelectRef = useRef(false);
@@ -369,6 +378,38 @@ export function WinSetMenu() {
     setCcPickerOpen(false);
   };
 
+  /**
+   * Load the modifiers of the highlighted picker row. The list endpoint returns only
+   * name/min/max/modifierCount, which is not enough to tell two similar groups apart —
+   * the whole point of the preview is seeing WHICH items are inside before attaching.
+   */
+  const previewChoiceCategory = useCallback(async (id: number) => {
+    const seq = ++ccPreviewSeqRef.current;
+    setCcPreviewId(id);
+    setCcPreviewError(null);
+
+    const cached = ccDetailCache.current.get(id);
+    if (cached) {
+      setCcPreview(cached);
+      setCcPreviewLoading(false);
+      return;
+    }
+
+    setCcPreview(null);
+    setCcPreviewLoading(true);
+    const res = await choiceCategoriesApi.get(id);
+    // A slower earlier request must not overwrite a newer selection.
+    if (seq !== ccPreviewSeqRef.current) return;
+
+    if (res.isSuccess) {
+      ccDetailCache.current.set(id, res.data);
+      setCcPreview(res.data);
+    } else {
+      setCcPreviewError(formatApiError(res));
+    }
+    setCcPreviewLoading(false);
+  }, []);
+
   const renderTree = (parentId: number | null, depth = 0): React.ReactNode => {
     const nodes = byParent.get(parentId) ?? [];
     return nodes.map(cat => {
@@ -416,6 +457,11 @@ export function WinSetMenu() {
     []
   );
   const choiceList = choiceCatsRes.data ?? [];
+  /** Groups still attachable — the ones already on this set are hidden from the picker. */
+  const availableChoiceCats = useMemo(
+    () => choiceList.filter(cc => !choiceCats.some(c => c.choiceCategoryId === cc.id)),
+    [choiceList, choiceCats]
+  );
   const setMenuCount = [...setMenuKnown.values()].filter(Boolean).length;
 
   return (
@@ -742,7 +788,19 @@ export function WinSetMenu() {
                 <div className="grid-filterbar" style={{ background: "#fafaf9" }}>
                   <strong style={{ fontSize: 12 }}>② Loại lựa chọn đính kèm</strong>
                   <div className="tb-divider" />
-                  <TB icon={ChromeIcons.Plus} onClick={() => setCcPickerOpen(true)} disabled={busy}>
+                  <TB
+                    icon={ChromeIcons.Plus}
+                    onClick={() => {
+                      // Start clean: last session's highlight would preview a group that may
+                      // already be attached and therefore no longer listed.
+                      setCcPreviewId(null);
+                      setCcPreview(null);
+                      setCcPreviewError(null);
+                      setCcPreviewLoading(false);
+                      setCcPickerOpen(true);
+                    }}
+                    disabled={busy}
+                  >
                     Đính kèm
                   </TB>
                   <TB
@@ -847,33 +905,138 @@ export function WinSetMenu() {
         header="Chọn Loại lựa chọn"
         showCloseIcon
         isModal
-        width="520px"
+        width="820px"
         beforeClose={() => setCcPickerOpen(false)}
       >
-        <div className="dgrid-wrap" style={{ maxHeight: 360, margin: 12 }}>
-          <table className="dgrid">
-            <thead>
-              <tr>
-                <th>Tên</th>
-                <th style={{ width: 80 }}>Min</th>
-                <th style={{ width: 80 }}>Max</th>
-              </tr>
-            </thead>
-            <tbody>
-              {choiceList
-                .filter(cc => !choiceCats.some(c => c.choiceCategoryId === cc.id))
-                .map(cc => (
-                  <tr key={cc.id} onDoubleClick={() => addChoiceCategory(cc)} style={{ cursor: "pointer" }}>
+        <div style={{ display: "flex", gap: 12, margin: 12, alignItems: "stretch" }}>
+          {/* Master — one row per attachable group. */}
+          <div className="dgrid-wrap" style={{ maxHeight: 360, flex: "1 1 60%" }}>
+            <table className="dgrid">
+              <thead>
+                <tr>
+                  <th>Tên</th>
+                  <th>Mô tả</th>
+                  <th style={{ width: 64 }}>Min</th>
+                  <th style={{ width: 64 }}>Max</th>
+                  <th style={{ width: 76 }}>Số món</th>
+                </tr>
+              </thead>
+              <tbody>
+                {availableChoiceCats.map(cc => (
+                  <tr
+                    key={cc.id}
+                    className={cc.id === ccPreviewId ? "selected" : undefined}
+                    onClick={() => void previewChoiceCategory(cc.id)}
+                    onDoubleClick={() => addChoiceCategory(cc)}
+                  >
                     <td>{cc.name}</td>
+                    <td className="mute">{cc.note || "—"}</td>
                     <td className="num">{cc.minChoice}</td>
                     <td className="num">{cc.maxChoice ?? "∞"}</td>
+                    <td className="num">{cc.modifierCount}</td>
                   </tr>
                 ))}
-            </tbody>
-          </table>
+                {availableChoiceCats.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", color: "var(--fg-muted)" }}>
+                      {choiceList.length === 0
+                        ? "Chưa có loại lựa chọn nào đang hoạt động."
+                        : "Đã đính kèm hết loại lựa chọn khả dụng."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Detail — the modifiers inside the highlighted group. */}
+          <div
+            style={{
+              flex: "1 1 40%",
+              minWidth: 260,
+              maxHeight: 360,
+              overflow: "auto",
+              border: "1px solid var(--border)",
+              background: "var(--panel-bg)",
+              padding: 10,
+            }}
+          >
+            {ccPreviewId === null && (
+              <div style={{ color: "var(--fg-muted)", fontSize: 12 }}>
+                Chọn một loại lựa chọn để xem các món bên trong.
+              </div>
+            )}
+            {ccPreviewLoading && (
+              <div style={{ color: "var(--fg-muted)", fontSize: 12 }}>Đang tải…</div>
+            )}
+            {ccPreviewError && (
+              <div style={{ color: "var(--danger, #dc2626)", fontSize: 12 }}>{ccPreviewError}</div>
+            )}
+            {ccPreview && !ccPreviewLoading && (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                  {ccPreview.name}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--fg-muted)", marginBottom: 8 }}>
+                  Chọn {ccPreview.minChoice}–{ccPreview.maxChoice ?? "∞"} món
+                  {ccPreview.note ? ` · ${ccPreview.note}` : ""}
+                </div>
+                {ccPreview.modifiers.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+                    Loại lựa chọn này chưa có món nào — đính kèm vào set sẽ không hiện gì cho
+                    khách chọn.
+                  </div>
+                ) : (
+                  <table className="dgrid">
+                    <thead>
+                      <tr>
+                        <th>Món</th>
+                        <th style={{ width: 92 }}>Giá thêm</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ccPreview.modifiers.map(m => (
+                        <tr key={m.itemId} style={{ cursor: "default" }}>
+                          <td className={m.isActive ? undefined : "mute"}>
+                            {m.itemName}
+                            {!m.isActive && " (ngừng)"}
+                          </td>
+                          <td className="num">
+                            {m.extraPrice > 0 ? m.extraPrice.toLocaleString("vi-VN") : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+          </div>
         </div>
-        <div style={{ padding: "0 12px 12px", fontSize: 11, color: "var(--fg-muted)" }}>
-          Double-click để đính kèm.
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 12px 12px",
+            fontSize: 11,
+            color: "var(--fg-muted)",
+          }}
+        >
+          <span>Chọn để xem chi tiết · double-click để đính kèm.</span>
+          <div style={{ flex: 1 }} />
+          <TB
+            icon={ChromeIcons.Plus}
+            kind="primary"
+            disabled={ccPreviewId === null}
+            onClick={() => {
+              const cc = availableChoiceCats.find(c => c.id === ccPreviewId);
+              if (cc) addChoiceCategory(cc);
+            }}
+          >
+            Đính kèm
+          </TB>
         </div>
       </DialogComponent>
     </>
