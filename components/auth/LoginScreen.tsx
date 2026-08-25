@@ -8,9 +8,25 @@ interface Props {
   onDone: (user: SessionUser) => void;
 }
 
+/**
+ * Opt-in dev convenience: when the backend is unreachable, enter the UI with a stub
+ * session so the windows can be worked on offline against mock data.
+ *
+ * Two independent guards, both resolved at module level:
+ *  - `NODE_ENV` is inlined as the literal "production" by a production build, so the whole
+ *    constant folds to `false` there and the branch below is dropped from the bundle. A
+ *    deployed build cannot be talked into this path by cutting the network, and setting the
+ *    env var on the deploy by mistake does not re-enable it.
+ *  - In dev it still stays off unless `NEXT_PUBLIC_ALLOW_OFFLINE_LOGIN=true` is set in
+ *    `.env.local`.
+ */
+const ALLOW_OFFLINE_LOGIN =
+  process.env.NODE_ENV !== "production" &&
+  process.env.NEXT_PUBLIC_ALLOW_OFFLINE_LOGIN === "true";
+
 export function LoginScreen({ onDone }: Props) {
-  const [username, setUsername] = useState("owner");
-  const [password, setPassword] = useState("ChangeMe@2026");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,9 +48,14 @@ export function LoginScreen({ onDone }: Props) {
       return;
     }
 
-    // Dev fallback: backend not running → enter UI with stub session.
-    if (res.statusCode === 0) {
-      onDone({ staffAccountId: 0, username, fullName: username, roleCode: "OWNER" });
+    // statusCode 0 = the request never reached the server (network down, CORS, abort).
+    if (ALLOW_OFFLINE_LOGIN && res.statusCode === 0) {
+      onDone({
+        staffAccountId: 0,
+        username,
+        fullName: `${username} (OFFLINE)`,
+        roleCode: "OWNER",
+      });
       return;
     }
 
