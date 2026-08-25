@@ -4,6 +4,19 @@ Branch: `main`
 
 ---
 
+## Khu VIP toggle (ưu tiên nấu ATC) — 2026-08-15
+
+BE thêm cột `Area.IsVip` — món ở khu VIP được cộng trọng số trong gợi ý nấu ATC (α ở config
+`kitchen.atc.vip_area_weight_bonus`). Trước đó khu VIP nhận diện bằng danh sách tên (config), nay
+bằng cờ trên từng khu → bền khi đổi tên, bật/tắt ngay ở màn Khu.
+
+- `types/api/restaurant.ts` + `lib/api/restaurant.ts` — `Area` và `AreaUpsert` thêm `isVip`.
+- `WinArea` — thêm ô tick "Khu VIP (ưu tiên nấu)" trong form + cột `VIP` trên lưới; create/update gửi `isVip`.
+- `data/mock.ts` — mockAreas thêm `isVip` (Khu VIP + Phòng riêng = true).
+- `ConfigField.tsx` — bỏ nhãn config `kitchen.atc.vip_area_names` (đã xoá bên BE); giữ nhãn α.
+
+---
+
 ## Validate SĐT/email khi tạo/sửa tài khoản nhân viên — 2026-08-15
 
 BE mới thêm validate định dạng SĐT/email cho `CreateStaffAccount`/`UpdateStaffAccount` (FluentValidation → RFC 7807). `formatApiError` (`lib/http/formatError.ts`) đã splice `extensions.errors[].description` nên `WinStaffAccount` **đã** hiện đúng lỗi BE qua `setSaveError(formatApiError(res))` — không phải sửa phần hiển thị.

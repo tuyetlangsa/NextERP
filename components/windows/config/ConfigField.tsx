@@ -33,6 +33,7 @@ export function configLabel(code: string): string {
     "kitchen.atc.estimator.refresh_minutes": "TTL cache (phút)",
     "kitchen.atc.near_due_minutes": "NEAR_DUE ngưỡng (phút)",
     "kitchen.atc.quick_minutes": "QUICK ngưỡng (phút)",
+    "kitchen.atc.vip_area_weight_bonus": "VIP bonus trọng số α",
     "customer_display.idle_media_url": "URL media idle",
     "payment.qr_ttl_seconds": "QR TTL (giây)",
     "customer_display.paid_splash_seconds": "Splash thanh toán (giây)",

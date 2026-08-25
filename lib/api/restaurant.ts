@@ -31,6 +31,7 @@ export interface AreaUpsert {
   description?: string | null;
   displayOrder: number;
   isActive: boolean;
+  isVip: boolean;
 }
 
 export interface TableUpsert {
