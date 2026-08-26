@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   AiPromptRequestController,
+  settleSettingsReload,
   rebasePromptDrafts,
   scopeKey,
 } from "./analysisPromptWindowController";
@@ -45,6 +46,10 @@ const controller = new AiPromptRequestController({
 
 function success<T>(data: T) {
   return { isSuccess: true as const, data };
+}
+
+function failure<T>() {
+  return { isSuccess: false as const, data: null as T | null };
 }
 
 async function run() {
@@ -93,6 +98,36 @@ assert.equal(await oldScopeHistory, null, "history from an invalidated scope mus
     "REPORT:TOP_ORDER_STAFF_BY_ITEM",
   );
   assert.equal(committed["REPORT:TOP_ORDER_STAFF_BY_ITEM"], "report-committed");
+
+  const mutationRequests: Deferred<ReturnType<typeof success<AiPromptSettings>> | ReturnType<typeof failure<AiPromptSettings>>>[] = [];
+  const mutationController = new AiPromptRequestController({
+    getSettings: () => {
+      const request = deferred<ReturnType<typeof success<AiPromptSettings>> | ReturnType<typeof failure<AiPromptSettings>>>();
+      mutationRequests.push(request);
+      return request.promise;
+    },
+    history: () => Promise.resolve(success([])),
+  });
+  const mutationSucceeded = "saved-on-server";
+  const afterMutation = { drafts: { GLOBAL: mutationSucceeded }, dirtyScopes: new Set(["GLOBAL"]), pendingCommittedScope: "GLOBAL" };
+  const failedReload = mutationController.loadSettings();
+  mutationRequests[0].resolve(failure());
+  const afterFailure = settleSettingsReload(afterMutation, await failedReload);
+  assert.equal(afterFailure.outcome, "failed");
+  assert.equal(afterFailure.errorChannel, "settings", "a settings reload failure must remain in the settings error channel");
+  assert.equal(afterFailure.pendingCommittedScope, "GLOBAL", "a failed reload must retain the committed scope for retry");
+  assert.equal(afterFailure.drafts.GLOBAL, mutationSucceeded);
+
+  const retryReload = mutationController.loadSettings();
+  const serverAfterMutation = settings(mutationSucceeded);
+  serverAfterMutation.global = version(7, mutationSucceeded);
+  mutationRequests[1].resolve(success(serverAfterMutation));
+  const afterRetry = settleSettingsReload(afterFailure, await retryReload);
+  assert.equal(afterRetry.outcome, "applied");
+  assert.equal(afterRetry.pendingCommittedScope, null);
+  assert.equal(afterRetry.dirtyScopes.has("GLOBAL"), false);
+  assert.equal(afterRetry.drafts.GLOBAL, mutationSucceeded);
+  assert.equal(afterRetry.settings?.global?.versionNumber, 7, "retry must reconcile the active server version");
 }
 
 void run();

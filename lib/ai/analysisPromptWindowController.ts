@@ -9,10 +9,24 @@ import type {
 export type PromptScope = Pick<SaveAiPromptRequest, "scope" | "reportType">;
 export type PromptDrafts = Record<string, string>;
 
-type PromptResult<T> = {
+export type PromptResult<T> = {
   isSuccess: boolean;
   data: T | null;
 };
+
+export type SettingsReloadOutcome = "applied" | "failed" | "stale";
+
+export interface PromptSettingsState {
+  drafts: PromptDrafts;
+  dirtyScopes: ReadonlySet<string>;
+  pendingCommittedScope: string | null;
+  settings?: AiPromptSettings;
+}
+
+export interface SettledSettingsReload extends PromptSettingsState {
+  outcome: SettingsReloadOutcome;
+  errorChannel?: "settings";
+}
 
 export interface AiPromptRequestClient {
   getSettings(options?: HttpOptions): Promise<PromptResult<AiPromptSettings>>;
@@ -39,6 +53,28 @@ export function rebasePromptDrafts(
     if (!dirtyScopes.has(key) || key === committedScope) next[key] = content;
   }
   return next;
+}
+
+/**
+ * Applies a completed settings request to local drafts. A successful save/restore
+ * remains pending until a settings response confirms its active server version.
+ */
+export function settleSettingsReload(
+  state: PromptSettingsState,
+  result: PromptResult<AiPromptSettings> | null,
+): SettledSettingsReload {
+  if (!result) return { ...state, outcome: "stale" };
+  if (!result.isSuccess || !result.data) return { ...state, outcome: "failed", errorChannel: "settings" };
+
+  const dirtyScopes = new Set(state.dirtyScopes);
+  if (state.pendingCommittedScope) dirtyScopes.delete(state.pendingCommittedScope);
+  return {
+    outcome: "applied",
+    settings: result.data,
+    drafts: rebasePromptDrafts(state.drafts, dirtyScopes, result.data, state.pendingCommittedScope ?? undefined),
+    dirtyScopes,
+    pendingCommittedScope: null,
+  };
 }
 
 /**

@@ -7,8 +7,8 @@ import { TB, WinToolbar } from "@/components/ui/WinToolbar";
 import { aiAnalysisPromptsApi } from "@/lib/api/aiAnalysisPrompts";
 import {
   AiPromptRequestController,
-  rebasePromptDrafts,
   scopeKey,
+  settleSettingsReload,
   type PromptDrafts,
   type PromptScope,
 } from "@/lib/ai/analysisPromptWindowController";
@@ -34,6 +34,8 @@ export function WinAiAnalysisPrompt() {
   const controller = controllerRef.current;
   const mountedRef = useRef(true);
   const dirtyScopesRef = useRef<Set<string>>(new Set());
+  const draftsRef = useRef<PromptDrafts>({});
+  const pendingCommittedScopeRef = useRef<string | null>(null);
 
   const [tab, setTab] = useState<Tab>("GLOBAL");
   const [settings, setSettings] = useState<AiPromptSettings | null>(null);
@@ -44,7 +46,9 @@ export function WinAiAnalysisPrompt() {
   const [saving, setSaving] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [history, setHistory] = useState<HistoryState | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const selectedReport = useMemo(
     () => settings?.reportTypes.find(report => report.code === selectedReportType) ?? null,
@@ -59,22 +63,29 @@ export function WinAiAnalysisPrompt() {
   const interactionLocked = settingsLoading || saving;
 
   const reloadSettings = useCallback(async (committedScope?: string) => {
+    if (committedScope) pendingCommittedScopeRef.current = committedScope;
     setSettingsLoading(true);
     const result = await controller.loadSettings();
-    if (!result || !mountedRef.current) return;
+    if (!result || !mountedRef.current) return "stale" as const;
 
-    if (result.isSuccess && result.data) {
-      const nextDirty = new Set(dirtyScopesRef.current);
-      if (committedScope) nextDirty.delete(committedScope);
-      dirtyScopesRef.current = nextDirty;
-      setSettings(result.data);
-      setDrafts(current => rebasePromptDrafts(current, nextDirty, result.data!, committedScope));
+    const settled = settleSettingsReload({
+      drafts: draftsRef.current,
+      dirtyScopes: dirtyScopesRef.current,
+      pendingCommittedScope: pendingCommittedScopeRef.current,
+    }, result);
+    if (settled.outcome === "applied" && settled.settings) {
+      draftsRef.current = settled.drafts;
+      dirtyScopesRef.current = new Set(settled.dirtyScopes);
+      pendingCommittedScopeRef.current = settled.pendingCommittedScope;
+      setSettings(settled.settings);
+      setDrafts(settled.drafts);
       setInitialized(true);
-      setErrorMsg(null);
-    } else {
-      setErrorMsg(formatApiError(result as unknown as Parameters<typeof formatApiError>[0]));
+      setSettingsError(null);
+    } else if (settled.outcome === "failed" && settled.errorChannel === "settings") {
+      setSettingsError(formatApiError(result as unknown as Parameters<typeof formatApiError>[0]));
     }
     setSettingsLoading(false);
+    return settled.outcome;
   }, [controller]);
 
   useEffect(() => {
@@ -96,21 +107,21 @@ export function WinAiAnalysisPrompt() {
 
   function currentScopeOrError(): PromptScope | null {
     if (currentScope) return currentScope;
-    setErrorMsg("Chưa có loại báo cáo để thao tác.");
+    setActionError("Chưa có loại báo cáo để thao tác.");
     return null;
   }
 
   async function loadHistory(scope = currentScopeOrError()) {
     if (!scope || !initialized) return;
     setHistoryLoading(true);
+    setHistoryError(null);
     const result = await controller.loadHistory(scope);
     if (!result || !mountedRef.current) return;
 
     if (result.isSuccess && result.data) {
       setHistory({ scopeKey: result.scopeKey, items: result.data });
-      setErrorMsg(null);
     } else {
-      setErrorMsg(formatApiError(result as unknown as Parameters<typeof formatApiError>[0]));
+      setHistoryError(formatApiError(result as unknown as Parameters<typeof formatApiError>[0]));
     }
     setHistoryLoading(false);
   }
@@ -125,20 +136,24 @@ export function WinAiAnalysisPrompt() {
     if (interactionLocked) return;
     invalidateHistory();
     setTab(next);
-    setErrorMsg(null);
+    setHistoryError(null);
+    setActionError(null);
   }
 
   function changeReportType(next: AiReportType | "") {
     if (interactionLocked) return;
     invalidateHistory();
     setSelectedReportType(next);
-    setErrorMsg(null);
+    setHistoryError(null);
+    setActionError(null);
   }
 
   function changeDraft(content: string) {
     if (!currentScopeKey || interactionLocked) return;
     dirtyScopesRef.current = new Set(dirtyScopesRef.current).add(currentScopeKey);
-    setDrafts(current => ({ ...current, [currentScopeKey]: content }));
+    const next = { ...draftsRef.current, [currentScopeKey]: content };
+    draftsRef.current = next;
+    setDrafts(next);
   }
 
   async function save() {
@@ -152,7 +167,7 @@ export function WinAiAnalysisPrompt() {
     setHistoryLoading(false);
     setHistory(null);
     setSaving(true);
-    setErrorMsg(null);
+    setActionError(null);
     const result = await aiAnalysisPromptsApi.save({ ...scope, content });
     if (!mountedRef.current) return;
 
@@ -160,7 +175,7 @@ export function WinAiAnalysisPrompt() {
       await reloadSettings(scopeId);
       if (reloadHistoryAfterSave) await loadHistory(scope);
     } else {
-      setErrorMsg(formatApiError(result));
+      setActionError(formatApiError(result));
     }
     if (mountedRef.current) setSaving(false);
   }
@@ -175,7 +190,7 @@ export function WinAiAnalysisPrompt() {
     setHistoryLoading(false);
     setHistory(null);
     setSaving(true);
-    setErrorMsg(null);
+    setActionError(null);
     const result = await aiAnalysisPromptsApi.restore(version.id);
     if (!mountedRef.current) return;
 
@@ -183,7 +198,7 @@ export function WinAiAnalysisPrompt() {
       await reloadSettings(scopeId);
       await loadHistory(scope);
     } else {
-      setErrorMsg(formatApiError(result));
+      setActionError(formatApiError(result));
     }
     if (mountedRef.current) setSaving(false);
   }
@@ -208,9 +223,9 @@ export function WinAiAnalysisPrompt() {
       <div className="win-body" style={{ minHeight: 0 }}>
         <main className="data-list" style={{ padding: 16, overflowY: "auto" }}>
           {!initialized ? (
-            <div role="alert" aria-live="assertive" style={{ color: errorMsg ? "var(--danger)" : "var(--fg-muted)", fontSize: 13 }}>
-              {errorMsg ?? "Đang tải cấu hình prompt..."}
-              {errorMsg && <button className="tb-btn" style={{ marginLeft: 10 }} onClick={() => void reloadSettings()}>Thử lại</button>}
+            <div role="alert" aria-live="assertive" style={{ color: settingsError ? "var(--danger)" : "var(--fg-muted)", fontSize: 13 }}>
+              {settingsError ?? "Đang tải cấu hình prompt..."}
+              {settingsError && <button className="tb-btn" style={{ marginLeft: 10 }} onClick={() => void reloadSettings()}>Thử lại</button>}
             </div>
           ) : (
             <>
@@ -247,7 +262,9 @@ export function WinAiAnalysisPrompt() {
           )}
 
           {initialized && settingsLoading && <div style={{ color: "var(--fg-muted)", fontSize: 12, marginTop: 12 }}>Đang làm mới cấu hình...</div>}
-          {initialized && errorMsg && <div role="alert" aria-live="assertive" style={{ color: "var(--danger)", fontSize: 12, marginTop: 12, whiteSpace: "pre-wrap" }}>{errorMsg}</div>}
+          {initialized && settingsError && <ErrorMessage>{settingsError}</ErrorMessage>}
+          {initialized && historyError && <ErrorMessage>{historyError}</ErrorMessage>}
+          {initialized && actionError && <ErrorMessage>{actionError}</ErrorMessage>}
         </main>
 
         {history && history.scopeKey === currentScopeKey && (
@@ -273,6 +290,10 @@ export function WinAiAnalysisPrompt() {
 
 const fieldLabelStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6, marginBottom: 12, fontSize: 12, fontWeight: 500 };
 const fieldStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--window-bg)", color: "var(--fg)" };
+
+function ErrorMessage({ children }: { children: React.ReactNode }) {
+  return <div role="alert" aria-live="assertive" style={{ color: "var(--danger)", fontSize: 12, marginTop: 12, whiteSpace: "pre-wrap" }}>{children}</div>;
+}
 
 function tabButtonStyle(active: boolean): React.CSSProperties {
   return { border: "none", borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent", background: "transparent", padding: "8px 12px", color: active ? "var(--accent)" : "var(--fg-muted)", fontWeight: active ? 600 : 400, cursor: "pointer" };
