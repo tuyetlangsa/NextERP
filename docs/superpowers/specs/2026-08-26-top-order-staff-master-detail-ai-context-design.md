@@ -311,6 +311,9 @@ Không có form mục tiêu, checkbox trọng tâm, risk tolerance hoặc prompt
 được hiểu là xóa tùy chỉnh đang active cho scope đó. UI hiển thị người sửa, thời gian và số version
 active gần nhất nhưng không hiển thị system prompt cốt lõi đã ghép.
 
+Khi chưa từng lưu version, hai textarea mặc định rỗng. Seeder không copy system prompt cốt lõi vào
+prompt chung hoặc prompt theo báo cáo; custom prompt chỉ tồn tại sau khi Owner/Admin chủ động lưu.
+
 ### 8.3. Report type allowlist
 
 Backend là source of truth cho mã và nhãn report. Allowlist ban đầu bao phủ các tab đang có nút phân
