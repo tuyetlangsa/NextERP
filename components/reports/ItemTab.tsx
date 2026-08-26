@@ -43,7 +43,7 @@ export function ItemTab({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end px-1 pb-2">
-        <AnalyzeButton reportName="Món hàng" data={data} />
+        <AnalyzeButton reportType="ITEM" reportName="Món hàng" data={data} filters={filters} />
       </div>
 
       {data.length === 0 ? (

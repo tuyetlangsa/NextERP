@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:top-order-staff": "tsx components/reports/topOrderStaffInsights.test.ts"
+    "test:top-order-staff": "tsx components/reports/topOrderStaffInsights.test.ts",
+    "test:ai-report-context": "tsx lib/ai/analyzeBus.test.ts"
   },
   "dependencies": {
     "@syncfusion/ej2-base": "^33.2.3",

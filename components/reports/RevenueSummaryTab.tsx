@@ -146,7 +146,7 @@ export function RevenueSummaryTab({
   return (
     <div className="p-4">
       <div className="flex justify-end pb-2">
-        <AnalyzeButton reportName="Báo cáo doanh thu tổng thể" data={data} />
+        <AnalyzeButton reportType="REVENUE_SUMMARY" reportName="Báo cáo doanh thu tổng thể" data={data} filters={filters} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse border border-gray-300">

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { aiApi } from "@/lib/api/ai";
-import type { ChatVisualization, ConversationSummary } from "@/types/api/ai";
+import type { ChatVisualization, ConversationSummary, SendChatRequest } from "@/types/api/ai";
 
 export interface ChatTurn {
   role: "user" | "ai";
@@ -18,18 +18,17 @@ export function useAiChat() {
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
-  // Core delivery. `convId` is passed explicitly (not read from state) so a fresh-conversation
+  // Core delivery. `request.conversationId` is supplied by the caller so a fresh-conversation
   // send isn't defeated by the async state update of conversationId. `reset` starts a clean thread.
-  // `displayText` is what the user bubble shows; `message` is what's actually sent to the model
-  // (they differ for "Phân tích": the model gets the raw JSON, the bubble shows a clean label).
+  // `displayText` remains separate from the request payload for report-analysis bubbles.
   const deliver = useCallback(
-    async (message: string, convId: number | undefined, reset: boolean, displayText?: string) => {
-      const text = message.trim();
+    async (request: SendChatRequest, reset: boolean, displayText?: string) => {
+      const text = request.message.trim();
       if (!text || busy) return;
       const bubble = displayText ?? text;
       setBusy(true);
       setTurns((t) => (reset ? [{ role: "user", text: bubble }] : [...t, { role: "user", text: bubble }]));
-      const res = await aiApi.chat(text, convId);
+      const res = await aiApi.chat({ ...request, message: text });
       setBusy(false);
       if (res.isSuccess && res.data) {
         const data = res.data;
@@ -46,14 +45,13 @@ export function useAiChat() {
     const message = input.trim();
     if (!message) return;
     setInput("");
-    await deliver(message, conversationId, false);
+    await deliver({ message, conversationId }, false);
   }, [input, conversationId, deliver]);
 
-  // Send a pre-composed message as a BRAND-NEW conversation (used by "Phân tích bằng AI").
-  // Pass `displayText` to show a clean label in the bubble instead of the raw JSON payload.
-  const sendFresh = useCallback(async (text: string, displayText?: string) => {
+  // Send a structured report request as a BRAND-NEW conversation.
+  const sendFresh = useCallback(async (request: SendChatRequest, displayText?: string) => {
     setConversationId(undefined);
-    await deliver(text, undefined, true, displayText);
+    await deliver({ ...request, conversationId: undefined }, true, displayText);
   }, [deliver]);
 
   const refreshSessions = useCallback(async () => {

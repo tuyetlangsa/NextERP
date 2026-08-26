@@ -54,7 +54,7 @@ export function RevenueTab({
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-end">
-        <AnalyzeButton reportName="Doanh thu" data={data} />
+        <AnalyzeButton reportType="REVENUE" reportName="Doanh thu" data={data} filters={filters} />
       </div>
 
       {/* Revenue trend — one line, one point per day; X axis uses the real dates (dd/MM)

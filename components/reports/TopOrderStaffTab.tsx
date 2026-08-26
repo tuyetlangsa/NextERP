@@ -58,7 +58,13 @@ export function TopOrderStaffTab({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end px-1 pb-2">
-        <AnalyzeButton reportName="Top nhân viên theo món" data={data} />
+        <AnalyzeButton
+          reportType="TOP_ORDER_STAFF_BY_ITEM"
+          reportName="Top nhân viên theo món"
+          data={data}
+          filters={filters}
+          selectedItemId={selected?.item.itemId}
+        />
       </div>
 
       <p className="px-1 pb-3 text-sm text-gray-600">

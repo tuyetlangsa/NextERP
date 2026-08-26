@@ -74,7 +74,7 @@ export function ShiftTab({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end px-1 pb-2">
-        <AnalyzeButton reportName="Ca làm việc" data={data} />
+        <AnalyzeButton reportType="SHIFT" reportName="Ca làm việc" data={data} filters={filters} />
       </div>
 
       {data.length === 0 ? (
