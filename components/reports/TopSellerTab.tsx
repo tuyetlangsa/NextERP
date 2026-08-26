@@ -95,13 +95,7 @@ export function TopSellerTab({
   return (
     <div>
       <div className="flex justify-end mb-2">
-        <AnalyzeButton
-          reportType="TOP_SELLERS"
-          reportName="Top bán chạy"
-          data={data}
-          hasData={data.length > 0}
-          filters={{ ...filters, topN, by }}
-        />
+        <AnalyzeButton reportName="Top bán chạy" data={data} />
       </div>
 
       {controls}

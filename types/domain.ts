@@ -33,8 +33,6 @@ export interface Subsystem {
   showOnDesktop?: boolean;
   /** Component key registered in `DesktopShell.WIN_REGISTRY`; `null` when not yet implemented. */
   win: string | null;
-  /** Role-code allowlist for desktop navigation; API authorization remains server-side. */
-  requiredRoleCodes?: readonly string[];
 }
 
 /** Windows always fill the desktop — there is no position, size or restore state. */

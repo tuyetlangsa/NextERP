@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
-import { augmentAccessiblePages, canLaunchSubsystem, canSeeSubsystem } from "@/data/pageAccess";
+import { augmentAccessiblePages, canSeeSubsystem } from "@/data/pageAccess";
 import { accessApi } from "@/lib/api/access";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
@@ -34,7 +34,6 @@ import { WinConfig } from "@/components/windows/WinConfig";
 import { WinAiAssistant } from "@/components/windows/WinAiAssistant";
 import { WinAiKnowledge } from "@/components/windows/WinAiKnowledge";
 import { WinAiMonitor } from "@/components/windows/WinAiMonitor";
-import { WinAiAnalysisPrompt } from "@/components/windows/WinAiAnalysisPrompt";
 import { AiAssistantDock } from "@/components/ai/AiAssistantDock";
 
 const WIN_REGISTRY: Record<string, React.ComponentType> = {
@@ -63,7 +62,6 @@ const WIN_REGISTRY: Record<string, React.ComponentType> = {
   WinAiAssistant,
   WinAiKnowledge,
   WinAiMonitor,
-  WinAiAnalysisPrompt,
 };
 
 const fmtClock = (d: Date) =>
@@ -106,7 +104,7 @@ export function DesktopShell({ user, onLogout }: Props) {
   }, [user.roleCode]);
 
   const launch = (def: Subsystem) => {
-    if (!canLaunchSubsystem(def, accessiblePages ?? new Set<string>(), user.roleCode)) return;
+    if (!def.win) return;
     const existing = windows.find(w => w.id === def.id);
     if (existing) {
       setWindows(ws => ws.map(w => (w.id === def.id ? { ...w, minimized: false } : w)));
@@ -141,7 +139,7 @@ export function DesktopShell({ user, onLogout }: Props) {
     const onOpenSubsystem = (e: Event) => {
       const detail = (e as CustomEvent<{ subsystemId: string }>).detail;
       const def = subsystems.find(s => s.id === detail?.subsystemId);
-      if (def) launchRef.current(def);
+      if (def?.win) launchRef.current(def);
     };
     window.addEventListener("nextErp:openSubsystem", onOpenSubsystem);
     return () => window.removeEventListener("nextErp:openSubsystem", onOpenSubsystem);
@@ -151,7 +149,7 @@ export function DesktopShell({ user, onLogout }: Props) {
   // (win === null) always show. Empty set before load → real windows hidden.
   const pageSet = accessiblePages ?? new Set<string>();
   const desktopIcons = subsystems.filter(
-    s => s.showOnDesktop && canSeeSubsystem(s, pageSet, user.roleCode),
+    s => s.showOnDesktop && canSeeSubsystem(s, pageSet),
   );
 
   return (
@@ -208,7 +206,7 @@ export function DesktopShell({ user, onLogout }: Props) {
         );
       })}
 
-      <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} accessiblePages={pageSet} roleCode={user.roleCode} />
+      <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} accessiblePages={pageSet} />
 
       <Taskbar
         windows={windows}
