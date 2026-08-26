@@ -25,6 +25,14 @@ export interface TopOrderStaffInsight {
   message: string;
 }
 
+export interface TopOrderStaffBarRow {
+  staffAccountId: number;
+  staffName: string;
+  quantity: number;
+  percentage: number;
+  widthPercent: number;
+}
+
 const STATUS_MESSAGE: Record<TopOrderStaffStatus, string> = {
   REFUND_REVIEW: "Cần kiểm tra hoàn món",
   NO_POSITIVE_QUANTITY: "Không có sản lượng dương",
@@ -65,6 +73,20 @@ export function buildTopOrderStaffInsight(item: TopOrderStaffByItemRow): TopOrde
     hasBackup: (positiveStaff[1]?.percentageOfItemQuantity ?? 0) >= BACKUP_PERCENT,
     message: STATUS_MESSAGE[status],
   };
+}
+
+export function buildTopOrderStaffBarRows(insight: TopOrderStaffInsight): TopOrderStaffBarRow[] {
+  const staff = insight.positiveStaff.slice(0, 3);
+  const maxPositiveQuantity = Math.max(...staff.map((person) => person.quantity));
+  if (!maxPositiveQuantity) return [];
+
+  return staff.map((person) => ({
+    staffAccountId: person.staffAccountId,
+    staffName: person.staffName,
+    quantity: person.quantity,
+    percentage: person.percentageOfItemQuantity,
+    widthPercent: Math.round((person.quantity / maxPositiveQuantity) * 10000) / 100,
+  }));
 }
 
 export function itemInsightKey(insight: TopOrderStaffInsight): string {

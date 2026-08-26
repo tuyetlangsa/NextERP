@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { TopOrderStaffDetail } from "./TopOrderStaffDetail";
 import { TopOrderStaffItemList } from "./TopOrderStaffItemList";
 import {
   buildTopOrderStaffInsight,
+  buildTopOrderStaffBarRows,
   itemInsightKey,
   nextSelectedInsightKey,
   selectTopOrderStaffInsights,
@@ -78,6 +80,25 @@ assert.equal(nextSelectedInsightKey(visible, null), itemInsightKey(visible[0]));
 assert.equal(nextSelectedInsightKey(visible, itemInsightKey(visible[1])), itemInsightKey(visible[1]));
 assert.equal(nextSelectedInsightKey(visible.slice(0, 1), itemInsightKey(visible[1])), itemInsightKey(visible[0]));
 assert.equal(nextSelectedInsightKey([], itemInsightKey(visible[0])), null);
+
+const bars = buildTopOrderStaffBarRows(buildTopOrderStaffInsight(row(1, "CHA", 4, [
+  [10, "An", 3, 75],
+  [11, "Bình", 1, 25],
+  [12, "Chi", 0, 0],
+])));
+assert.deepEqual(bars.map((x) => [x.staffName, x.quantity, x.percentage, x.widthPercent]), [
+  ["An", 3, 75, 100],
+  ["Bình", 1, 25, 33.33],
+]);
+
+const unsortedBars = buildTopOrderStaffBarRows(buildTopOrderStaffInsight(row(1, "CHA", 4, [
+  [10, "An", 1, 25],
+  [11, "Bình", 3, 75],
+])));
+assert.deepEqual(unsortedBars.map((x) => x.widthPercent), [33.33, 100]);
+
+const detailMarkup = renderToStaticMarkup(createElement(TopOrderStaffDetail, { insight: visible[0] }));
+assert.match(detailMarkup, /aria-label="Biểu đồ[^\"]*An[^\"]*6\.00[^\"]*100\.0%/);
 
 const itemListMarkup = renderToStaticMarkup(
   createElement(TopOrderStaffItemList, {
