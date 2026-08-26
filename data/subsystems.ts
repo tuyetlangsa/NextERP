@@ -28,7 +28,6 @@ export const subsystems: Subsystem[] = [
   { id: "cancellation-reason", label: "Lý do huỷ/trả", description: "Lý do huỷ món / trả món", group: "system", showOnDesktop: true, win: "WinCancellationReason" },
   { id: "schedule",  label: "Lịch làm việc", description: "Xếp ca tuần, template, duyệt đổi ca", group: "system", showOnDesktop: true, win: "WinSchedule" },
   { id: "config",    label: "Cấu hình nhà hàng", description: "Cấu hình hệ thống, làm tròn, hóa đơn, email", group: "system", showOnDesktop: true, win: "WinConfig" },
-  { id: "ai-analysis-prompts", label: "Bối cảnh phân tích AI", description: "Prompt bổ sung chung và theo báo cáo", group: "system", showOnDesktop: true, win: "WinAiAnalysisPrompt", requiredRoleCodes: ["OWNER", "ADMIN_VENDOR"] },
   // Reports
   { id: "reports", label: "Báo cáo",              description: "Báo cáo doanh thu, món hàng, ca, tồn kho", group: "reports", showOnDesktop: true, win: "WinReports" },
   { id: "ai",      label: "Trợ lý AI",           description: "Chat phân tích doanh thu, tồn kho, quỹ — toàn màn hình", group: "reports", showOnDesktop: true, win: "WinAiAssistant" },

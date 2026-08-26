@@ -1,29 +1,3 @@
-export type AiReportType =
-  | "REVENUE_SUMMARY"
-  | "REVENUE"
-  | "TICKET_LIST"
-  | "ITEM_SALES"
-  | "CATEGORY"
-  | "ITEM"
-  | "TOP_ORDER_STAFF_BY_ITEM"
-  | "TOP_SELLERS"
-  | "SHIFT"
-  | "INGREDIENT"
-  | "STOCK_ALERT";
-
-export interface ReportAnalysisContext {
-  reportType: AiReportType;
-  filters: Record<string, unknown>;
-  selectedItemId?: number;
-  data: unknown;
-}
-
-export interface SendChatRequest {
-  message: string;
-  conversationId?: number;
-  reportContext?: ReportAnalysisContext;
-}
-
 export interface ChatVisualization {
   kind: "chart" | "table" | "kpi";
   title: string;
@@ -79,33 +53,4 @@ export interface KnowledgeUpsert {
   title: string;
   content: string;
   isActive: boolean;
-}
-
-export interface AiPromptVersion {
-  id: number;
-  content: string;
-  versionNumber: number;
-  restoredFromId: number | null;
-  createdByFullName: string;
-  createdAt: string;
-}
-
-export interface AiPromptHistoryPage {
-  items: AiPromptVersion[];
-  nextBeforeVersionNumber: number | null;
-}
-
-export interface AiPromptSettings {
-  global: AiPromptVersion | null;
-  reportTypes: Array<{
-    code: AiReportType;
-    label: string;
-    active: AiPromptVersion | null;
-  }>;
-}
-
-export interface SaveAiPromptRequest {
-  scope: "GLOBAL" | "REPORT";
-  reportType?: AiReportType;
-  content: string;
 }

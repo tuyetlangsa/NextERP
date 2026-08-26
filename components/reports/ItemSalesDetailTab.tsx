@@ -93,13 +93,7 @@ export function ItemSalesDetailTab({
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-end">
-        <AnalyzeButton
-          reportType="ITEM_SALES"
-          reportName="Bán hàng"
-          data={data}
-          hasData={!isEmpty}
-          filters={{ ...filters, ticketId, pageNumber: page, pageSize }}
-        />
+        <AnalyzeButton reportName="Bán hàng" data={data} />
       </div>
 
       <ReportSummaryCards cards={cards} />

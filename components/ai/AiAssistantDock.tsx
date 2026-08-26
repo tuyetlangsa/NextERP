@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BotMessageSquare } from "lucide-react";
 import { AiChatPanel } from "@/components/ai/AiChatPanel";
 import { useAiChat } from "@/components/ai/useAiChat";
-import { buildReportAnalysisRequest, subscribeAiAnalysis } from "@/lib/ai/analyzeBus";
+import { subscribeAiAnalysis, buildAnalysisMessage } from "@/lib/ai/analyzeBus";
 
 const SUGGESTIONS = [
   "Doanh thu 7 ngày qua thế nào?",
@@ -19,13 +19,15 @@ export function AiAssistantDock() {
   const { sendFresh } = chat;
 
   // A report tab asked to analyze its data → open the dock + send it as a new conversation.
-  // The report remains structured in the request while the bubble only shows its friendly label.
+  // The model receives the full JSON payload; the chat bubble shows a clean label (no raw JSON).
   useEffect(
     () =>
       subscribeAiAnalysis((req) => {
         setOpen(true);
-        const request = buildReportAnalysisRequest(req);
-        void sendFresh(request, `📊 ${request.message}`);
+        void sendFresh(
+          buildAnalysisMessage(req.reportName, req.data),
+          `📊 Phân tích báo cáo "${req.reportName}"`,
+        );
       }),
     [sendFresh],
   );

@@ -3,7 +3,7 @@ import {
   Users, CalendarClock, Settings, BarChart3, Sparkles, ChefHat, Ban,
   Minus, Square, X, Maximize2, Plus, Save, Trash2, RefreshCw, Download, Upload,
   Search, Settings2, Pencil, Check, CookingPot,
-  HelpCircle, ChevronDown, ChevronRight, Folder, Package, ArrowLeftRight, Repeat, ArrowLeft, Copy, History,
+  HelpCircle, ChevronDown, ChevronRight, Folder, Package, ArrowLeftRight, Repeat, ArrowLeft, Copy,
   PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
 
@@ -13,7 +13,7 @@ export type SubsystemIconKey =
   | "recipe"
   | "stock" | "stock-movement"
   | "pricing" | "discount" | "service-charge"
-  | "users"   | "shifts" | "schedule" | "config" | "cancellation-reason" | "ai-analysis-prompts"
+  | "users"   | "shifts" | "schedule" | "config" | "cancellation-reason"
   | "reports" | "ai" | "generic";
 
 export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
@@ -39,7 +39,6 @@ export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
   "cancellation-reason": Ban,
   schedule:        CalendarClock,
   config:          Settings,
-  "ai-analysis-prompts": Sparkles,
   reports:         BarChart3,
   ai:              Sparkles,
   generic:         ListOrdered,
@@ -54,7 +53,6 @@ export const subsystemIconKey: Record<string, SubsystemIconKey> = {
   pricing: "pricing", discount: "discount", "service-charge": "service-charge",
   users: "users", shifts: "shifts", "cancellation-reason": "cancellation-reason",
   schedule: "schedule", config: "config",
-  "ai-analysis-prompts": "ai-analysis-prompts",
   reports: "reports", ai: "ai",
 };
 
@@ -64,5 +62,5 @@ export const ChromeIcons = {
   Search, Fn: Settings2, Edit: Pencil, Check,
   Help: HelpCircle, ChevronDown, ChevronRight, Folder,
   CollapseLeft: PanelLeftClose, OpenLeft: PanelLeftOpen,
-  Back: ArrowLeft, Copy, History,
+  Back: ArrowLeft, Copy,
 };

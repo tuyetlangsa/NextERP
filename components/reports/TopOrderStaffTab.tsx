@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useResource } from "@/lib/http/useResource";
 import { reportsApi } from "@/lib/api/reports";
 import { AnalyzeButton } from "@/components/reports/AnalyzeButton";
+import { flattenTopOrderStaffRows } from "@/components/reports/topOrderStaffRows";
 import {
-  itemInsightKey,
-  nextSelectedInsightKey,
-  selectTopOrderStaffInsights,
-  type TopOrderStaffFilter,
-  type TopOrderStaffSort,
-} from "@/components/reports/topOrderStaffInsights";
-import { TopOrderStaffItemList } from "@/components/reports/TopOrderStaffItemList";
-import { TopOrderStaffDetail } from "@/components/reports/TopOrderStaffDetail";
+  GridComponent,
+  ColumnsDirective,
+  ColumnDirective,
+  Page,
+  Sort,
+  Inject,
+} from "@syncfusion/ej2-react-grids";
 
 export function TopOrderStaffTab({
   filters,
@@ -23,10 +23,6 @@ export function TopOrderStaffTab({
   onLoading: (value: boolean) => void;
   onError: (error: string | null) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<TopOrderStaffSort>("QUANTITY_DESC");
-  const [filter, setFilter] = useState<TopOrderStaffFilter>("ALL");
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const result = useResource(
     () => reportsApi.topOrderStaffByItem(filters as any),
     { deps: [filters] },
@@ -40,32 +36,15 @@ export function TopOrderStaffTab({
     onError(result.error);
   }, [result.error, onError]);
 
-  const insights = useMemo(
-    () => selectTopOrderStaffInsights(result.data ?? [], { query, sort, filter }),
-    [result.data, query, sort, filter],
-  );
-  const resolvedKey = nextSelectedInsightKey(insights, selectedKey);
-  const selected = insights.find((insight) => itemInsightKey(insight) === resolvedKey) ?? null;
-
-  useEffect(() => {
-    if (resolvedKey !== selectedKey) setSelectedKey(resolvedKey);
-  }, [resolvedKey, selectedKey]);
-
   if (result.data === null) return null;
 
   const data = result.data;
+  const rows = flattenTopOrderStaffRows(data);
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end px-1 pb-2">
-        <AnalyzeButton
-          reportType="TOP_ORDER_STAFF_BY_ITEM"
-          reportName="Top nhân viên theo món"
-          data={data}
-          hasData={data.length > 0}
-          filters={filters}
-          selectedItemId={selected?.item.itemId}
-        />
+        <AnalyzeButton reportName="Top nhân viên theo món" data={data} />
       </div>
 
       <p className="px-1 pb-3 text-sm text-gray-600">
@@ -75,24 +54,55 @@ export function TopOrderStaffTab({
         100% vì còn nhân viên khác hoặc có hoàn món.
       </p>
 
-      {data.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-gray-400">
           Không có dữ liệu
         </div>
       ) : (
-        <div className="grid min-h-[420px] flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(300px,2fr)_minmax(420px,3fr)]">
-          <TopOrderStaffItemList
-            items={insights}
-            selectedKey={resolvedKey}
-            query={query}
-            sort={sort}
-            filter={filter}
-            onQueryChange={setQuery}
-            onSortChange={setSort}
-            onFilterChange={setFilter}
-            onSelect={setSelectedKey}
-          />
-          <TopOrderStaffDetail insight={selected} />
+        <div className="flex-1 min-h-0">
+          <GridComponent
+            dataSource={rows}
+            allowSorting
+            allowPaging
+            pageSettings={{ pageSize: 50 }}
+            height="100%"
+          >
+            <ColumnsDirective>
+              <ColumnDirective field="id" isPrimaryKey visible={false} />
+              <ColumnDirective field="itemCode" headerText="Mã món" width="110" />
+              <ColumnDirective field="itemName" headerText="Tên món" width="200" />
+              <ColumnDirective field="uomCode" headerText="Đơn vị tính" width="100" />
+              <ColumnDirective
+                field="totalQuantity"
+                headerText="Sản lượng thuần"
+                width="130"
+                textAlign="Right"
+                format="N2"
+              />
+              <ColumnDirective
+                field="rank"
+                headerText="Hạng"
+                width="80"
+                textAlign="Right"
+              />
+              <ColumnDirective field="staffName" headerText="Nhân viên" width="180" />
+              <ColumnDirective
+                field="staffQuantity"
+                headerText="SL nhân viên"
+                width="120"
+                textAlign="Right"
+                format="N2"
+              />
+              <ColumnDirective
+                field="percentageOfItemQuantity"
+                headerText="% sản lượng món"
+                width="140"
+                textAlign="Right"
+                format="N1"
+              />
+            </ColumnsDirective>
+            <Inject services={[Page, Sort]} />
+          </GridComponent>
         </div>
       )}
     </div>
