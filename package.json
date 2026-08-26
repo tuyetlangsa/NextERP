@@ -9,7 +9,7 @@
     "test:page-access": "tsx data/pageAccess.test.ts",
     "test:ai-analysis-prompts": "tsx lib/ai/analysisPromptWindowController.test.ts",
     "test:top-order-staff": "tsx components/reports/topOrderStaffInsights.test.ts",
-    "test:ai-report-context": "tsx lib/ai/analyzeBus.test.ts && tsx lib/ai/chatRequestScheduler.test.ts"
+    "test:ai-report-context": "tsx lib/ai/analyzeBus.test.ts && tsx lib/ai/chatRequestScheduler.test.ts && tsx lib/ai/chatViewLifecycle.test.ts"
   },
   "dependencies": {
     "@syncfusion/ej2-base": "^33.2.3",

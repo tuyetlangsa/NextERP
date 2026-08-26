@@ -14,13 +14,15 @@ export function AiChatPanel({
   const [showList, setShowList] = useState(false);
 
   const startNew = () => {
+    chat.cancelSessionRefresh();
     chat.startNew();
     setShowList(false);
   };
 
   const openSession = async (id: number) => {
-    await chat.openSession(id);
+    chat.cancelSessionRefresh();
     setShowList(false);
+    await chat.openSession(id);
   };
 
   const toggleList = async () => {
@@ -28,6 +30,8 @@ export function AiChatPanel({
     setShowList(next);
     if (next) {
       await chat.refreshSessions();
+    } else {
+      chat.cancelSessionRefresh();
     }
   };
 

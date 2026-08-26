@@ -8,6 +8,7 @@ import {
   createFreshChatRequest,
   createManualChatRequest,
 } from "@/lib/ai/chatRequestScheduler";
+import { AiChatRequestController } from "@/lib/ai/chatViewLifecycle";
 import type { ChatVisualization, ConversationSummary, SendChatRequest } from "@/types/api/ai";
 
 export interface ChatTurn {
@@ -29,12 +30,15 @@ export function useAiChat() {
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const lifecycleRef = useRef(new ChatRequestLifecycle<PendingFreshRequest>());
+  const requestControllerRef = useRef(new AiChatRequestController(aiApi));
   const startFreshRef = useRef<(pending: PendingFreshRequest, scheduler: ChatRequestScheduler<PendingFreshRequest>) => void>(() => {});
 
   useEffect(() => {
-    const scheduler = lifecycleRef.current.activate();
+    lifecycleRef.current.activate();
+    requestControllerRef.current.resume();
     return () => {
-      lifecycleRef.current.dispose(scheduler);
+      lifecycleRef.current.disposeCurrent();
+      requestControllerRef.current.dispose();
     };
   }, []);
 
@@ -60,8 +64,8 @@ export function useAiChat() {
       setBusy(true);
       setTurns((t) => (reset ? [{ role: "user", text: bubble }] : [...t, { role: "user", text: bubble }]));
       try {
-        const res = await aiApi.chat({ ...request, message: text });
-        if (!lifecycleRef.current.isCurrent(scheduler)) return;
+        const res = await requestControllerRef.current.deliver({ ...request, message: text });
+        if (!res || !lifecycleRef.current.isCurrent(scheduler)) return;
         if (res.isSuccess && res.data) {
           const data = res.data;
           setConversationId(data.conversationId);
@@ -95,6 +99,7 @@ export function useAiChat() {
 
   const startFresh = useCallback((pending: PendingFreshRequest, scheduler: ChatRequestScheduler<PendingFreshRequest>) => {
     if (!lifecycleRef.current.isCurrent(scheduler)) return;
+    requestControllerRef.current.invalidateView();
     setConversationId(undefined);
     void deliver(pending.request, true, pending.displayText, scheduler);
   }, [deliver]);
@@ -113,18 +118,32 @@ export function useAiChat() {
 
   const refreshSessions = useCallback(async () => {
     setLoadingSessions(true);
-    const res = await aiApi.listConversations();
+    const res = await requestControllerRef.current.refreshSessions();
+    if (!res) return;
     setLoadingSessions(false);
     if (res.isSuccess && res.data) setSessions(res.data);
   }, []);
 
+  const cancelSessionRefresh = useCallback(() => {
+    requestControllerRef.current.invalidateSessions();
+    setLoadingSessions(false);
+  }, []);
+
   const startNew = useCallback(() => {
+    lifecycleRef.current.invalidate();
+    requestControllerRef.current.invalidateView();
+    setBusy(false);
     setTurns([]);
     setConversationId(undefined);
   }, []);
 
   const openSession = useCallback(async (id: number) => {
-    const res = await aiApi.getConversation(id);
+    lifecycleRef.current.invalidate();
+    setBusy(false);
+    setTurns([]);
+    setConversationId(undefined);
+    const res = await requestControllerRef.current.openConversation(id);
+    if (!res) return;
     if (res.isSuccess && res.data) {
       const data = res.data;
       setTurns(
@@ -149,6 +168,7 @@ export function useAiChat() {
     send,
     sendFresh,
     refreshSessions,
+    cancelSessionRefresh,
     startNew,
     openSession,
   };

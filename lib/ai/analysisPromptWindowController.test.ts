@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   AiPromptRequestController,
+  nextPromptTab,
   settleSettingsReload,
   rebasePromptDrafts,
   scopeKey,
@@ -55,6 +56,13 @@ function failure<T>() {
 }
 
 async function run() {
+  assert.equal(nextPromptTab("GLOBAL", "ArrowRight"), "REPORT");
+  assert.equal(nextPromptTab("REPORT", "ArrowRight"), "GLOBAL");
+  assert.equal(nextPromptTab("GLOBAL", "ArrowLeft"), "REPORT");
+  assert.equal(nextPromptTab("REPORT", "Home"), "GLOBAL");
+  assert.equal(nextPromptTab("GLOBAL", "End"), "REPORT");
+  assert.equal(nextPromptTab("GLOBAL", "Enter"), null);
+
   const olderSettings = controller.loadSettings();
   const newerSettings = controller.loadSettings();
   settingsRequests[1].resolve(success(settings("new")));

@@ -7,15 +7,16 @@ import { TB, WinToolbar } from "@/components/ui/WinToolbar";
 import { aiAnalysisPromptsApi } from "@/lib/api/aiAnalysisPrompts";
 import {
   AiPromptRequestController,
+  nextPromptTab,
   scopeKey,
   settleSettingsReload,
   type PromptDrafts,
   type PromptScope,
+  type PromptTab,
 } from "@/lib/ai/analysisPromptWindowController";
 import { formatApiError } from "@/lib/http/formatError";
 import type { AiPromptSettings, AiPromptVersion, AiReportType } from "@/types/api/ai";
 
-type Tab = "GLOBAL" | "REPORT";
 type HistoryState = {
   scopeKey: string;
   items: AiPromptVersion[];
@@ -42,7 +43,9 @@ export function WinAiAnalysisPrompt() {
   const draftRevisionsRef = useRef<Record<string, number>>({});
   const pendingCommittedScopesRef = useRef<Record<string, number>>({});
 
-  const [tab, setTab] = useState<Tab>("GLOBAL");
+  const [tab, setTab] = useState<PromptTab>("GLOBAL");
+  const globalTabRef = useRef<HTMLButtonElement>(null);
+  const reportTabRef = useRef<HTMLButtonElement>(null);
   const [settings, setSettings] = useState<AiPromptSettings | null>(null);
   const [selectedReportType, setSelectedReportType] = useState<AiReportType | "">("");
   const [drafts, setDrafts] = useState<PromptDrafts>({});
@@ -165,12 +168,20 @@ export function WinAiAnalysisPrompt() {
     setHistory(null);
   }
 
-  function changeTab(next: Tab) {
+  function changeTab(next: PromptTab) {
     if (interactionLocked) return;
     invalidateHistory();
     setTab(next);
     setHistoryError(null);
     setActionError(null);
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, current: PromptTab) {
+    const next = nextPromptTab(current, event.key);
+    if (!next || interactionLocked) return;
+    event.preventDefault();
+    changeTab(next);
+    (next === "GLOBAL" ? globalTabRef : reportTabRef).current?.focus();
   }
 
   function changeReportType(next: AiReportType | "") {
@@ -269,10 +280,10 @@ export function WinAiAnalysisPrompt() {
           ) : (
             <>
               <div role="tablist" aria-label="Phạm vi prompt" style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
-                <button id="ai-prompt-tab-global" role="tab" aria-selected={tab === "GLOBAL"} aria-controls="ai-prompt-panel-global" disabled={interactionLocked} onClick={() => changeTab("GLOBAL")} style={tabButtonStyle(tab === "GLOBAL")}>
+                <button ref={globalTabRef} id="ai-prompt-tab-global" role="tab" aria-selected={tab === "GLOBAL"} aria-controls="ai-prompt-panel-global" tabIndex={tab === "GLOBAL" ? 0 : -1} disabled={interactionLocked} onKeyDown={event => handleTabKeyDown(event, "GLOBAL")} onClick={() => changeTab("GLOBAL")} style={tabButtonStyle(tab === "GLOBAL")}>
                   Prompt chung
                 </button>
-                <button id="ai-prompt-tab-report" role="tab" aria-selected={tab === "REPORT"} aria-controls="ai-prompt-panel-report" disabled={interactionLocked} onClick={() => changeTab("REPORT")} style={tabButtonStyle(tab === "REPORT")}>
+                <button ref={reportTabRef} id="ai-prompt-tab-report" role="tab" aria-selected={tab === "REPORT"} aria-controls="ai-prompt-panel-report" tabIndex={tab === "REPORT" ? 0 : -1} disabled={interactionLocked} onKeyDown={event => handleTabKeyDown(event, "REPORT")} onClick={() => changeTab("REPORT")} style={tabButtonStyle(tab === "REPORT")}>
                   Theo báo cáo
                 </button>
               </div>
@@ -287,13 +298,13 @@ export function WinAiAnalysisPrompt() {
                   </label>
                 )}
 
-                <label style={fieldLabelStyle}>
+                <label htmlFor="ai-prompt-content" style={fieldLabelStyle}>
                   {tab === "GLOBAL" ? "Prompt bổ sung chung" : "Prompt bổ sung"}
-                  <textarea value={draft} maxLength={4000} disabled={interactionLocked || !currentScope} onChange={event => changeDraft(event.target.value)} placeholder="Nhập hướng dẫn bổ sung cho AI..." rows={14} style={{ ...fieldStyle, minHeight: 260, resize: "vertical", fontFamily: "inherit" }} />
+                  <textarea id="ai-prompt-content" aria-describedby="ai-prompt-instructions ai-prompt-counter" value={draft} maxLength={4000} disabled={interactionLocked || !currentScope} onChange={event => changeDraft(event.target.value)} placeholder="Nhập hướng dẫn bổ sung cho AI..." rows={14} style={{ ...fieldStyle, minHeight: 260, resize: "vertical", fontFamily: "inherit" }} />
                 </label>
                 <div style={{ display: "flex", justifyContent: "space-between", color: draft.length > 4000 ? "var(--danger)" : "var(--fg-muted)", fontSize: 12 }}>
-                  <span>Chỉ nội dung bổ sung; prompt hệ thống cốt lõi không hiển thị ở đây.</span>
-                  <span>{draft.length} / 4000</span>
+                  <span id="ai-prompt-instructions">Chỉ nội dung bổ sung; prompt hệ thống cốt lõi không hiển thị ở đây.</span>
+                  <span id="ai-prompt-counter">{draft.length} / 4000 ký tự</span>
                 </div>
                 <div style={{ marginTop: 12, color: "var(--fg-muted)", fontSize: 12 }}>{versionMeta(activeVersion)}</div>
               </div>
@@ -315,7 +326,7 @@ export function WinAiAnalysisPrompt() {
                 <div style={{ color: "var(--fg-muted)", marginTop: 3 }}>{version.createdByFullName} · {formatDate(version.createdAt)}</div>
                 {version.restoredFromId && <div style={{ color: "var(--fg-muted)", marginTop: 3 }}>Khôi phục từ bản ghi #{version.restoredFromId}</div>}
                 <pre style={{ margin: "8px 0", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", maxHeight: 120, overflowY: "auto" }}>{version.content || "(trống)"}</pre>
-                <button onClick={() => void restore(version)} disabled={interactionLocked} className="tb-btn">Khôi phục</button>
+                <button aria-label={`Khôi phục phiên bản ${version.versionNumber}`} onClick={() => void restore(version)} disabled={interactionLocked} className="tb-btn">Khôi phục</button>
               </section>
             ))}
             {history.nextBeforeVersionNumber !== null && (

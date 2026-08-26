@@ -102,7 +102,7 @@ export function StockAlertTab({
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex justify-end">
-        <AnalyzeButton reportType="STOCK_ALERT" reportName="Tồn kho" data={data} filters={{}} />
+        <AnalyzeButton reportType="STOCK_ALERT" reportName="Tồn kho" data={data} hasData={data.length > 0} filters={{}} />
       </div>
 
       {/* Controls */}

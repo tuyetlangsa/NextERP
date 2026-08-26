@@ -55,7 +55,7 @@ export function IngredientTab({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end px-1 pb-2">
-        <AnalyzeButton reportType="INGREDIENT" reportName="Nguyên liệu" data={data} filters={filters} />
+        <AnalyzeButton reportType="INGREDIENT" reportName="Nguyên liệu" data={data} hasData={data.length > 0} filters={filters} />
       </div>
 
       {data.length === 0 ? (

@@ -13,9 +13,9 @@ clear. Core prompt/profile cố định vẫn ở source backend, không hiển 
 
 Nút **Phân tích bằng AI** nay gửi `reportContext` tách khỏi display text và luôn mở conversation mới.
 Bubble/lịch sử chỉ hiện nhãn thân thiện, không lộ JSON báo cáo. Conversation cũ giữ snapshot dữ liệu và
-prompt cũ; conversation mới lấy version mới. Backend xử lý JSON theo whole record với giới hạn
-128.000 ký tự input, 24.000 ký tự cho model và depth 12; report mode không có tool, chat thủ công vẫn
-có data tools.
+prompt cũ; conversation mới lấy version mới. Raw HTTP body của chat giới hạn 256 KiB; riêng
+`reportContext` sau khi canonical hoá giới hạn 128,000 ký tự, rồi backend xử lý JSON theo whole record
+với tối đa 24.000 ký tự cho model và depth 12. Report mode không có tool, chat thủ công vẫn có data tools.
 
 Tab **Top nhân viên theo món** giữ master-detail theo món, tìm/sắp xếp/lọc ở master và sản lượng thuần,
 top ba dương/cảnh báo refund ở detail. Các con số mô tả phân bố order chưa chuẩn hoá theo ca/giờ/cơ

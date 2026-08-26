@@ -97,6 +97,7 @@ export function ItemSalesDetailTab({
           reportType="ITEM_SALES"
           reportName="Bán hàng"
           data={data}
+          hasData={!isEmpty}
           filters={{ ...filters, ticketId, pageNumber: page, pageSize }}
         />
       </div>

@@ -70,3 +70,16 @@ assert.equal(lifecycle.complete(schedulerA), null);
 assert.equal(lifecycle.isCurrent(schedulerA), false);
 assert.equal(lifecycle.isCurrent(schedulerB), true);
 assert.equal(schedulerB.beginFresh({ id: "still-queued-on-b" }), null);
+
+// Explicit navigation cancels the active delivery and discards queued reports.
+// The new view gets a fresh scheduler so late completion from the old view cannot
+// drain its queue or change its busy state.
+const navigationLifecycle = new ChatRequestLifecycle<{ id: string }>();
+const beforeNavigation = navigationLifecycle.activate();
+assert.equal(beforeNavigation.beginManual(), true);
+assert.equal(beforeNavigation.beginFresh({ id: "discard-on-navigation" }), null);
+const afterNavigation = navigationLifecycle.invalidate();
+assert.equal(navigationLifecycle.isCurrent(beforeNavigation), false);
+assert.equal(navigationLifecycle.complete(beforeNavigation), null);
+assert.equal(afterNavigation.beginManual(), true);
+assert.equal(afterNavigation.complete(), null);

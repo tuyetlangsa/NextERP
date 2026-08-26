@@ -19,6 +19,17 @@ export type PromptResult<T> = {
 
 export type SettingsReloadOutcome = "applied" | "failed" | "stale";
 
+export type PromptTab = "GLOBAL" | "REPORT";
+
+export function nextPromptTab(tab: PromptTab, key: string): PromptTab | null {
+  if (key === "Home") return "GLOBAL";
+  if (key === "End") return "REPORT";
+  if (key === "ArrowLeft" || key === "ArrowRight") {
+    return tab === "GLOBAL" ? "REPORT" : "GLOBAL";
+  }
+  return null;
+}
+
 export interface PromptSettingsState {
   drafts: PromptDrafts;
   dirtyScopes: ReadonlySet<string>;

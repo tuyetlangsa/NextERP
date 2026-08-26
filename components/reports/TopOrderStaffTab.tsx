@@ -62,6 +62,7 @@ export function TopOrderStaffTab({
           reportType="TOP_ORDER_STAFF_BY_ITEM"
           reportName="Top nhân viên theo món"
           data={data}
+          hasData={data.length > 0}
           filters={filters}
           selectedItemId={selected?.item.itemId}
         />

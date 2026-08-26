@@ -50,13 +50,20 @@ export function RevenueTab({
 
   // Show nothing until loaded
   if (!data) return null;
+  const hasData = data.breakdown.length > 0 || data.revenueTrend.length > 0;
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-end">
-        <AnalyzeButton reportType="REVENUE" reportName="Doanh thu" data={data} filters={filters} />
+        <AnalyzeButton reportType="REVENUE" reportName="Doanh thu" data={data} hasData={hasData} filters={filters} />
       </div>
 
+      {!hasData ? (
+        <div className="flex items-center justify-center h-48 text-gray-400">
+          Không có dữ liệu
+        </div>
+      ) : (
+        <>
       {/* Revenue trend — one line, one point per day; X axis uses the real dates (dd/MM)
           from the selected filter range so it stays correct even across month boundaries. */}
       <div className="h-80">
@@ -144,6 +151,8 @@ export function RevenueTab({
           />
         </ColumnsDirective>
       </GridComponent>
+        </>
+      )}
     </div>
   );
 }

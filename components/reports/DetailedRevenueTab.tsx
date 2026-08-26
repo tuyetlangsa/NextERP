@@ -95,6 +95,7 @@ export function DetailedRevenueTab({
           reportType="TICKET_LIST"
           reportName="Danh sách phiếu"
           data={data}
+          hasData={!isEmpty}
           filters={{ ...filters, pageNumber: 1, pageSize: 1000 }}
         />
       </div>

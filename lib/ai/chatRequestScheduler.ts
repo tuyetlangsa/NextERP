@@ -68,8 +68,19 @@ export class ChatRequestLifecycle<TFresh> {
     return this.scheduler;
   }
 
+  /** Cancels an active delivery and drops its queued fresh requests for navigation. */
+  invalidate(): ChatRequestScheduler<TFresh> {
+    this.scheduler.dispose();
+    this.scheduler = new ChatRequestScheduler<TFresh>();
+    return this.scheduler;
+  }
+
   dispose(scheduler: ChatRequestScheduler<TFresh>): void {
     if (scheduler === this.scheduler) scheduler.dispose();
+  }
+
+  disposeCurrent(): void {
+    this.scheduler.dispose();
   }
 
   isCurrent(scheduler: ChatRequestScheduler<TFresh>): boolean {

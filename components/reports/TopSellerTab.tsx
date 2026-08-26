@@ -99,6 +99,7 @@ export function TopSellerTab({
           reportType="TOP_SELLERS"
           reportName="Top bán chạy"
           data={data}
+          hasData={data.length > 0}
           filters={{ ...filters, topN, by }}
         />
       </div>

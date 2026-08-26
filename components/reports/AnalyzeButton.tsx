@@ -7,6 +7,7 @@ interface AnalyzeButtonProps {
   reportType: AiReportType;
   reportName: string;
   data: unknown;
+  hasData: boolean;
   filters?: Record<string, unknown>;
   selectedItemId?: number;
 }
@@ -15,8 +16,8 @@ interface AnalyzeButtonProps {
  * "Phân tích bằng AI" — sends this report's currently-loaded data to the floating
  * AI dock as a NEW conversation. Disabled until data is present.
  */
-export function AnalyzeButton({ reportType, reportName, data, filters, selectedItemId }: AnalyzeButtonProps) {
-  const disabled = data == null || (Array.isArray(data) && data.length === 0);
+export function AnalyzeButton({ reportType, reportName, data, hasData, filters, selectedItemId }: AnalyzeButtonProps) {
+  const disabled = !hasData;
   return (
     <button
       type="button"
