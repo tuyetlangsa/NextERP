@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void;
   onLaunch: (def: Subsystem) => void;
   accessiblePages: Set<string>;
+  roleCode: string;
 }
 
 const groupIconKey = (id: SubsystemGroup | "all") =>
@@ -23,13 +24,13 @@ const groupIconKey = (id: SubsystemGroup | "all") =>
   : id === "reports" ? "reports" as const
   : "reports" as const;
 
-export function StartMenu({ open, onClose, onLaunch, accessiblePages }: Props) {
+export function StartMenu({ open, onClose, onLaunch, accessiblePages, roleCode }: Props) {
   const [group, setGroup] = useState<SubsystemGroup | "all">("all");
   const [query, setQuery] = useState("");
   if (!open) return null;
 
   const items = subsystems.filter(s =>
-    canSeeSubsystem(s, accessiblePages) &&
+    canSeeSubsystem(s, accessiblePages, roleCode) &&
     (group === "all" || s.group === group) &&
     (!query || s.label.toLowerCase().includes(query.toLowerCase()))
   );

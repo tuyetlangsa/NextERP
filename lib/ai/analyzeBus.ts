@@ -1,13 +1,18 @@
 "use client";
 
+import type { AiReportType, SendChatRequest } from "@/types/api/ai";
+
 /**
  * A tiny module-level event bus so any report tab can ask the floating AI dock to
  * analyze its currently-loaded data. The dock subscribes; report tabs publish.
  * Kept outside React state deliberately — it's a one-shot command, not shared state.
  */
 export interface AnalyzeRequest {
+  reportType: AiReportType;
   reportName: string;
   data: unknown;
+  filters?: Record<string, unknown>;
+  selectedItemId?: number;
 }
 
 type Listener = (req: AnalyzeRequest) => void;
@@ -25,21 +30,15 @@ export function subscribeAiAnalysis(l: Listener): () => void {
   };
 }
 
-/** Compose the Vietnamese analysis prompt carrying the report data inline (capped to bound tokens). */
-export function buildAnalysisMessage(reportName: string, data: unknown): string {
-  let json = JSON.stringify(data, null, 2);
-  const CAP = 12000;
-  let truncated = false;
-  if (json.length > CAP) {
-    json = json.slice(0, CAP);
-    truncated = true;
-  }
-  return (
-    `Đây là dữ liệu báo cáo "${reportName}" của nhà hàng (định dạng JSON). ` +
-    `Hãy phân tích DỰA TRÊN dữ liệu được cung cấp bên dưới — không cần gọi công cụ khác: ` +
-    `nhận xét tổng quan, xu hướng, điểm bất thường, và đề xuất hành động cụ thể nếu có. ` +
-    `Trả lời ngắn gọn, rõ ràng bằng tiếng Việt` +
-    (truncated ? " (dữ liệu đã được rút gọn do quá dài)" : "") +
-    `.\n\nDỮ LIỆU:\n\`\`\`json\n${json}\n\`\`\``
-  );
+/** Builds the user-visible label separately from the structured report payload. */
+export function buildReportAnalysisRequest(req: AnalyzeRequest): SendChatRequest {
+  return {
+    message: `Phân tích báo cáo ${req.reportName}`,
+    reportContext: {
+      reportType: req.reportType,
+      filters: req.filters ?? {},
+      ...(req.selectedItemId === undefined ? {} : { selectedItemId: req.selectedItemId }),
+      data: req.data,
+    },
+  };
 }

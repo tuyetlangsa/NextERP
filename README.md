@@ -94,12 +94,14 @@ Tất cả master-data window đã kết nối Rpom-backend qua `lib/http/client
 ## Báo cáo top nhân viên theo món
 
 `WinReports` có tab **Top nhân viên theo món**, nằm sau **Món hàng**. Tab gọi
-`reportsApi.topOrderStaffByItem()` với ngày/quầy/khu, nhận response nested theo snapshot món và chỉ
-flatten cho Syncfusion Grid bằng `components/reports/topOrderStaffRows.ts`. `AnalyzeButton` phải nhận
-nguyên nested data để AI không mất nhóm/rank; grid hiển thị tối đa ba dòng staff cho mỗi món.
+`reportsApi.topOrderStaffByItem()` với ngày/quầy/khu và nhận response nested theo snapshot món.
+UI giữ response nested và dựng master-detail theo món. Danh sách bên trái hỗ trợ search/sort/filter;
+panel bên phải hiển thị tối đa ba nhân viên sản lượng dương bằng thanh ngang. Dòng 0 bị bỏ khỏi
+leaderboard, dòng âm nằm trong cảnh báo hoàn món. Ngưỡng gợi ý đào tạo chéo là tổng từ 5 và top 1 từ
+80%; dữ liệu dưới 5 chỉ gắn “Ít dữ liệu”.
 
 Sản lượng là net signed từ order item không huỷ của ticket đã đóng; refund âm vẫn được tính. Phần trăm
-API có hai chữ số thập phân, UI dùng `N1`; top ba phần trăm có thể không bằng 100%. Tab không hỗ trợ
+API có hai chữ số thập phân, UI dùng một chữ số thập phân; top ba phần trăm có thể không bằng 100%. Tab không hỗ trợ
 PDF/Excel export. Kiểm helper bằng:
 
 ```bash
@@ -109,6 +111,58 @@ npm run test:top-order-staff
 Các contract AI/reporting backend có giới hạn detail rows và permission riêng theo tool; UI không được
 tự tổng hợp detail đã truncate để suy ra KPI. Xem `RPOM_REPORTING_MODULE_GUIDE.md` ở repository gốc
 để biết ma trận quyền, nguồn invoice so với operational và giới hạn payload.
+
+## Quản lý prompt phân tích AI
+
+Window **Bối cảnh phân tích AI** chỉ hiện và cho mở với vai trò `OWNER` hoặc `ADMIN_VENDOR`. Màn hình
+giữ giao diện đơn giản gồm đúng hai tab:
+
+- **Prompt chung** sửa phần bổ sung `GLOBAL` dùng cho mọi báo cáo.
+- **Theo báo cáo** chọn một trong 11 mã `REVENUE_SUMMARY`, `REVENUE`, `TICKET_LIST`, `ITEM_SALES`,
+  `CATEGORY`, `ITEM`, `TOP_ORDER_STAFF_BY_ITEM`, `TOP_SELLERS`, `SHIFT`, `INGREDIENT`, `STOCK_ALERT`
+  rồi sửa phần bổ sung riêng của báo cáo đó.
+
+Mỗi ô tối đa 4.000 ký tự. Lưu nội dung rỗng là xoá phần bổ sung bằng một phiên bản rỗng mới; dữ liệu
+luôn append-only. Nút **Xem lịch sử** tải đúng scope đang chọn theo từng trang 20 phiên bản; nút
+**Tải thêm** dùng cursor của server để nối các phiên bản cũ hơn mà không làm mất khả năng khôi phục.
+Mỗi mục hiển thị số phiên bản/người tạo/thời điểm/nội dung; **Khôi phục** yêu cầu xác nhận rồi tạo
+phiên bản active mới, không sửa bản cũ. Prompt
+hệ thống cốt lõi và profile báo cáo cố định vẫn thuộc source backend, không hiển thị, không sao chép và
+không seed vào trường editable.
+
+Frontend gọi đúng các route:
+
+| Thao tác | Route |
+|---|---|
+| Tải cấu hình | `GET /api/erp/ai-analysis-prompts` |
+| Lưu phiên bản | `PUT /api/erp/ai-analysis-prompts` |
+| Xem lịch sử | `GET /api/erp/ai-analysis-prompts/history?scope=...&reportType=...&pageSize=20&beforeVersionNumber=...` trả `{ items, nextBeforeVersionNumber }` |
+| Khôi phục | `POST /api/erp/ai-analysis-prompts/{id}/restore` |
+
+Khi bấm **Phân tích bằng AI**, frontend gửi `reportContext` có `reportType`, `filters`,
+`selectedItemId` (nếu có) và toàn bộ `data` đang tải tới `POST /api/ai/chat` trong một cuộc trò chuyện
+mới. Bubble và lịch sử người dùng chỉ hiện nhãn `Phân tích báo cáo ...`; JSON thô không được đưa vào
+text hiển thị. Backend giới hạn toàn bộ raw HTTP body ở 256 KiB trước khi bind JSON, rồi giới hạn
+`reportContext` canonical ở 128.000 ký tự; context cho model là 24.000 ký tự, depth 12 và chỉ cắt theo
+whole record hợp lệ. Metadata included/total cho biết phạm vi thực tế. Cuộc trò chuyện báo cáo
+cũ giữ snapshot dữ liệu/prompt cũ khi hỏi tiếp, còn cuộc trò chuyện mới lấy phiên bản prompt mới.
+Report analysis không có tool; chat thủ công như `Doanh thu hôm nay` vẫn dùng các data tool được cấp
+quyền.
+
+Tab **Top nhân viên theo món** dùng bố cục master-detail: danh sách món bên trái hỗ trợ tìm, sắp xếp,
+lọc và bàn phím; chi tiết bên phải hiển thị tổng sản lượng thuần, tối đa ba nhân viên có sản lượng
+dương, tỷ lệ, cảnh báo hoàn món và nhận định phân bố dữ liệu. Sản lượng chưa chuẩn hoá theo ca, giờ hay
+cơ hội bán, vì vậy UI và AI không được gọi đây là đánh giá hiệu suất/kỹ năng hoặc gắn nhãn nhân viên
+tốt/xấu, mạnh/yếu.
+
+Kiểm các contract liên quan bằng:
+
+```bash
+npm run test:page-access
+npm run test:ai-analysis-prompts
+npm run test:ai-report-context
+npm run test:top-order-staff
+```
 
 ## Lưu ý quan trọng
 

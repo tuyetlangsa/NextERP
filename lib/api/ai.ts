@@ -1,11 +1,14 @@
 "use client";
 
 import { http } from "@/lib/http/client";
-import type { ConversationDetail, ConversationSummary, SendChatResponse } from "@/types/api/ai";
+import type { HttpOptions } from "@/lib/http/client";
+import type { ConversationDetail, ConversationSummary, SendChatRequest, SendChatResponse } from "@/types/api/ai";
 
 export const aiApi = {
-  chat: (message: string, conversationId?: number) =>
-    http.post<SendChatResponse>("/api/ai/chat", { message, conversationId }),
-  listConversations: () => http.get<ConversationSummary[]>("/api/ai/conversations"),
-  getConversation: (id: number) => http.get<ConversationDetail>(`/api/ai/conversations/${id}`),
+  chat: (request: SendChatRequest, options?: HttpOptions) =>
+    http.post<SendChatResponse>("/api/ai/chat", request, options),
+  listConversations: (options?: HttpOptions) =>
+    http.get<ConversationSummary[]>("/api/ai/conversations", options),
+  getConversation: (id: number, options?: HttpOptions) =>
+    http.get<ConversationDetail>(`/api/ai/conversations/${id}`, options),
 };

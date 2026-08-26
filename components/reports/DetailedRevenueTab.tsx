@@ -91,7 +91,13 @@ export function DetailedRevenueTab({
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-end">
-        <AnalyzeButton reportName="Danh sách phiếu" data={data} />
+        <AnalyzeButton
+          reportType="TICKET_LIST"
+          reportName="Danh sách phiếu"
+          data={data}
+          hasData={!isEmpty}
+          filters={{ ...filters, pageNumber: 1, pageSize: 1000 }}
+        />
       </div>
 
       <ReportSummaryCards cards={cards} />
