@@ -42,6 +42,9 @@ Màn hình phải giúp người quản lý trả lời nhanh:
 - Phân loại dữ liệu bằng các quy tắc tất định từ payload hiện có.
 - Gửi `reportType`, bộ lọc, món đang chọn và dữ liệu nested cho backend khi phân tích AI.
 - Giữ system prompt chung ở backend và thêm profile server-owned riêng cho loại báo cáo này.
+- Thêm cửa sổ ERP để Chủ nhà hàng/Quản trị hệ thống chỉnh một prompt bổ sung chung cho mọi báo cáo và
+  một prompt bổ sung riêng cho từng loại báo cáo.
+- Lưu lịch sử phiên bản prompt, áp dụng ngay và cho phép khôi phục bằng cách tạo phiên bản mới.
 - Loại bỏ việc frontend cắt JSON giữa chừng đối với luồng phân tích mới.
 
 ### Ngoài phạm vi
@@ -49,9 +52,13 @@ Màn hình phải giúp người quản lý trả lời nhanh:
 - Không bổ sung dữ liệu số ca, số giờ làm hoặc số cơ hội bán.
 - Không chấm điểm, xếp loại giỏi/yếu hay dùng báo cáo làm KPI thưởng phạt.
 - Không thay đổi công thức report hoặc endpoint lấy dữ liệu top nhân viên.
-- Không migrate toàn bộ các báo cáo khác sang report profile trong cùng thay đổi; contract phải cho
-  phép migrate dần.
+- Mọi nút phân tích báo cáo hiện có sẽ gửi `reportType` ổn định để prompt riêng hoạt động, nhưng chỉ
+  `TOP_ORDER_STAFF_BY_ITEM` nhận fixed semantic profile chuyên biệt trong thay đổi này. Các report type
+  khác dùng core prompt, prompt tùy chỉnh và payload hiện có; profile nghiệp vụ có thể bổ sung dần.
 - Không dùng AI để tự quyết định ngưỡng phân loại trên giao diện.
+- Không cho người dùng chỉnh system prompt cốt lõi, quy tắc bảo mật, tool routing hoặc semantics cố
+  định của report profile.
+- Không xây form mục tiêu/checkbox trọng tâm; phần tùy chỉnh chỉ là prompt text đơn giản.
 
 ## 4. Ngôn ngữ nghiệp vụ
 
@@ -184,8 +191,9 @@ content và không có quyền thay đổi policy của assistant.
 
 ### 7.2. Contract tương thích ngược
 
-Mở rộng request hiện tại bằng field optional `reportContext`; manual chat và các báo cáo chưa migrate
-vẫn tiếp tục dùng `message` như cũ.
+Mở rộng request hiện tại bằng field optional `reportContext`. Manual chat và client cũ không gửi field
+này vẫn tiếp tục dùng `message` như cũ; mọi `AnalyzeButton` hiện có trong NextERP chuyển sang gửi
+`reportType`, filters phù hợp và data của tab.
 
 ```json
 {
@@ -229,6 +237,20 @@ chỉ bổ sung semantics của payload, không tạo một assistant khác. Ở
 không cung cấp data tools hoặc `presentReport` cho model; dữ liệu đã được gửi sẵn và UI đã có chart.
 Điều này thực thi quy tắc “không gọi tool” bằng code thay vì chỉ trông chờ model làm theo instruction.
 
+Khi phân tích report, backend ghép context theo thứ tự:
+
+```text
+system prompt cốt lõi
+→ report profile cố định
+→ prompt chung đang active
+→ prompt riêng của reportType đang active
+→ report data của conversation
+```
+
+Prompt chỉnh từ UI được bọc rõ là **hướng dẫn bổ sung của chủ nhà hàng**. Nó không được thay đổi định
+nghĩa dữ liệu, quyền truy cập, bảo mật hoặc các quy tắc cứng đứng trước. Prompt chung chỉ áp dụng cho
+phân tích báo cáo, không tự động áp dụng cho manual chat hoặc pipeline gợi ý khóa món.
+
 ### 7.4. Giới hạn payload
 
 - Frontend không stringify/cắt JSON trước khi gửi `reportContext`.
@@ -254,7 +276,89 @@ conversation:
 - Context vẫn thuộc conversation owner và tuân theo retention/audit policy hiện tại; thay đổi này chỉ
   tách model context khỏi display content, không mở thêm endpoint đọc raw payload.
 
-## 8. Trạng thái và lỗi
+### 7.6. Snapshot prompt
+
+- Khi tạo conversation phân tích report, backend chụp nội dung/version của prompt chung và prompt
+  riêng đang active vào model context của conversation.
+- Lưu prompt mới có hiệu lực ngay với conversation mới. Conversation đang tồn tại tiếp tục dùng
+  snapshot cũ để các câu follow-up không đổi hành vi giữa chừng.
+- Bấm **Phân tích bằng AI** vốn tạo conversation mới, nên luôn nhận version mới nhất tại thời điểm bấm.
+
+## 8. Cửa sổ quản lý prompt phân tích
+
+### 8.1. Vị trí và quyền
+
+- Tạo cửa sổ desktop **Bối cảnh phân tích AI** trong nhóm Hệ thống của NextERP.
+- Chỉ role `OWNER` (Chủ nhà hàng) và `ADMIN_VENDOR` (Quản trị hệ thống) nhìn thấy và gọi được API ghi,
+  đọc lịch sử hoặc khôi phục.
+- Backend kiểm tra role ở endpoint/handler; ẩn cửa sổ ở frontend chỉ là UX, không phải lớp bảo mật.
+- Manager và custom role không được cấp quyền chỉnh prompt qua permission picker.
+
+### 8.2. Giao diện chính
+
+Cửa sổ có hai tab đơn giản:
+
+1. **Prompt chung**
+   - Một textarea tối đa 4.000 ký tự.
+   - Nội dung áp dụng cho mọi lượt phân tích báo cáo.
+   - Nút **Lưu và áp dụng**.
+2. **Theo báo cáo**
+   - Dropdown chọn `reportType` từ allowlist do backend trả về.
+   - Một textarea **Prompt bổ sung** tối đa 4.000 ký tự.
+   - Nút **Lưu và áp dụng**.
+
+Không có form mục tiêu, checkbox trọng tâm, risk tolerance hoặc prompt builder. Chuỗi rỗng là hợp lệ và
+được hiểu là xóa tùy chỉnh đang active cho scope đó. UI hiển thị người sửa, thời gian và số version
+active gần nhất nhưng không hiển thị system prompt cốt lõi đã ghép.
+
+### 8.3. Report type allowlist
+
+Backend là source of truth cho mã và nhãn report. Allowlist ban đầu bao phủ các tab đang có nút phân
+tích AI:
+
+- `REVENUE_SUMMARY` — Báo cáo doanh thu tổng thể.
+- `REVENUE` — Doanh thu.
+- `TICKET_LIST` — Danh sách phiếu.
+- `ITEM_SALES` — Bán hàng.
+- `CATEGORY` — Danh mục.
+- `ITEM` — Món hàng.
+- `TOP_ORDER_STAFF_BY_ITEM` — Top nhân viên theo món.
+- `TOP_SELLERS` — Top bán chạy.
+- `SHIFT` — Ca làm việc.
+- `INGREDIENT` — Nguyên liệu.
+- `STOCK_ALERT` — Tồn kho.
+
+Frontend không tự duy trì một danh sách prompt scope thứ hai. API trả code + nhãn để dropdown render;
+`AnalyzeButton` gửi code ổn định thay cho việc dùng tên hiển thị làm định danh.
+
+### 8.4. Version và khôi phục
+
+- Mỗi lần lưu tạo một version append-only mới cho scope `GLOBAL` hoặc `(REPORT, reportType)` và đánh
+  dấu version đó active. Không update nội dung version cũ.
+- Lịch sử mở bằng action phụ **Xem lịch sử**, hiển thị version, nội dung, người sửa, thời gian và nguồn
+  khôi phục nếu có.
+- **Khôi phục** không tái kích hoạt row cũ; nó copy nội dung cũ thành version mới và áp dụng ngay.
+- Tất cả save/restore có audit actor và timestamp. Không có xóa version từ UI.
+
+### 8.5. Data model và API khái niệm
+
+Tạo aggregate riêng cho prompt phân tích; không tái sử dụng `AiRestaurantContext` vì entity hiện tại
+thuộc pipeline lock suggestion và có semantics/permission khác.
+
+Mỗi version cần ít nhất: `Id`, `Scope`, nullable `ReportType`, `Content`, `VersionNumber`, `IsActive`,
+nullable `RestoredFromId`, `CreatedByStaffId`, `CreatedAt`.
+
+API cần cung cấp:
+
+- Lấy catalog report type và version active của prompt chung/từng report.
+- Lưu prompt chung hoặc prompt theo report.
+- Lấy lịch sử theo scope/report type.
+- Khôi phục một version lịch sử.
+
+Validation: allowlist scope/report type, content tối đa 4.000 ký tự, version restore phải cùng scope,
+và thao tác chuyển active phải atomic để mỗi scope chỉ có một version active.
+
+## 9. Trạng thái và lỗi
 
 - Loading/error tiếp tục đi qua `WinReports` như hiện tại.
 - Data rỗng: hiển thị empty state và disable nút AI.
@@ -263,8 +367,10 @@ conversation:
 - Report context sai schema hoặc report type lạ: backend trả validation error, không fallback sang việc
   nhét payload vào prompt tự do.
 - AI không phản hồi: giữ dữ liệu và lựa chọn hiện tại, hiển thị lỗi trong dock để người dùng thử lại.
+- Save prompt lỗi: giữ nguyên textarea chưa lưu và version active cũ; không optimistic update.
+- Restore lỗi hoặc version không cùng scope: không thay đổi active version và hiển thị lỗi cụ thể.
 
-## 9. Cấu trúc component dự kiến
+## 10. Cấu trúc component dự kiến
 
 - `TopOrderStaffTab`: fetch data, giữ search/sort/filter/selection và điều phối layout.
 - `topOrderStaffInsights`: pure functions chuẩn hóa staff, phân loại, search/sort/filter và tạo nhận định.
@@ -275,11 +381,15 @@ conversation:
   context riêng.
 - `AiMessage`: nullable `ReportContextJson` cho context dùng khi model replay; API lịch sử không trả
   field này cho UI.
+- `WinAiAnalysisPrompt`: hai textarea chính, dropdown report type và action mở lịch sử.
+- AI prompt context API client/types: catalog, active version, save, history và restore.
+- Backend prompt version aggregate/repository handlers: append version, đổi active atomic và resolve
+  snapshot khi bắt đầu report conversation.
 
 Các component không phụ thuộc vào nội bộ của nhau ngoài props/types rõ ràng. Pure functions không phụ
 thuộc React hoặc Syncfusion để kiểm thử dễ dàng.
 
-## 10. Kiểm thử
+## 11. Kiểm thử
 
 ### Frontend
 
@@ -288,6 +398,8 @@ thuộc React hoặc Syncfusion để kiểm thử dễ dàng.
 - Tests cho tìm kiếm không phân biệt hoa/thường, từng kiểu sort và selection reset sau filter.
 - Component tests hoặc test harness xác nhận thanh chỉ render staff dương, cảnh báo render staff âm và
   AI request giữ nested data + filters + selected item.
+- Pure/client tests xác nhận prompt window dùng report catalog backend, save chuỗi rỗng được phép và
+  role không hợp lệ không thấy desktop entry.
 - TypeScript build và test hiện có của report tiếp tục pass.
 
 ### Backend
@@ -300,9 +412,15 @@ thuộc React hoặc Syncfusion để kiểm thử dễ dàng.
   conversation đúng owner và replay được context cho follow-up.
 - Conversation tests xác nhận title/bubble chỉ chứa display message và endpoint lịch sử không trả raw
   `ReportContextJson`.
+- Prompt version tests xác nhận append-only, chỉ một active version mỗi scope, restore tạo version mới,
+  version number tăng tuần tự và thao tác đồng thời không tạo hai active rows.
+- Authorization tests xác nhận chỉ `OWNER`/`ADMIN_VENDOR` đọc màn quản trị, lưu, xem history và restore;
+  `MANAGER` bị từ chối kể cả có permission master-data.
+- Composition tests xác nhận thứ tự core → profile → global → report → data và conversation mới/follow-up
+  dùng đúng prompt snapshot.
 - Permission và API integration tests cho endpoint AI hiện có.
 
-## 11. Tiêu chí nghiệm thu
+## 12. Tiêu chí nghiệm thu
 
 1. Một món chỉ xuất hiện một lần trong danh sách master.
 2. Chọn món cập nhật đúng top 3, tổng sản lượng và nhận định ở panel detail.
@@ -314,9 +432,14 @@ thuộc React hoặc Syncfusion để kiểm thử dễ dàng.
 8. AI không gọi nhân viên là giỏi/yếu và không suy hiệu suất từ sản lượng thô.
 9. Payload AI không bao giờ là JSON bị cắt dở.
 10. Mở lại conversation không hiển thị blob report JSON nhưng follow-up vẫn dùng được dữ liệu gốc.
-11. Manual AI chat và các report chưa migrate vẫn hoạt động như trước.
+11. Manual AI chat và client cũ không gửi `reportContext` vẫn hoạt động như trước.
+12. Owner/Admin có thể lưu prompt chung và prompt riêng bằng textarea; Manager không thấy cửa sổ và bị
+    backend từ chối nếu gọi API trực tiếp.
+13. Save tạo version mới và có hiệu lực với lượt phân tích mới; restore cũng tạo version mới.
+14. Conversation đang tồn tại giữ prompt snapshot cũ; conversation mới dùng active version mới nhất.
+15. Prompt tùy chỉnh không thể thay đổi core security, tool permissions hoặc semantics cố định của report.
 
-## 12. Phương án đã loại
+## 13. Phương án đã loại
 
 - **Giữ grid và group rows:** ít thay đổi nhưng vẫn phải mở/đọc từng nhóm, không hỗ trợ so sánh và lựa
   chọn món nhanh bằng master-detail.
@@ -326,3 +449,7 @@ thuộc React hoặc Syncfusion để kiểm thử dễ dàng.
 - **System prompt nằm ở frontend:** không đáng tin cậy, dễ bị sửa và trộn policy với user content.
 - **Một system prompt hoàn chỉnh cho mỗi report:** lặp identity/safety/tool rules và khó giữ nhất quán;
   global prompt cộng report profile nhỏ an toàn hơn.
+- **Form mục tiêu + checkbox trọng tâm:** nhiều khái niệm và catalog hơn nhu cầu; hai textarea trực tiếp
+  cho phép chủ nhà hàng diễn đạt ngắn gọn mà vẫn giữ core prompt được bảo vệ.
+- **Dùng lại `AiRestaurantContext`:** entity đó phục vụ lock suggestion; dùng chung sẽ làm thay đổi prompt
+  báo cáo ngoài ý muốn và trộn hai permission/audit boundary khác nhau.
