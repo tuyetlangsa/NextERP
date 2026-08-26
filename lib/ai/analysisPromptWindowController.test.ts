@@ -5,7 +5,7 @@ import {
   rebasePromptDrafts,
   scopeKey,
 } from "./analysisPromptWindowController";
-import type { AiPromptSettings, AiPromptVersion } from "@/types/api/ai";
+import type { AiPromptHistoryPage, AiPromptSettings, AiPromptVersion } from "@/types/api/ai";
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -30,15 +30,17 @@ function settings(globalContent: string, reportContent = "report-server"): AiPro
 }
 
 const settingsRequests: Deferred<ReturnType<typeof success<AiPromptSettings>>>[] = [];
-const historyRequests: Deferred<ReturnType<typeof success<AiPromptVersion[]>>>[] = [];
+const historyRequests: Deferred<ReturnType<typeof success<AiPromptHistoryPage>>>[] = [];
+const historyArguments: Array<{ pageSize: number; beforeVersionNumber?: number }> = [];
 const controller = new AiPromptRequestController({
   getSettings: () => {
     const request = deferred<ReturnType<typeof success<AiPromptSettings>>>();
     settingsRequests.push(request);
     return request.promise;
   },
-  history: () => {
-    const request = deferred<ReturnType<typeof success<AiPromptVersion[]>>>();
+  history: (_scope, _reportType, pageSize, beforeVersionNumber) => {
+    historyArguments.push({ pageSize, beforeVersionNumber });
+    const request = deferred<ReturnType<typeof success<AiPromptHistoryPage>>>();
     historyRequests.push(request);
     return request.promise;
   },
@@ -65,18 +67,32 @@ async function run() {
   const oldScopeHistory = controller.loadHistory({ scope: "GLOBAL" });
   controller.invalidateHistory();
   const currentScopeHistory = controller.loadHistory({ scope: "REPORT", reportType: "TOP_ORDER_STAFF_BY_ITEM" });
-  historyRequests[1].resolve(success([version(4, "report-current")]));
+  historyRequests[1].resolve(success({
+    items: [version(4, "report-current")],
+    nextBeforeVersionNumber: 4,
+  }));
   const history = await currentScopeHistory;
   assert.ok(history?.data);
   assert.equal(history?.scopeKey, "REPORT:TOP_ORDER_STAFF_BY_ITEM");
-  assert.equal(history.data[0].content, "report-current");
-  historyRequests[0].resolve(success([version(3, "global-stale")]));
-assert.equal(await oldScopeHistory, null, "history from an invalidated scope must be ignored");
+  assert.equal(history.data.items[0].content, "report-current");
+  historyRequests[0].resolve(success({ items: [version(3, "global-stale")], nextBeforeVersionNumber: null }));
+  assert.equal(await oldScopeHistory, null, "history from an invalidated scope must be ignored");
+
+  const staleLoadMore = controller.loadHistory(
+    { scope: "REPORT", reportType: "TOP_ORDER_STAFF_BY_ITEM" },
+    4,
+  );
+  const newestScopeRequest = controller.loadHistory({ scope: "GLOBAL" });
+  historyRequests[3].resolve(success({ items: [version(8, "global-current")], nextBeforeVersionNumber: null }));
+  assert.equal((await newestScopeRequest)?.data?.items[0].content, "global-current");
+  historyRequests[2].resolve(success({ items: [version(3, "report-stale-page")], nextBeforeVersionNumber: 3 }));
+  assert.equal(await staleLoadMore, null, "a stale load-more page must not append after a newer history lifecycle starts");
+  assert.deepEqual(historyArguments[2], { pageSize: 20, beforeVersionNumber: 4 });
 
   const disposedRequest = deferred<ReturnType<typeof success<AiPromptSettings>>>();
   const disposalController = new AiPromptRequestController({
     getSettings: () => disposedRequest.promise,
-    history: () => Promise.resolve(success([])),
+    history: () => Promise.resolve(success({ items: [], nextBeforeVersionNumber: null })),
   });
   const disposedSettings = disposalController.loadSettings();
   disposalController.dispose();
@@ -106,7 +122,7 @@ assert.equal(await oldScopeHistory, null, "history from an invalidated scope mus
       mutationRequests.push(request);
       return request.promise;
     },
-    history: () => Promise.resolve(success([])),
+    history: () => Promise.resolve(success({ items: [], nextBeforeVersionNumber: null })),
   });
   const mutationSucceeded = "saved-on-server";
   const afterMutation = {

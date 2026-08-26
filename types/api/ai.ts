@@ -90,6 +90,11 @@ export interface AiPromptVersion {
   createdAt: string;
 }
 
+export interface AiPromptHistoryPage {
+  items: AiPromptVersion[];
+  nextBeforeVersionNumber: number | null;
+}
+
 export interface AiPromptSettings {
   global: AiPromptVersion | null;
   reportTypes: Array<{

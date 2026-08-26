@@ -16,7 +16,11 @@ import { formatApiError } from "@/lib/http/formatError";
 import type { AiPromptSettings, AiPromptVersion, AiReportType } from "@/types/api/ai";
 
 type Tab = "GLOBAL" | "REPORT";
-type HistoryState = { scopeKey: string; items: AiPromptVersion[] };
+type HistoryState = {
+  scopeKey: string;
+  items: AiPromptVersion[];
+  nextBeforeVersionNumber: number | null;
+};
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -119,15 +123,36 @@ export function WinAiAnalysisPrompt() {
     return null;
   }
 
-  async function loadHistory(scope = currentScopeOrError()) {
+  async function loadHistory(
+    scope = currentScopeOrError(),
+    beforeVersionNumber?: number,
+  ) {
     if (!scope || !initialized) return;
     setHistoryLoading(true);
     setHistoryError(null);
-    const result = await controller.loadHistory(scope);
+    const result = await controller.loadHistory(scope, beforeVersionNumber);
     if (!result || !mountedRef.current) return;
 
     if (result.isSuccess && result.data) {
-      setHistory({ scopeKey: result.scopeKey, items: result.data });
+      const page = result.data;
+      setHistory(current => {
+        if (beforeVersionNumber !== undefined && current?.scopeKey === result.scopeKey) {
+          const existingIds = new Set(current.items.map(item => item.id));
+          return {
+            scopeKey: result.scopeKey,
+            items: [
+              ...current.items,
+              ...page.items.filter(item => !existingIds.has(item.id)),
+            ],
+            nextBeforeVersionNumber: page.nextBeforeVersionNumber,
+          };
+        }
+        return {
+          scopeKey: result.scopeKey,
+          items: page.items,
+          nextBeforeVersionNumber: page.nextBeforeVersionNumber,
+        };
+      });
     } else {
       setHistoryError(formatApiError(result as unknown as Parameters<typeof formatApiError>[0]));
     }
@@ -293,6 +318,15 @@ export function WinAiAnalysisPrompt() {
                 <button onClick={() => void restore(version)} disabled={interactionLocked} className="tb-btn">Khôi phục</button>
               </section>
             ))}
+            {history.nextBeforeVersionNumber !== null && (
+              <button
+                className="tb-btn"
+                disabled={interactionLocked || historyLoading}
+                onClick={() => void loadHistory(currentScopeOrError(), history.nextBeforeVersionNumber ?? undefined)}
+              >
+                {historyLoading ? "Đang tải..." : "Tải thêm"}
+              </button>
+            )}
           </aside>
         )}
       </div>

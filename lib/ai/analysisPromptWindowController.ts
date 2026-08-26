@@ -1,6 +1,7 @@
 import type { HttpOptions } from "@/lib/http/client";
 import type {
   AiPromptSettings,
+  AiPromptHistoryPage,
   AiPromptVersion,
   AiReportType,
   SaveAiPromptRequest,
@@ -33,7 +34,13 @@ export interface SettledSettingsReload extends PromptSettingsState {
 
 export interface AiPromptRequestClient {
   getSettings(options?: HttpOptions): Promise<PromptResult<AiPromptSettings>>;
-  history(scope: PromptScope["scope"], reportType?: AiReportType, options?: HttpOptions): Promise<PromptResult<AiPromptVersion[]>>;
+  history(
+    scope: PromptScope["scope"],
+    reportType: AiReportType | undefined,
+    pageSize: number,
+    beforeVersionNumber?: number,
+    options?: HttpOptions,
+  ): Promise<PromptResult<AiPromptHistoryPage>>;
 }
 
 export function scopeKey(scope: PromptScope): string {
@@ -116,12 +123,21 @@ export class AiPromptRequestController {
     return this.isCurrentSettings(generation, abort) ? result : null;
   }
 
-  async loadHistory(scope: PromptScope): Promise<(PromptResult<AiPromptVersion[]> & { scopeKey: string }) | null> {
+  async loadHistory(
+    scope: PromptScope,
+    beforeVersionNumber?: number,
+  ): Promise<(PromptResult<AiPromptHistoryPage> & { scopeKey: string }) | null> {
     this.historyAbort?.abort();
     const abort = new AbortController();
     this.historyAbort = abort;
     const generation = ++this.historyGeneration;
-    const result = await this.client.history(scope.scope, scope.reportType, { signal: abort.signal });
+    const result = await this.client.history(
+      scope.scope,
+      scope.reportType,
+      20,
+      beforeVersionNumber,
+      { signal: abort.signal },
+    );
     if (!this.isCurrentHistory(generation, abort)) return null;
     return { ...result, scopeKey: scopeKey(scope) };
   }

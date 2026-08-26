@@ -123,8 +123,10 @@ giữ giao diện đơn giản gồm đúng hai tab:
   rồi sửa phần bổ sung riêng của báo cáo đó.
 
 Mỗi ô tối đa 4.000 ký tự. Lưu nội dung rỗng là xoá phần bổ sung bằng một phiên bản rỗng mới; dữ liệu
-luôn append-only. Nút **Xem lịch sử** tải đúng scope đang chọn, hiển thị số phiên bản/người tạo/thời
-điểm/nội dung; **Khôi phục** yêu cầu xác nhận rồi tạo phiên bản active mới, không sửa bản cũ. Prompt
+luôn append-only. Nút **Xem lịch sử** tải đúng scope đang chọn theo từng trang 20 phiên bản; nút
+**Tải thêm** dùng cursor của server để nối các phiên bản cũ hơn mà không làm mất khả năng khôi phục.
+Mỗi mục hiển thị số phiên bản/người tạo/thời điểm/nội dung; **Khôi phục** yêu cầu xác nhận rồi tạo
+phiên bản active mới, không sửa bản cũ. Prompt
 hệ thống cốt lõi và profile báo cáo cố định vẫn thuộc source backend, không hiển thị, không sao chép và
 không seed vào trường editable.
 
@@ -134,14 +136,15 @@ Frontend gọi đúng các route:
 |---|---|
 | Tải cấu hình | `GET /api/erp/ai-analysis-prompts` |
 | Lưu phiên bản | `PUT /api/erp/ai-analysis-prompts` |
-| Xem lịch sử | `GET /api/erp/ai-analysis-prompts/history?scope=...&reportType=...` |
+| Xem lịch sử | `GET /api/erp/ai-analysis-prompts/history?scope=...&reportType=...&pageSize=20&beforeVersionNumber=...` trả `{ items, nextBeforeVersionNumber }` |
 | Khôi phục | `POST /api/erp/ai-analysis-prompts/{id}/restore` |
 
 Khi bấm **Phân tích bằng AI**, frontend gửi `reportContext` có `reportType`, `filters`,
 `selectedItemId` (nếu có) và toàn bộ `data` đang tải tới `POST /api/ai/chat` trong một cuộc trò chuyện
 mới. Bubble và lịch sử người dùng chỉ hiện nhãn `Phân tích báo cáo ...`; JSON thô không được đưa vào
-text hiển thị. Backend giới hạn request 128.000 ký tự, context cho model 24.000 ký tự, depth 12 và chỉ
-cắt theo whole record hợp lệ; metadata included/total cho biết phạm vi thực tế. Cuộc trò chuyện báo cáo
+text hiển thị. Backend giới hạn toàn bộ raw HTTP body ở 256 KiB trước khi bind JSON, rồi giới hạn
+`reportContext` canonical ở 128.000 ký tự; context cho model là 24.000 ký tự, depth 12 và chỉ cắt theo
+whole record hợp lệ. Metadata included/total cho biết phạm vi thực tế. Cuộc trò chuyện báo cáo
 cũ giữ snapshot dữ liệu/prompt cũ khi hỏi tiếp, còn cuộc trò chuyện mới lấy phiên bản prompt mới.
 Report analysis không có tool; chat thủ công như `Doanh thu hôm nay` vẫn dùng các data tool được cấp
 quyền.
