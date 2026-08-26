@@ -98,7 +98,7 @@ export function TopOrderStaffItemList({
         ))}
       </div>
 
-      <div className="min-h-0 overflow-auto border border-gray-200 rounded" role="list">
+      <div className="min-h-0 overflow-auto border border-gray-200 rounded">
         {items.map((insight, index) => {
           const key = itemInsightKey(insight);
           const top1 = insight.positiveStaff[0];

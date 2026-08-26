@@ -94,3 +94,4 @@ const itemListMarkup = renderToStaticMarkup(
 );
 assert.match(itemListMarkup, /<button[^>]*aria-pressed="true"/);
 assert.doesNotMatch(itemListMarkup, /role="listitem"/);
+assert.doesNotMatch(itemListMarkup, /role="list"/);
