@@ -1,13 +1,23 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { aiApi } from "@/lib/api/ai";
+import {
+  ChatRequestScheduler,
+  createFreshChatRequest,
+  createManualChatRequest,
+} from "@/lib/ai/chatRequestScheduler";
 import type { ChatVisualization, ConversationSummary, SendChatRequest } from "@/types/api/ai";
 
 export interface ChatTurn {
   role: "user" | "ai";
   text: string;
   visualizations?: ChatVisualization[];
+}
+
+interface PendingFreshRequest {
+  request: SendChatRequest;
+  displayText?: string;
 }
 
 export function useAiChat() {
@@ -17,6 +27,13 @@ export function useAiChat() {
   const [conversationId, setConversationId] = useState<number | undefined>();
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const schedulerRef = useRef(new ChatRequestScheduler<PendingFreshRequest>());
+  const startFreshRef = useRef<(pending: PendingFreshRequest) => void>(() => {});
+
+  const completeDelivery = useCallback(() => {
+    const next = schedulerRef.current.complete();
+    if (next) startFreshRef.current(next);
+  }, []);
 
   // Core delivery. `request.conversationId` is supplied by the caller so a fresh-conversation
   // send isn't defeated by the async state update of conversationId. `reset` starts a clean thread.
@@ -24,35 +41,51 @@ export function useAiChat() {
   const deliver = useCallback(
     async (request: SendChatRequest, reset: boolean, displayText?: string) => {
       const text = request.message.trim();
-      if (!text || busy) return;
+      if (!text) return;
       const bubble = displayText ?? text;
       setBusy(true);
       setTurns((t) => (reset ? [{ role: "user", text: bubble }] : [...t, { role: "user", text: bubble }]));
-      const res = await aiApi.chat({ ...request, message: text });
-      setBusy(false);
-      if (res.isSuccess && res.data) {
-        const data = res.data;
-        setConversationId(data.conversationId);
-        setTurns((t) => [...t, { role: "ai", text: data.narrative, visualizations: data.visualizations }]);
-      } else {
-        setTurns((t) => [...t, { role: "ai", text: res.detail ?? "Lỗi khi gọi AI." }]);
+      try {
+        const res = await aiApi.chat({ ...request, message: text });
+        if (res.isSuccess && res.data) {
+          const data = res.data;
+          setConversationId(data.conversationId);
+          setTurns((t) => [...t, { role: "ai", text: data.narrative, visualizations: data.visualizations }]);
+        } else {
+          setTurns((t) => [...t, { role: "ai", text: res.detail ?? "Lỗi khi gọi AI." }]);
+        }
+      } catch {
+        setTurns((t) => [...t, { role: "ai", text: "Lỗi khi gọi AI." }]);
+      } finally {
+        setBusy(false);
+        completeDelivery();
       }
     },
-    [busy],
+    [completeDelivery],
   );
 
   const send = useCallback(async () => {
     const message = input.trim();
     if (!message) return;
     setInput("");
-    await deliver({ message, conversationId }, false);
+    if (!schedulerRef.current.beginManual()) return;
+    await deliver(createManualChatRequest(message, conversationId), false);
   }, [input, conversationId, deliver]);
+
+  const startFresh = useCallback((pending: PendingFreshRequest) => {
+    setConversationId(undefined);
+    void deliver(pending.request, true, pending.displayText);
+  }, [deliver]);
+  startFreshRef.current = startFresh;
 
   // Send a structured report request as a BRAND-NEW conversation.
   const sendFresh = useCallback(async (request: SendChatRequest, displayText?: string) => {
-    setConversationId(undefined);
-    await deliver({ ...request, conversationId: undefined }, true, displayText);
-  }, [deliver]);
+    const pending = schedulerRef.current.beginFresh({
+      request: createFreshChatRequest(request),
+      displayText,
+    });
+    if (pending) startFresh(pending);
+  }, [startFresh]);
 
   const refreshSessions = useCallback(async () => {
     setLoadingSessions(true);
