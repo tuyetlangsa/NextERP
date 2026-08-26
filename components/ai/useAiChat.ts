@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { aiApi } from "@/lib/api/ai";
 import {
   ChatRequestScheduler,
@@ -28,11 +28,22 @@ export function useAiChat() {
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const schedulerRef = useRef(new ChatRequestScheduler<PendingFreshRequest>());
+  const disposedRef = useRef(false);
   const startFreshRef = useRef<(pending: PendingFreshRequest) => void>(() => {});
 
+  useEffect(() => {
+    disposedRef.current = false;
+    schedulerRef.current = new ChatRequestScheduler<PendingFreshRequest>();
+    return () => {
+      disposedRef.current = true;
+      schedulerRef.current.dispose();
+    };
+  }, []);
+
   const completeDelivery = useCallback(() => {
+    if (disposedRef.current) return;
     const next = schedulerRef.current.complete();
-    if (next) startFreshRef.current(next);
+    if (next && !disposedRef.current) startFreshRef.current(next);
   }, []);
 
   // Core delivery. `request.conversationId` is supplied by the caller so a fresh-conversation
@@ -40,6 +51,7 @@ export function useAiChat() {
   // `displayText` remains separate from the request payload for report-analysis bubbles.
   const deliver = useCallback(
     async (request: SendChatRequest, reset: boolean, displayText?: string) => {
+      if (disposedRef.current) return;
       const text = request.message.trim();
       if (!text) return;
       const bubble = displayText ?? text;
@@ -47,6 +59,7 @@ export function useAiChat() {
       setTurns((t) => (reset ? [{ role: "user", text: bubble }] : [...t, { role: "user", text: bubble }]));
       try {
         const res = await aiApi.chat({ ...request, message: text });
+        if (disposedRef.current) return;
         if (res.isSuccess && res.data) {
           const data = res.data;
           setConversationId(data.conversationId);
@@ -55,16 +68,21 @@ export function useAiChat() {
           setTurns((t) => [...t, { role: "ai", text: res.detail ?? "Lỗi khi gọi AI." }]);
         }
       } catch {
-        setTurns((t) => [...t, { role: "ai", text: "Lỗi khi gọi AI." }]);
+        if (!disposedRef.current) {
+          setTurns((t) => [...t, { role: "ai", text: "Lỗi khi gọi AI." }]);
+        }
       } finally {
-        setBusy(false);
-        completeDelivery();
+        if (!disposedRef.current) {
+          setBusy(false);
+          completeDelivery();
+        }
       }
     },
     [completeDelivery],
   );
 
   const send = useCallback(async () => {
+    if (disposedRef.current) return;
     const message = input.trim();
     if (!message) return;
     setInput("");
@@ -73,6 +91,7 @@ export function useAiChat() {
   }, [input, conversationId, deliver]);
 
   const startFresh = useCallback((pending: PendingFreshRequest) => {
+    if (disposedRef.current) return;
     setConversationId(undefined);
     void deliver(pending.request, true, pending.displayText);
   }, [deliver]);
@@ -80,6 +99,7 @@ export function useAiChat() {
 
   // Send a structured report request as a BRAND-NEW conversation.
   const sendFresh = useCallback(async (request: SendChatRequest, displayText?: string) => {
+    if (disposedRef.current) return;
     const pending = schedulerRef.current.beginFresh({
       request: createFreshChatRequest(request),
       displayText,

@@ -45,3 +45,14 @@ assert.equal(scheduler.beginManual(), true);
 assert.equal(scheduler.beginManual(), false);
 assert.equal(scheduler.complete(), null);
 assert.equal(scheduler.beginManual(), true);
+
+// Disposal is safe to call more than once. It clears a queued report request
+// and ensures the completion of an active request cannot start it after logout.
+const disposedScheduler = new ChatRequestScheduler<{ id: string }>();
+assert.equal(disposedScheduler.beginManual(), true);
+assert.equal(disposedScheduler.beginFresh({ id: "queued-after-logout" }), null);
+disposedScheduler.dispose();
+disposedScheduler.dispose();
+assert.equal(disposedScheduler.complete(), null);
+assert.equal(disposedScheduler.beginFresh({ id: "never-start" }), null);
+assert.equal(disposedScheduler.beginManual(), false);

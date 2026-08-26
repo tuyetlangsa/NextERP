@@ -16,14 +16,16 @@ export function createFreshChatRequest(request: SendChatRequest): SendChatReques
 export class ChatRequestScheduler<TFresh> {
   private inFlight = false;
   private freshQueue: TFresh[] = [];
+  private disposed = false;
 
   beginManual(): boolean {
-    if (this.inFlight) return false;
+    if (this.disposed || this.inFlight) return false;
     this.inFlight = true;
     return true;
   }
 
   beginFresh(request: TFresh): TFresh | null {
+    if (this.disposed) return null;
     if (this.inFlight) {
       this.freshQueue.push(request);
       return null;
@@ -33,9 +35,16 @@ export class ChatRequestScheduler<TFresh> {
   }
 
   complete(): TFresh | null {
+    if (this.disposed) return null;
     const next = this.freshQueue.shift();
     if (next !== undefined) return next;
     this.inFlight = false;
     return null;
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    this.inFlight = false;
+    this.freshQueue = [];
   }
 }
