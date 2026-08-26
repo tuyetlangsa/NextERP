@@ -106,7 +106,6 @@ export function TopOrderStaffItemList({
             <button
               key={key}
               type="button"
-              role="listitem"
               data-item-key={key}
               aria-pressed={selectedKey === key}
               onClick={() => onSelect(key)}

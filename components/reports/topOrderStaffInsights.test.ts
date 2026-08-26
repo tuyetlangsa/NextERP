@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { TopOrderStaffItemList } from "./TopOrderStaffItemList";
 import {
   buildTopOrderStaffInsight,
   itemInsightKey,
@@ -75,3 +78,19 @@ assert.equal(nextSelectedInsightKey(visible, null), itemInsightKey(visible[0]));
 assert.equal(nextSelectedInsightKey(visible, itemInsightKey(visible[1])), itemInsightKey(visible[1]));
 assert.equal(nextSelectedInsightKey(visible.slice(0, 1), itemInsightKey(visible[1])), itemInsightKey(visible[0]));
 assert.equal(nextSelectedInsightKey([], itemInsightKey(visible[0])), null);
+
+const itemListMarkup = renderToStaticMarkup(
+  createElement(TopOrderStaffItemList, {
+    items: visible,
+    selectedKey: itemInsightKey(visible[0]),
+    query: "",
+    sort: "QUANTITY_DESC",
+    filter: "ALL",
+    onQueryChange: () => {},
+    onSortChange: () => {},
+    onFilterChange: () => {},
+    onSelect: () => {},
+  }),
+);
+assert.match(itemListMarkup, /<button[^>]*aria-pressed="true"/);
+assert.doesNotMatch(itemListMarkup, /role="listitem"/);
