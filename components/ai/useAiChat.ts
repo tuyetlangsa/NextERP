@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { aiApi } from "@/lib/api/ai";
 import {
+  ChatRequestLifecycle,
   ChatRequestScheduler,
   createFreshChatRequest,
   createManualChatRequest,
@@ -27,31 +28,32 @@ export function useAiChat() {
   const [conversationId, setConversationId] = useState<number | undefined>();
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const schedulerRef = useRef(new ChatRequestScheduler<PendingFreshRequest>());
-  const disposedRef = useRef(false);
-  const startFreshRef = useRef<(pending: PendingFreshRequest) => void>(() => {});
+  const lifecycleRef = useRef(new ChatRequestLifecycle<PendingFreshRequest>());
+  const startFreshRef = useRef<(pending: PendingFreshRequest, scheduler: ChatRequestScheduler<PendingFreshRequest>) => void>(() => {});
 
   useEffect(() => {
-    disposedRef.current = false;
-    schedulerRef.current = new ChatRequestScheduler<PendingFreshRequest>();
+    const scheduler = lifecycleRef.current.activate();
     return () => {
-      disposedRef.current = true;
-      schedulerRef.current.dispose();
+      lifecycleRef.current.dispose(scheduler);
     };
   }, []);
 
-  const completeDelivery = useCallback(() => {
-    if (disposedRef.current) return;
-    const next = schedulerRef.current.complete();
-    if (next && !disposedRef.current) startFreshRef.current(next);
+  const completeDelivery = useCallback((scheduler: ChatRequestScheduler<PendingFreshRequest>) => {
+    const next = lifecycleRef.current.complete(scheduler);
+    if (next && lifecycleRef.current.isCurrent(scheduler)) startFreshRef.current(next, scheduler);
   }, []);
 
   // Core delivery. `request.conversationId` is supplied by the caller so a fresh-conversation
   // send isn't defeated by the async state update of conversationId. `reset` starts a clean thread.
   // `displayText` remains separate from the request payload for report-analysis bubbles.
   const deliver = useCallback(
-    async (request: SendChatRequest, reset: boolean, displayText?: string) => {
-      if (disposedRef.current) return;
+    async (
+      request: SendChatRequest,
+      reset: boolean,
+      displayText: string | undefined,
+      scheduler: ChatRequestScheduler<PendingFreshRequest>,
+    ) => {
+      if (!lifecycleRef.current.isCurrent(scheduler)) return;
       const text = request.message.trim();
       if (!text) return;
       const bubble = displayText ?? text;
@@ -59,7 +61,7 @@ export function useAiChat() {
       setTurns((t) => (reset ? [{ role: "user", text: bubble }] : [...t, { role: "user", text: bubble }]));
       try {
         const res = await aiApi.chat({ ...request, message: text });
-        if (disposedRef.current) return;
+        if (!lifecycleRef.current.isCurrent(scheduler)) return;
         if (res.isSuccess && res.data) {
           const data = res.data;
           setConversationId(data.conversationId);
@@ -68,13 +70,13 @@ export function useAiChat() {
           setTurns((t) => [...t, { role: "ai", text: res.detail ?? "Lỗi khi gọi AI." }]);
         }
       } catch {
-        if (!disposedRef.current) {
+        if (lifecycleRef.current.isCurrent(scheduler)) {
           setTurns((t) => [...t, { role: "ai", text: "Lỗi khi gọi AI." }]);
         }
       } finally {
-        if (!disposedRef.current) {
+        if (lifecycleRef.current.isCurrent(scheduler)) {
           setBusy(false);
-          completeDelivery();
+          completeDelivery(scheduler);
         }
       }
     },
@@ -82,29 +84,31 @@ export function useAiChat() {
   );
 
   const send = useCallback(async () => {
-    if (disposedRef.current) return;
+    const scheduler = lifecycleRef.current.current();
+    if (!lifecycleRef.current.isCurrent(scheduler)) return;
     const message = input.trim();
     if (!message) return;
     setInput("");
-    if (!schedulerRef.current.beginManual()) return;
-    await deliver(createManualChatRequest(message, conversationId), false);
+    if (!scheduler.beginManual()) return;
+    await deliver(createManualChatRequest(message, conversationId), false, undefined, scheduler);
   }, [input, conversationId, deliver]);
 
-  const startFresh = useCallback((pending: PendingFreshRequest) => {
-    if (disposedRef.current) return;
+  const startFresh = useCallback((pending: PendingFreshRequest, scheduler: ChatRequestScheduler<PendingFreshRequest>) => {
+    if (!lifecycleRef.current.isCurrent(scheduler)) return;
     setConversationId(undefined);
-    void deliver(pending.request, true, pending.displayText);
+    void deliver(pending.request, true, pending.displayText, scheduler);
   }, [deliver]);
   startFreshRef.current = startFresh;
 
   // Send a structured report request as a BRAND-NEW conversation.
   const sendFresh = useCallback(async (request: SendChatRequest, displayText?: string) => {
-    if (disposedRef.current) return;
-    const pending = schedulerRef.current.beginFresh({
+    const scheduler = lifecycleRef.current.current();
+    if (!lifecycleRef.current.isCurrent(scheduler)) return;
+    const pending = scheduler.beginFresh({
       request: createFreshChatRequest(request),
       displayText,
     });
-    if (pending) startFresh(pending);
+    if (pending) startFresh(pending, scheduler);
   }, [startFresh]);
 
   const refreshSessions = useCallback(async () => {

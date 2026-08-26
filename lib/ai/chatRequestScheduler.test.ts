@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  ChatRequestLifecycle,
   ChatRequestScheduler,
   createFreshChatRequest,
   createManualChatRequest,
@@ -56,3 +57,16 @@ disposedScheduler.dispose();
 assert.equal(disposedScheduler.complete(), null);
 assert.equal(disposedScheduler.beginFresh({ id: "never-start" }), null);
 assert.equal(disposedScheduler.beginManual(), false);
+
+// A late completion from lifecycle A must not complete or drain lifecycle B
+// after Strict Mode reactivation (or a real remount).
+const lifecycle = new ChatRequestLifecycle<{ id: string }>();
+const schedulerA = lifecycle.activate();
+assert.equal(schedulerA.beginManual(), true);
+lifecycle.dispose(schedulerA);
+const schedulerB = lifecycle.activate();
+assert.equal(schedulerB.beginManual(), true);
+assert.equal(lifecycle.complete(schedulerA), null);
+assert.equal(lifecycle.isCurrent(schedulerA), false);
+assert.equal(lifecycle.isCurrent(schedulerB), true);
+assert.equal(schedulerB.beginFresh({ id: "still-queued-on-b" }), null);

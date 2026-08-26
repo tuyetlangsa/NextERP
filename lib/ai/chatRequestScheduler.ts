@@ -47,4 +47,36 @@ export class ChatRequestScheduler<TFresh> {
     this.inFlight = false;
     this.freshQueue = [];
   }
+
+  isDisposed(): boolean {
+    return this.disposed;
+  }
+}
+
+/** Owns the current scheduler instance across effect cleanup/reactivation cycles. */
+export class ChatRequestLifecycle<TFresh> {
+  private scheduler = new ChatRequestScheduler<TFresh>();
+
+  activate(): ChatRequestScheduler<TFresh> {
+    if (this.scheduler.isDisposed()) {
+      this.scheduler = new ChatRequestScheduler<TFresh>();
+    }
+    return this.scheduler;
+  }
+
+  current(): ChatRequestScheduler<TFresh> {
+    return this.scheduler;
+  }
+
+  dispose(scheduler: ChatRequestScheduler<TFresh>): void {
+    if (scheduler === this.scheduler) scheduler.dispose();
+  }
+
+  isCurrent(scheduler: ChatRequestScheduler<TFresh>): boolean {
+    return scheduler === this.scheduler && !scheduler.isDisposed();
+  }
+
+  complete(scheduler: ChatRequestScheduler<TFresh>): TFresh | null {
+    return this.isCurrent(scheduler) ? scheduler.complete() : null;
+  }
 }
