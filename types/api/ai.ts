@@ -80,3 +80,27 @@ export interface KnowledgeUpsert {
   content: string;
   isActive: boolean;
 }
+
+export interface AiPromptVersion {
+  id: number;
+  content: string;
+  versionNumber: number;
+  restoredFromId: number | null;
+  createdByFullName: string;
+  createdAt: string;
+}
+
+export interface AiPromptSettings {
+  global: AiPromptVersion | null;
+  reportTypes: Array<{
+    code: AiReportType;
+    label: string;
+    active: AiPromptVersion | null;
+  }>;
+}
+
+export interface SaveAiPromptRequest {
+  scope: "GLOBAL" | "REPORT";
+  reportType?: AiReportType;
+  content: string;
+}

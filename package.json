@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:page-access": "tsx data/pageAccess.test.ts",
     "test:top-order-staff": "tsx components/reports/topOrderStaffInsights.test.ts",
     "test:ai-report-context": "tsx lib/ai/analyzeBus.test.ts && tsx lib/ai/chatRequestScheduler.test.ts"
   },
