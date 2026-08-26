@@ -112,6 +112,55 @@ Các contract AI/reporting backend có giới hạn detail rows và permission r
 tự tổng hợp detail đã truncate để suy ra KPI. Xem `RPOM_REPORTING_MODULE_GUIDE.md` ở repository gốc
 để biết ma trận quyền, nguồn invoice so với operational và giới hạn payload.
 
+## Quản lý prompt phân tích AI
+
+Window **Bối cảnh phân tích AI** chỉ hiện và cho mở với vai trò `OWNER` hoặc `ADMIN_VENDOR`. Màn hình
+giữ giao diện đơn giản gồm đúng hai tab:
+
+- **Prompt chung** sửa phần bổ sung `GLOBAL` dùng cho mọi báo cáo.
+- **Theo báo cáo** chọn một trong 11 mã `REVENUE_SUMMARY`, `REVENUE`, `TICKET_LIST`, `ITEM_SALES`,
+  `CATEGORY`, `ITEM`, `TOP_ORDER_STAFF_BY_ITEM`, `TOP_SELLERS`, `SHIFT`, `INGREDIENT`, `STOCK_ALERT`
+  rồi sửa phần bổ sung riêng của báo cáo đó.
+
+Mỗi ô tối đa 4.000 ký tự. Lưu nội dung rỗng là xoá phần bổ sung bằng một phiên bản rỗng mới; dữ liệu
+luôn append-only. Nút **Xem lịch sử** tải đúng scope đang chọn, hiển thị số phiên bản/người tạo/thời
+điểm/nội dung; **Khôi phục** yêu cầu xác nhận rồi tạo phiên bản active mới, không sửa bản cũ. Prompt
+hệ thống cốt lõi và profile báo cáo cố định vẫn thuộc source backend, không hiển thị, không sao chép và
+không seed vào trường editable.
+
+Frontend gọi đúng các route:
+
+| Thao tác | Route |
+|---|---|
+| Tải cấu hình | `GET /api/erp/ai-analysis-prompts` |
+| Lưu phiên bản | `PUT /api/erp/ai-analysis-prompts` |
+| Xem lịch sử | `GET /api/erp/ai-analysis-prompts/history?scope=...&reportType=...` |
+| Khôi phục | `POST /api/erp/ai-analysis-prompts/{id}/restore` |
+
+Khi bấm **Phân tích bằng AI**, frontend gửi `reportContext` có `reportType`, `filters`,
+`selectedItemId` (nếu có) và toàn bộ `data` đang tải tới `POST /api/ai/chat` trong một cuộc trò chuyện
+mới. Bubble và lịch sử người dùng chỉ hiện nhãn `Phân tích báo cáo ...`; JSON thô không được đưa vào
+text hiển thị. Backend giới hạn request 128.000 ký tự, context cho model 24.000 ký tự, depth 12 và chỉ
+cắt theo whole record hợp lệ; metadata included/total cho biết phạm vi thực tế. Cuộc trò chuyện báo cáo
+cũ giữ snapshot dữ liệu/prompt cũ khi hỏi tiếp, còn cuộc trò chuyện mới lấy phiên bản prompt mới.
+Report analysis không có tool; chat thủ công như `Doanh thu hôm nay` vẫn dùng các data tool được cấp
+quyền.
+
+Tab **Top nhân viên theo món** dùng bố cục master-detail: danh sách món bên trái hỗ trợ tìm, sắp xếp,
+lọc và bàn phím; chi tiết bên phải hiển thị tổng sản lượng thuần, tối đa ba nhân viên có sản lượng
+dương, tỷ lệ, cảnh báo hoàn món và nhận định phân bố dữ liệu. Sản lượng chưa chuẩn hoá theo ca, giờ hay
+cơ hội bán, vì vậy UI và AI không được gọi đây là đánh giá hiệu suất/kỹ năng hoặc gắn nhãn nhân viên
+tốt/xấu, mạnh/yếu.
+
+Kiểm các contract liên quan bằng:
+
+```bash
+npm run test:page-access
+npm run test:ai-analysis-prompts
+npm run test:ai-report-context
+npm run test:top-order-staff
+```
+
 ## Lưu ý quan trọng
 
 - **Next.js 16** có breaking changes so với 14/15. Đọc `node_modules/next/dist/docs/` trước khi viết route handler / server action.

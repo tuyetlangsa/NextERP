@@ -4,6 +4,23 @@ Branch: `main`
 
 ---
 
+## Quản lý prompt bổ sung và gửi context báo cáo có cấu trúc — 2026-08-26
+
+Thêm window **Bối cảnh phân tích AI** cho `OWNER`/`ADMIN_VENDOR`, gồm hai tab đơn giản **Prompt chung**
+và **Theo báo cáo**. UI tải/lưu tối đa 4.000 ký tự, xem lịch sử theo scope và khôi phục bằng cách tạo
+phiên bản active mới qua bốn route `/api/erp/ai-analysis-prompts`; nội dung rỗng tạo version mới để
+clear. Core prompt/profile cố định vẫn ở source backend, không hiển thị hay sao chép vào ô editable.
+
+Nút **Phân tích bằng AI** nay gửi `reportContext` tách khỏi display text và luôn mở conversation mới.
+Bubble/lịch sử chỉ hiện nhãn thân thiện, không lộ JSON báo cáo. Conversation cũ giữ snapshot dữ liệu và
+prompt cũ; conversation mới lấy version mới. Backend xử lý JSON theo whole record với giới hạn
+128.000 ký tự input, 24.000 ký tự cho model và depth 12; report mode không có tool, chat thủ công vẫn
+có data tools.
+
+Tab **Top nhân viên theo món** giữ master-detail theo món, tìm/sắp xếp/lọc ở master và sản lượng thuần,
+top ba dương/cảnh báo refund ở detail. Các con số mô tả phân bố order chưa chuẩn hoá theo ca/giờ/cơ
+hội bán, không phải nhãn hiệu suất hay kỹ năng nhân viên.
+
 ## Validate SĐT/email khi tạo/sửa tài khoản nhân viên — 2026-08-15
 
 BE mới thêm validate định dạng SĐT/email cho `CreateStaffAccount`/`UpdateStaffAccount` (FluentValidation → RFC 7807). `formatApiError` (`lib/http/formatError.ts`) đã splice `extensions.errors[].description` nên `WinStaffAccount` **đã** hiện đúng lỗi BE qua `setSaveError(formatApiError(res))` — không phải sửa phần hiển thị.
