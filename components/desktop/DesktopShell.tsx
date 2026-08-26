@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppWindowState, SessionUser, Subsystem } from "@/types/domain";
 import { subsystems } from "@/data/subsystems";
-import { augmentAccessiblePages, canSeeSubsystem } from "@/data/pageAccess";
+import { augmentAccessiblePages, canLaunchSubsystem, canSeeSubsystem } from "@/data/pageAccess";
 import { accessApi } from "@/lib/api/access";
 import { SubsystemIcons, subsystemIconKey } from "./icons";
 import { AppWindow } from "./AppWindow";
@@ -106,7 +106,7 @@ export function DesktopShell({ user, onLogout }: Props) {
   }, [user.roleCode]);
 
   const launch = (def: Subsystem) => {
-    if (!def.win) return;
+    if (!canLaunchSubsystem(def, accessiblePages ?? new Set<string>(), user.roleCode)) return;
     const existing = windows.find(w => w.id === def.id);
     if (existing) {
       setWindows(ws => ws.map(w => (w.id === def.id ? { ...w, minimized: false } : w)));
@@ -141,7 +141,7 @@ export function DesktopShell({ user, onLogout }: Props) {
     const onOpenSubsystem = (e: Event) => {
       const detail = (e as CustomEvent<{ subsystemId: string }>).detail;
       const def = subsystems.find(s => s.id === detail?.subsystemId);
-      if (def?.win) launchRef.current(def);
+      if (def) launchRef.current(def);
     };
     window.addEventListener("nextErp:openSubsystem", onOpenSubsystem);
     return () => window.removeEventListener("nextErp:openSubsystem", onOpenSubsystem);

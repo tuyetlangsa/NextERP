@@ -73,6 +73,15 @@ export function canSeeSubsystem(
   return accessiblePages.has(code);
 }
 
+/** A launch target must be an implemented subsystem and pass the same page/role gate as navigation. */
+export function canLaunchSubsystem(
+  sub: { id: string; win: string | null; requiredRoleCodes?: readonly string[] },
+  accessiblePages: Set<string>,
+  roleCode?: string,
+): boolean {
+  return Boolean(sub.win) && canSeeSubsystem(sub, accessiblePages, roleCode);
+}
+
 /** Backend page `nexterp.schedule` is still commented out in AccessSeeder — grant
  *  navigation when the account clearly manages shifts/staff or is Owner/Manager. */
 const SCHEDULE_NAV_FALLBACK_PAGES = ["nexterp.shifts", "nexterp.staff_accounts"] as const;
