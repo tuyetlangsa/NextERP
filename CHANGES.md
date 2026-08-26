@@ -30,6 +30,11 @@ nút `Phân tích bằng AI`, không có PDF/Excel export.
 Thêm test runner `tsx` và `npm run test:top-order-staff` cho pure flattening helper; đây là harness tự
 động đầu tiên của NextERP cho report tab này.
 
+## Master-detail top nhân viên theo món — 2026-08-26
+
+Cập nhật presentation sang master-detail theo món, kèm các derived insight cho leaderboard, cảnh báo
+hoàn món và gợi ý đào tạo chéo. Report formula và API không đổi.
+
 ---
 
 ## 0. Sửa 2 lỗi của lưới công thức inline — 2026-08-13

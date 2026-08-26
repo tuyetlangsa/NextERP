@@ -95,8 +95,10 @@ Tất cả master-data window đã kết nối Rpom-backend qua `lib/http/client
 
 `WinReports` có tab **Top nhân viên theo món**, nằm sau **Món hàng**. Tab gọi
 `reportsApi.topOrderStaffByItem()` với ngày/quầy/khu, nhận response nested theo snapshot món và chỉ
-flatten cho Syncfusion Grid bằng `components/reports/topOrderStaffRows.ts`. `AnalyzeButton` phải nhận
-nguyên nested data để AI không mất nhóm/rank; grid hiển thị tối đa ba dòng staff cho mỗi món.
+UI giữ response nested và dựng master-detail theo món. Danh sách bên trái hỗ trợ search/sort/filter;
+panel bên phải hiển thị tối đa ba nhân viên sản lượng dương bằng thanh ngang. Dòng 0 bị bỏ khỏi
+leaderboard, dòng âm nằm trong cảnh báo hoàn món. Ngưỡng gợi ý đào tạo chéo là tổng từ 5 và top 1 từ
+80%; dữ liệu dưới 5 chỉ gắn “Ít dữ liệu”.
 
 Sản lượng là net signed từ order item không huỷ của ticket đã đóng; refund âm vẫn được tính. Phần trăm
 API có hai chữ số thập phân, UI dùng `N1`; top ba phần trăm có thể không bằng 100%. Tab không hỗ trợ
