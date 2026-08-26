@@ -68,7 +68,7 @@ export function TopOrderStaffTab({
         100% vì còn nhân viên khác hoặc có hoàn món.
       </p>
 
-      {insights.length === 0 ? (
+      {data.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-gray-400">
           Không có dữ liệu
         </div>
