@@ -71,6 +71,14 @@ export function itemInsightKey(insight: TopOrderStaffInsight): string {
   return JSON.stringify([insight.item.itemId, insight.item.itemCode]);
 }
 
+export function nextSelectedInsightKey(
+  visible: readonly TopOrderStaffInsight[],
+  current: string | null,
+): string | null {
+  if (current && visible.some((x) => itemInsightKey(x) === current)) return current;
+  return visible[0] ? itemInsightKey(visible[0]) : null;
+}
+
 export function selectTopOrderStaffInsights(
   items: readonly TopOrderStaffByItemRow[],
   options: { query: string; sort: TopOrderStaffSort; filter: TopOrderStaffFilter },
