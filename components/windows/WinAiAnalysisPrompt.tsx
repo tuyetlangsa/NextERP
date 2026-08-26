@@ -35,7 +35,8 @@ export function WinAiAnalysisPrompt() {
   const mountedRef = useRef(true);
   const dirtyScopesRef = useRef<Set<string>>(new Set());
   const draftsRef = useRef<PromptDrafts>({});
-  const pendingCommittedScopeRef = useRef<string | null>(null);
+  const draftRevisionsRef = useRef<Record<string, number>>({});
+  const pendingCommittedScopesRef = useRef<Record<string, number>>({});
 
   const [tab, setTab] = useState<Tab>("GLOBAL");
   const [settings, setSettings] = useState<AiPromptSettings | null>(null);
@@ -63,7 +64,12 @@ export function WinAiAnalysisPrompt() {
   const interactionLocked = settingsLoading || saving;
 
   const reloadSettings = useCallback(async (committedScope?: string) => {
-    if (committedScope) pendingCommittedScopeRef.current = committedScope;
+    if (committedScope) {
+      pendingCommittedScopesRef.current = {
+        ...pendingCommittedScopesRef.current,
+        [committedScope]: draftRevisionsRef.current[committedScope] ?? 0,
+      };
+    }
     setSettingsLoading(true);
     const result = await controller.loadSettings();
     if (!result || !mountedRef.current) return "stale" as const;
@@ -71,12 +77,14 @@ export function WinAiAnalysisPrompt() {
     const settled = settleSettingsReload({
       drafts: draftsRef.current,
       dirtyScopes: dirtyScopesRef.current,
-      pendingCommittedScope: pendingCommittedScopeRef.current,
+      draftRevisions: draftRevisionsRef.current,
+      pendingCommittedScopes: pendingCommittedScopesRef.current,
     }, result);
     if (settled.outcome === "applied" && settled.settings) {
       draftsRef.current = settled.drafts;
       dirtyScopesRef.current = new Set(settled.dirtyScopes);
-      pendingCommittedScopeRef.current = settled.pendingCommittedScope;
+      draftRevisionsRef.current = settled.draftRevisions;
+      pendingCommittedScopesRef.current = settled.pendingCommittedScopes;
       setSettings(settled.settings);
       setDrafts(settled.drafts);
       setInitialized(true);
@@ -151,6 +159,12 @@ export function WinAiAnalysisPrompt() {
   function changeDraft(content: string) {
     if (!currentScopeKey || interactionLocked) return;
     dirtyScopesRef.current = new Set(dirtyScopesRef.current).add(currentScopeKey);
+    draftRevisionsRef.current = {
+      ...draftRevisionsRef.current,
+      [currentScopeKey]: (draftRevisionsRef.current[currentScopeKey] ?? 0) + 1,
+    };
+    const { [currentScopeKey]: _resolvedPendingScope, ...pendingScopes } = pendingCommittedScopesRef.current;
+    pendingCommittedScopesRef.current = pendingScopes;
     const next = { ...draftsRef.current, [currentScopeKey]: content };
     draftsRef.current = next;
     setDrafts(next);

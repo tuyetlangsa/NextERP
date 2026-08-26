@@ -8,6 +8,8 @@ import type {
 
 export type PromptScope = Pick<SaveAiPromptRequest, "scope" | "reportType">;
 export type PromptDrafts = Record<string, string>;
+export type PromptDraftRevisions = Record<string, number>;
+export type PendingCommittedScopes = Record<string, number>;
 
 export type PromptResult<T> = {
   isSuccess: boolean;
@@ -19,7 +21,8 @@ export type SettingsReloadOutcome = "applied" | "failed" | "stale";
 export interface PromptSettingsState {
   drafts: PromptDrafts;
   dirtyScopes: ReadonlySet<string>;
-  pendingCommittedScope: string | null;
+  draftRevisions: PromptDraftRevisions;
+  pendingCommittedScopes: PendingCommittedScopes;
   settings?: AiPromptSettings;
 }
 
@@ -42,7 +45,7 @@ export function rebasePromptDrafts(
   drafts: PromptDrafts,
   dirtyScopes: ReadonlySet<string>,
   settings: AiPromptSettings,
-  committedScope?: string,
+  forceRebaseScopes: ReadonlySet<string> = new Set(),
 ): PromptDrafts {
   const next = { ...drafts };
   const serverDrafts: PromptDrafts = { GLOBAL: settings.global?.content ?? "" };
@@ -50,7 +53,7 @@ export function rebasePromptDrafts(
     serverDrafts[scopeKey({ scope: "REPORT", reportType: report.code })] = report.active?.content ?? "";
   }
   for (const [key, content] of Object.entries(serverDrafts)) {
-    if (!dirtyScopes.has(key) || key === committedScope) next[key] = content;
+    if (!dirtyScopes.has(key) || forceRebaseScopes.has(key)) next[key] = content;
   }
   return next;
 }
@@ -58,6 +61,8 @@ export function rebasePromptDrafts(
 /**
  * Applies a completed settings request to local drafts. A successful save/restore
  * remains pending until a settings response confirms its active server version.
+ * A later edit changes that scope's revision, so its delayed confirmation never
+ * replaces the newer unsaved draft.
  */
 export function settleSettingsReload(
   state: PromptSettingsState,
@@ -67,13 +72,20 @@ export function settleSettingsReload(
   if (!result.isSuccess || !result.data) return { ...state, outcome: "failed", errorChannel: "settings" };
 
   const dirtyScopes = new Set(state.dirtyScopes);
-  if (state.pendingCommittedScope) dirtyScopes.delete(state.pendingCommittedScope);
+  const forceRebaseScopes = new Set<string>();
+  for (const [scope, committedRevision] of Object.entries(state.pendingCommittedScopes)) {
+    if ((state.draftRevisions[scope] ?? 0) === committedRevision) {
+      dirtyScopes.delete(scope);
+      forceRebaseScopes.add(scope);
+    }
+  }
   return {
     outcome: "applied",
     settings: result.data,
-    drafts: rebasePromptDrafts(state.drafts, dirtyScopes, result.data, state.pendingCommittedScope ?? undefined),
+    drafts: rebasePromptDrafts(state.drafts, dirtyScopes, result.data, forceRebaseScopes),
     dirtyScopes,
-    pendingCommittedScope: null,
+    draftRevisions: state.draftRevisions,
+    pendingCommittedScopes: {},
   };
 }
 

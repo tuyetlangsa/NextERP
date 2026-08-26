@@ -95,7 +95,7 @@ assert.equal(await oldScopeHistory, null, "history from an invalidated scope mus
     drafts,
     new Set(["REPORT:TOP_ORDER_STAFF_BY_ITEM"]),
     settings("global-server", "report-committed"),
-    "REPORT:TOP_ORDER_STAFF_BY_ITEM",
+    new Set(["REPORT:TOP_ORDER_STAFF_BY_ITEM"]),
   );
   assert.equal(committed["REPORT:TOP_ORDER_STAFF_BY_ITEM"], "report-committed");
 
@@ -109,13 +109,18 @@ assert.equal(await oldScopeHistory, null, "history from an invalidated scope mus
     history: () => Promise.resolve(success([])),
   });
   const mutationSucceeded = "saved-on-server";
-  const afterMutation = { drafts: { GLOBAL: mutationSucceeded }, dirtyScopes: new Set(["GLOBAL"]), pendingCommittedScope: "GLOBAL" };
+  const afterMutation = {
+    drafts: { GLOBAL: mutationSucceeded },
+    dirtyScopes: new Set(["GLOBAL"]),
+    draftRevisions: { GLOBAL: 3 },
+    pendingCommittedScopes: { GLOBAL: 3 },
+  };
   const failedReload = mutationController.loadSettings();
   mutationRequests[0].resolve(failure());
   const afterFailure = settleSettingsReload(afterMutation, await failedReload);
   assert.equal(afterFailure.outcome, "failed");
   assert.equal(afterFailure.errorChannel, "settings", "a settings reload failure must remain in the settings error channel");
-  assert.equal(afterFailure.pendingCommittedScope, "GLOBAL", "a failed reload must retain the committed scope for retry");
+  assert.deepEqual(afterFailure.pendingCommittedScopes, { GLOBAL: 3 }, "a failed reload must retain the committed scope for retry");
   assert.equal(afterFailure.drafts.GLOBAL, mutationSucceeded);
 
   const retryReload = mutationController.loadSettings();
@@ -124,10 +129,40 @@ assert.equal(await oldScopeHistory, null, "history from an invalidated scope mus
   mutationRequests[1].resolve(success(serverAfterMutation));
   const afterRetry = settleSettingsReload(afterFailure, await retryReload);
   assert.equal(afterRetry.outcome, "applied");
-  assert.equal(afterRetry.pendingCommittedScope, null);
+  assert.deepEqual(afterRetry.pendingCommittedScopes, {});
   assert.equal(afterRetry.dirtyScopes.has("GLOBAL"), false);
   assert.equal(afterRetry.drafts.GLOBAL, mutationSucceeded);
   assert.equal(afterRetry.settings?.global?.versionNumber, 7, "retry must reconcile the active server version");
+
+  const postEditReload = mutationController.loadSettings();
+  mutationRequests[2].resolve(success(serverAfterMutation));
+  const postMutationEdit = settleSettingsReload({
+    ...afterFailure,
+    drafts: { GLOBAL: "newer-unsaved-edit" },
+    draftRevisions: { GLOBAL: 4 },
+  }, await postEditReload);
+  assert.equal(postMutationEdit.drafts.GLOBAL, "newer-unsaved-edit", "a post-mutation edit must not be overwritten by delayed settings confirmation");
+  assert.equal(postMutationEdit.dirtyScopes.has("GLOBAL"), true);
+  assert.deepEqual(postMutationEdit.pendingCommittedScopes, {});
+
+  const reportScope = scopeKey({ scope: "REPORT", reportType: "TOP_ORDER_STAFF_BY_ITEM" });
+  const multiScopeReload = mutationController.loadSettings();
+  const multiScopeSettings: AiPromptSettings = {
+    global: version(11, "saved-global"),
+    reportTypes: [{ code: "TOP_ORDER_STAFF_BY_ITEM", label: "Top nhân viên", active: version(12, "saved-report") }],
+  };
+  mutationRequests[3].resolve(success(multiScopeSettings));
+  const twoPendingScopes = settleSettingsReload({
+    drafts: { GLOBAL: "saved-global", [reportScope]: "saved-report" },
+    dirtyScopes: new Set(["GLOBAL", reportScope]),
+    draftRevisions: { GLOBAL: 6, [reportScope]: 8 },
+    pendingCommittedScopes: { GLOBAL: 6, [reportScope]: 8 },
+  }, await multiScopeReload);
+  assert.equal(twoPendingScopes.drafts.GLOBAL, "saved-global");
+  assert.equal(twoPendingScopes.drafts[reportScope], "saved-report");
+  assert.equal(twoPendingScopes.dirtyScopes.has("GLOBAL"), false);
+  assert.equal(twoPendingScopes.dirtyScopes.has(reportScope), false);
+  assert.deepEqual(twoPendingScopes.pendingCommittedScopes, {}, "every confirmed pending scope must reconcile together");
 }
 
 void run();
