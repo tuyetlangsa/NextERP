@@ -4,7 +4,7 @@ export function TopOrderStaffDetail({ insight }: { insight: TopOrderStaffInsight
   if (insight === null) {
     return (
       <section className="flex min-h-48 items-center justify-center text-sm text-gray-500" aria-label="Chi tiết món">
-        Chọn một món để xem chi tiết
+        Không có món phù hợp
       </section>
     );
   }

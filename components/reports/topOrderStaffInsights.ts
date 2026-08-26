@@ -64,14 +64,21 @@ export function buildTopOrderStaffInsight(item: TopOrderStaffByItemRow): TopOrde
   else if ((top1Percentage ?? 0) < BROAD_DISTRIBUTION_PERCENT) status = "BROAD_DISTRIBUTION";
   else status = "MODERATE_DISTRIBUTION";
 
+  const hasBackup = (positiveStaff[1]?.percentageOfItemQuantity ?? 0) >= BACKUP_PERCENT;
+  const message = status === "HIGH_CONCENTRATION"
+    ? hasBackup
+      ? "Sản lượng tập trung cao ở người đứng đầu; người thứ hai đã đạt ngưỡng dự phòng 25%."
+      : "Sản lượng tập trung cao ở người đứng đầu; chưa có người thứ hai đạt ngưỡng dự phòng 25%."
+    : STATUS_MESSAGE[status];
+
   return {
     item,
     positiveStaff,
     negativeStaff,
     top1Percentage,
     status,
-    hasBackup: (positiveStaff[1]?.percentageOfItemQuantity ?? 0) >= BACKUP_PERCENT,
-    message: STATUS_MESSAGE[status],
+    hasBackup,
+    message,
   };
 }
 
@@ -90,7 +97,12 @@ export function buildTopOrderStaffBarRows(insight: TopOrderStaffInsight): TopOrd
 }
 
 export function itemInsightKey(insight: TopOrderStaffInsight): string {
-  return JSON.stringify([insight.item.itemId, insight.item.itemCode]);
+  return JSON.stringify([
+    insight.item.itemId,
+    insight.item.itemCode,
+    insight.item.itemName,
+    insight.item.uomCode,
+  ]);
 }
 
 export function nextSelectedInsightKey(

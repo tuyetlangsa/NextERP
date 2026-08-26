@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import {
   itemInsightKey,
   type TopOrderStaffFilter,
@@ -31,7 +31,7 @@ interface Props {
 
 const FILTERS: ReadonlyArray<{ value: TopOrderStaffFilter; label: string }> = [
   { value: "ALL", label: "Tất cả" },
-  { value: "TRAINING", label: "Đào tạo" },
+  { value: "TRAINING", label: "Gợi ý đào tạo chéo" },
   { value: "LOW_SAMPLE", label: "Ít dữ liệu" },
   { value: "REFUND_REVIEW", label: "Hoàn món" },
 ];
@@ -47,6 +47,8 @@ export function TopOrderStaffItemList({
   onFilterChange,
   onSelect,
 }: Props) {
+  const itemListRef = useRef<HTMLDivElement>(null);
+
   const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
 
@@ -56,7 +58,7 @@ export function TopOrderStaffItemList({
     event.preventDefault();
     const nextKey = itemInsightKey(sibling);
     onSelect(nextKey);
-    document.querySelectorAll<HTMLButtonElement>("[data-item-key]").forEach((button) => {
+    itemListRef.current?.querySelectorAll<HTMLButtonElement>("[data-item-key]").forEach((button) => {
       if (button.dataset.itemKey === nextKey) button.focus();
     });
   };
@@ -84,7 +86,7 @@ export function TopOrderStaffItemList({
         </select>
       </div>
 
-      <div className="flex flex-wrap gap-2" aria-label="Lọc món">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc món">
         {FILTERS.map(({ value, label }) => (
           <button
             key={value}
@@ -98,7 +100,7 @@ export function TopOrderStaffItemList({
         ))}
       </div>
 
-      <div className="min-h-0 overflow-auto border border-gray-200 rounded">
+      <div ref={itemListRef} className="min-h-0 overflow-auto border border-gray-200 rounded">
         {items.map((insight, index) => {
           const key = itemInsightKey(insight);
           const top1 = insight.positiveStaff[0];
