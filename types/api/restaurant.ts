@@ -21,6 +21,8 @@ export interface Area {
   description: string | null;
   displayOrder: number;
   isActive: boolean;
+  /** VIP/khu ưu tiên — món ở khu này được cộng trọng số ATC (gợi ý nấu). */
+  isVip: boolean;
   createdAt: string;
   updatedAt: string;
 }

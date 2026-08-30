@@ -92,6 +92,7 @@ export function WinArea() {
       description: null,
       displayOrder: list.length + 1,
       isActive: true,
+      isVip: false,
     });
     setErrorMsg(null);
   };
@@ -106,6 +107,7 @@ export function WinArea() {
       description: draft.description ?? null,
       displayOrder: draft.displayOrder,
       isActive: draft.isActive,
+      isVip: draft.isVip ?? false,
     };
     const res = sel ? await areasApi.update(sel.id, body) : await areasApi.create(body);
 
@@ -201,6 +203,13 @@ export function WinArea() {
                   onChange={e => setDraft({ ...draft, isActive: e.target.checked })}
                 />
               </Field>
+              <Field label="Khu VIP (ưu tiên nấu)">
+                <input
+                  type="checkbox"
+                  checked={draft.isVip ?? false}
+                  onChange={e => setDraft({ ...draft, isVip: e.target.checked })}
+                />
+              </Field>
               {errorMsg && (
                 <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{errorMsg}</div>
               )}
@@ -236,6 +245,7 @@ export function WinArea() {
               <ColumnDirective field="tableCount" headerText="Số bàn" width="90" textAlign="Right" />
               <ColumnDirective field="displayOrder" headerText="Thứ tự" width="90" textAlign="Right" />
               <ColumnDirective field="isActive" headerText="Kích hoạt" width="110" displayAsCheckBox />
+              <ColumnDirective field="isVip" headerText="VIP" width="80" displayAsCheckBox textAlign="Center" />
             </ColumnsDirective>
             <Inject services={[Page, Sort, Filter]} />
           </GridComponent>

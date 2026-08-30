@@ -61,11 +61,11 @@ export const mockCounters: Counter[] = [
 ];
 
 export const mockAreas: Area[] = [
-  { id: 1, counterId: 1, name: "Sảnh chính",        description: "Tầng 1 — bàn thường",            displayOrder: 1, isActive: true,  createdAt: now, updatedAt: now },
-  { id: 2, counterId: 1, name: "Khu VIP",           description: "Tầng 1 — bàn VIP phụ thu 15%",  displayOrder: 2, isActive: true,  createdAt: now, updatedAt: now },
-  { id: 3, counterId: 2, name: "Khu quầy bar",      description: "Quầy bar — ghế cao",             displayOrder: 3, isActive: true,  createdAt: now, updatedAt: now },
-  { id: 4, counterId: 3, name: "Phòng riêng Lầu 2", description: "Phòng riêng nhóm 8-12 khách",   displayOrder: 4, isActive: true,  createdAt: now, updatedAt: now },
-  { id: 5, counterId: 4, name: "Sân vườn",          description: "Ngoài trời, mùa nắng",          displayOrder: 5, isActive: false, createdAt: now, updatedAt: now },
+  { id: 1, counterId: 1, name: "Sảnh chính",        description: "Tầng 1 — bàn thường",            displayOrder: 1, isActive: true,  isVip: false, createdAt: now, updatedAt: now },
+  { id: 2, counterId: 1, name: "Khu VIP",           description: "Tầng 1 — bàn VIP phụ thu 15%",  displayOrder: 2, isActive: true,  isVip: true,  createdAt: now, updatedAt: now },
+  { id: 3, counterId: 2, name: "Khu quầy bar",      description: "Quầy bar — ghế cao",             displayOrder: 3, isActive: true,  isVip: false, createdAt: now, updatedAt: now },
+  { id: 4, counterId: 3, name: "Phòng riêng Lầu 2", description: "Phòng riêng nhóm 8-12 khách",   displayOrder: 4, isActive: true,  isVip: true,  createdAt: now, updatedAt: now },
+  { id: 5, counterId: 4, name: "Sân vườn",          description: "Ngoài trời, mùa nắng",          displayOrder: 5, isActive: false, isVip: false, createdAt: now, updatedAt: now },
 ];
 
 export const mockTables: RestaurantTable[] = [
