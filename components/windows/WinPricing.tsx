@@ -327,6 +327,14 @@ export function WinPricing() {
   const [entriesCache, setEntriesCache] = useState<Map<number, VariantEntries>>(new Map());
   const [dirtyVariants, setDirtyVariants] = useState<Set<number>>(new Set());
 
+  // Backend lưu cờ "giá đã gồm VAT" cho TỪNG ô (item × cột giá), nhưng chủ quán khai
+  // theo món chứ không theo từng cột — nên lưới chỉ có một checkbox mỗi dòng item và
+  // tick một lần là áp cho mọi cột giá của món đó.
+  // Map này giữ tick khi món chưa có ô giá nào để ghi vào; nếu không, tick sẽ mất ngay
+  // lúc pivotRows tính lại vì không có gì trong entriesCache thay đổi.
+  const [vatByItem, setVatByItem] = useState<Map<number, boolean>>(new Map());
+  useEffect(() => { setVatByItem(new Map()); }, [selectedTableId]);
+
   // Auto-fetch entries for any variant we haven't seen yet, when "Chi tiết" active
   useEffect(() => {
     if (bottomTab !== "detail" || variants.length === 0) return;
@@ -471,17 +479,38 @@ export function WinPricing() {
 
   // ---------------- Pivot Grid (Item × Variant) ----------------
   type PivotRow = { id: number; code: string; name: string; baseUomCode: string } & Record<string, unknown>;
+  /**
+   * Cờ VAT của một món, suy từ các ô giá đang có. Chỉ báo "đã gồm VAT" khi MỌI ô của
+   * món đều bật — một ô chưa gồm VAT là đủ để cả dòng phải hiện chưa gồm, vì tick lại
+   * checkbox sẽ ghi đồng loạt và kéo mọi ô về cùng một trạng thái.
+   */
+  const deriveVatForItem = useCallback((itemId: number): boolean => {
+    let hasCell = false;
+    for (const v of variants) {
+      const cell = entriesCache.get(v.id)?.get(itemId);
+      if (!cell) continue;
+      if (!cell.isVatIncluded) return false;
+      hasCell = true;
+    }
+    return hasCell;
+  }, [variants, entriesCache]);
+
   const pivotRows: PivotRow[] = useMemo(() => {
     return itemRows.map(it => {
-      const row: PivotRow = { id: it.id, code: it.code, name: it.name, baseUomCode: it.baseUomCode };
+      const row: PivotRow = {
+        id: it.id,
+        code: it.code,
+        name: it.name,
+        baseUomCode: it.baseUomCode,
+        isVatIncluded: vatByItem.get(it.id) ?? deriveVatForItem(it.id),
+      };
       for (const v of variants) {
         const cell = entriesCache.get(v.id)?.get(it.id);
         row[`p_${v.id}`] = cell?.price ?? null;
-        row[`v_${v.id}`] = cell?.isVatIncluded ?? false;
       }
       return row;
     });
-  }, [itemRows, variants, entriesCache]);
+  }, [itemRows, variants, entriesCache, vatByItem, deriveVatForItem]);
 
   type CellSaveArgs = {
     columnName?: string;
@@ -490,18 +519,54 @@ export function WinPricing() {
   };
   const handlePivotCellSaved = (args: CellSaveArgs) => {
     if (!args.columnName || !args.rowData) return;
+    const itemId = args.rowData.id;
+
+    // Checkbox theo dòng → ghi cùng một cờ vào mọi ô giá của món.
+    if (args.columnName === "isVatIncluded") {
+      // Syncfusion batch edit trả giá trị checkbox không đồng nhất giữa các đường
+      // (click thẳng vs mở editor), nên nhận cả boolean lẫn dạng chuỗi/số.
+      const raw = args.value;
+      const flag = raw === true || raw === "true" || raw === 1 || raw === "1";
+      setVatByItem(prev => new Map(prev).set(itemId, flag));
+
+      const touched = variants
+        .filter(v => {
+          const cell = entriesCache.get(v.id)?.get(itemId);
+          return cell !== undefined && cell.isVatIncluded !== flag;
+        })
+        .map(v => v.id);
+      if (touched.length === 0) return;   // món chưa có ô giá nào — tick giữ trong vatByItem
+
+      setEntriesCache(prev => {
+        const next = new Map(prev);
+        for (const vid of touched) {
+          const vm = next.get(vid);
+          const cell = vm?.get(itemId);
+          if (!vm || !cell) continue;
+          const copy = new Map(vm);
+          copy.set(itemId, { ...cell, isVatIncluded: flag });
+          next.set(vid, copy);
+        }
+        return next;
+      });
+      setDirtyVariants(prev => new Set([...prev, ...touched]));
+      return;
+    }
+
     const m = args.columnName.match(/^p_(\d+)$/);
     if (!m) return;
     const variantId = Number(m[1]);
-    const itemId = args.rowData.id;
     const price = Number(args.value);
     if (Number.isNaN(price)) return;
+    // Ô giá mới kế thừa cờ của dòng. Trước đây mặc định false, nên giá gõ vào luôn bị
+    // hiểu là chưa gồm VAT và hệ thống cộng thêm VAT lần nữa lúc hiển thị cho khách.
+    const rowVat = vatByItem.get(itemId) ?? deriveVatForItem(itemId);
     setEntriesCache(prev => {
       const next = new Map(prev);
       const vm = new Map(next.get(variantId) ?? new Map<number, EntryCell>());
       const existing = vm.get(itemId);
       if (price <= 0) vm.delete(itemId);
-      else vm.set(itemId, { price, isVatIncluded: existing?.isVatIncluded ?? false });
+      else vm.set(itemId, { price, isVatIncluded: existing?.isVatIncluded ?? rowVat });
       next.set(variantId, vm);
       return next;
     });
@@ -670,6 +735,14 @@ export function WinPricing() {
                         <ColumnDirective field="code" headerText="Mã hàng" width="120" allowEditing={false} />
                         <ColumnDirective field="name" headerText="Tên hàng" width="240" allowEditing={false} />
                         <ColumnDirective field="baseUomCode" headerText="ĐVT" width="70" allowEditing={false} />
+                        <ColumnDirective
+                          field="isVatIncluded"
+                          headerText="Giá đã gồm VAT"
+                          width="140"
+                          displayAsCheckBox
+                          editType="booleanedit"
+                          type="boolean"
+                        />
                         {variants.map(v => (
                           <ColumnDirective
                             key={v.id}

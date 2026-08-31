@@ -4,6 +4,28 @@ Branch: `main`
 
 ---
 
+## Ô tick "Giá đã gồm VAT" trên lưới giá — 2026-08-31
+
+`PriceEntry.IsVatIncluded` có ở BE từ đầu (entity, `ListPriceEntries`, `UpsertPriceEntries`,
+endpoint), và `WinPricing` vẫn đọc/gửi nó — nhưng lưới **chưa bao giờ có cột để nhập**. Kiểm tra
+`git log -S` trên `WinPricing.tsx`: không commit nào từng thêm rồi gỡ cột này, nó thiếu ngay từ
+`f5e8c09` (2026-06-06) dựng màn. Dòng gán `row["v_<variantId>"]` là phép gán chết, không cột nào render.
+
+Hệ quả: gõ giá vào ô mới luôn ghi `isVatIncluded = false`, tức "giá chưa gồm VAT", và
+`MenuPricing.ComputePrices` cộng thêm VAT khi hiển thị cho khách. Chủ quán gõ giá đã gồm VAT (thói
+quen phổ biến) thì khách bị tính VAT hai lần, không có cách nào sửa qua giao diện.
+
+Nay lưới có một checkbox **theo dòng món**, không phải theo từng cột giá: BE vẫn lưu cờ riêng cho
+từng ô (item × cột giá), nhưng chủ quán khai theo món nên tick một lần là ghi đồng loạt vào mọi cột
+giá của món đó. Ô giá gõ mới kế thừa cờ của dòng thay vì mặc định `false`.
+
+- Cờ hiển thị của dòng suy từ các ô đang có: chỉ báo "đã gồm" khi **mọi** ô đều bật — một ô chưa gồm
+  là đủ để cả dòng hiện chưa gồm, vì tick lại sẽ kéo tất cả về cùng trạng thái.
+- `vatByItem` giữ tick cho món **chưa có ô giá nào**; không có nó thì tick mất ngay khi `pivotRows`
+  tính lại, vì `entriesCache` không đổi.
+- Luồng lưu không đổi: tick chỉ đánh dấu các cột giá liên quan là dirty, `handleSaveAllEntries` vẫn
+  gửi nguyên snapshot từng cột như cũ.
+
 ## Khu VIP toggle (ưu tiên nấu ATC) — 2026-08-15
 
 BE thêm cột `Area.IsVip` — món ở khu VIP được cộng trọng số trong gợi ý nấu ATC (α ở config
