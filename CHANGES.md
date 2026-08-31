@@ -4,6 +4,14 @@ Branch: `main`
 
 ---
 
+## Bỏ "(spec N)" trên tiêu đề cột giá — 2026-08-31
+
+Tiêu đề mỗi cột giá ở tab Chi tiết là `${v.code} (spec ${v.specificity})`. `specificity` là số nội bộ
+dùng để chọn cột giá thắng khi nhiều cột cùng khớp — không phải thứ chủ quán cần đọc trên lưới. Header
+giờ chỉ còn mã cột giá.
+
+Chỗ giải thích độ cụ thể vẫn còn ở panel chi tiết cột giá ("độ cụ thể N/3"), nơi nó có ngữ cảnh.
+
 ## Sửa cờ VAT bị ghi ngược — 2026-08-31
 
 Tick "Giá đã gồm VAT" rồi lưu thì menu lại cộng thêm VAT (giá 20.000, VAT 10% → hiện 22.000), bỏ

@@ -756,7 +756,7 @@ export function WinPricing() {
                           <ColumnDirective
                             key={v.id}
                             field={`p_${v.id}`}
-                            headerText={`${v.code} (spec ${v.specificity})`}
+                            headerText={v.code}
                             width="130"
                             textAlign="Right"
                             editType="numericedit"
