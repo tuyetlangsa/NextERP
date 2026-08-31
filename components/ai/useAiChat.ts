@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { aiApi } from "@/lib/api/ai";
+import { formatApiError } from "@/lib/http/formatError";
 import type { ChatVisualization, ConversationSummary } from "@/types/api/ai";
 
 export interface ChatTurn {
@@ -17,6 +18,7 @@ export function useAiChat() {
   const [conversationId, setConversationId] = useState<number | undefined>();
   const [sessions, setSessions] = useState<ConversationSummary[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
 
   // Core delivery. `convId` is passed explicitly (not read from state) so a fresh-conversation
   // send isn't defeated by the async state update of conversationId. `reset` starts a clean thread.
@@ -36,7 +38,7 @@ export function useAiChat() {
         setConversationId(data.conversationId);
         setTurns((t) => [...t, { role: "ai", text: data.narrative, visualizations: data.visualizations }]);
       } else {
-        setTurns((t) => [...t, { role: "ai", text: res.detail ?? "Lỗi khi gọi AI." }]);
+        setTurns((t) => [...t, { role: "ai", text: formatApiError(res) || "Lỗi khi gọi AI." }]);
       }
     },
     [busy],
@@ -58,9 +60,11 @@ export function useAiChat() {
 
   const refreshSessions = useCallback(async () => {
     setLoadingSessions(true);
+    setSessionsError(null);
     const res = await aiApi.listConversations();
     setLoadingSessions(false);
     if (res.isSuccess && res.data) setSessions(res.data);
+    else setSessionsError(formatApiError(res));
   }, []);
 
   const startNew = useCallback(() => {
@@ -69,18 +73,21 @@ export function useAiChat() {
   }, []);
 
   const openSession = useCallback(async (id: number) => {
+    setSessionsError(null);
     const res = await aiApi.getConversation(id);
-    if (res.isSuccess && res.data) {
-      const data = res.data;
-      setTurns(
-        data.turns.map((turn) => ({
-          role: turn.role === "USER" ? "user" : "ai",
-          text: turn.content,
-          visualizations: turn.visualizations ?? undefined,
-        }))
-      );
-      setConversationId(data.conversationId);
+    if (!res.isSuccess || !res.data) {
+      setSessionsError(formatApiError(res));
+      return;
     }
+    const data = res.data;
+    setTurns(
+      data.turns.map((turn) => ({
+        role: turn.role === "USER" ? "user" : "ai",
+        text: turn.content,
+        visualizations: turn.visualizations ?? undefined,
+      }))
+    );
+    setConversationId(data.conversationId);
   }, []);
 
   return {
@@ -91,6 +98,7 @@ export function useAiChat() {
     conversationId,
     sessions,
     loadingSessions,
+    sessionsError,
     send,
     sendFresh,
     refreshSessions,

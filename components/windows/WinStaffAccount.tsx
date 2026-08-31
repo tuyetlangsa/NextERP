@@ -459,22 +459,22 @@ export function WinStaffAccount() {
   const handleApplyRoleDefault = useCallback(async () => {
     const role = roles.find(r => r.id === form.roleId);
     if (!role) return;
+    // Nút này im lặng khi API lỗi thì người dùng tưởng vai trò không có mặc định
+    // nào, rồi lưu đè bằng cây rỗng. Báo lỗi ra thay vì không làm gì.
     if (bottomTab === "menu") {
       const res = await accessApi.getRolePageDefault(role.code);
-      if (res.isSuccess && res.data) {
-        const codes = res.data.pageCodes;
-        setPageTree(t => ({ ...t, checked: codes }));
-        applyCheckedLeaves(pageTreeRef, codes);
-      }
+      if (!res.isSuccess || !res.data) { setSaveError(formatApiError(res)); return; }
+      const codes = res.data.pageCodes;
+      setPageTree(t => ({ ...t, checked: codes }));
+      applyCheckedLeaves(pageTreeRef, codes);
     } else {
       const res = await accessApi.getRolePermissionDefault(role.code);
-      if (res.isSuccess && res.data) {
-        const codes = res.data.permissionCodes;
-        setPermTree(t => ({ ...t, checked: codes }));
-        applyCheckedLeaves(permTreeRef, codes);
-      }
+      if (!res.isSuccess || !res.data) { setSaveError(formatApiError(res)); return; }
+      const codes = res.data.permissionCodes;
+      setPermTree(t => ({ ...t, checked: codes }));
+      applyCheckedLeaves(permTreeRef, codes);
     }
-  }, [roles, form.roleId, bottomTab]);
+  }, [roles, form.roleId, bottomTab, setSaveError]);
 
   /** Assignable roles, plus the account's own role when that one is elevated — an existing
    *  Owner must still render as "Owner" instead of blanking the dropdown, but the elevated

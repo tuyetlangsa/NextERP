@@ -696,6 +696,39 @@ button {
 .field-checkbox {
   margin-bottom: 12px;
 }
+
+/* Form rows — mấy field nội dung ngắn (VAT, trạm bếp, thời gian nấu…) xếp 2–3
+   cái một dòng để dialog không phải cuộn. min-width:0 để select/input dài
+   không phá khung cột. */
+.field-row {
+  display: grid;
+  gap: 0 12px;
+  align-items: start;
+}
+.field-row > * {
+  min-width: 0;
+}
+.field-row-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.field-row-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Syncfusion dựng sẵn wrapper có viền (.e-input-group) rồi mới nhét input vào
+   trong. Rule `.field input/select` ở trên vẽ thêm một viền thứ hai bên trong
+   wrapper đó. Nặng hơn: DropDownTree prepend một <select class="e-ddt-hidden">
+   rộng 0px, padding 6px 10px của ta thổi nó thành khối vô hình ~20px, đẩy ô
+   hiển thị lệch sang phải — đúng chỗ lệch ở picker "Nhóm chính". */
+.field .e-input-group input,
+.field .e-input-group select {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.field .e-ddt-hidden {
+  padding: 0;
+}
 /* The recipe window's ingredient form sits in a pane roughly 250px tall and has
    to show every field without scrolling. Scoped so the roomier default spacing
    stays everywhere else. */
