@@ -512,6 +512,50 @@ export function WinPricing() {
     });
   }, [itemRows, variants, entriesCache, vatByItem, deriveVatForItem]);
 
+  /**
+   * Ghi cờ VAT cho MỌI ô giá của một món.
+   *
+   * Không đi qua editor boolean của Syncfusion: ở chế độ Batch, giá trị `args.value` mà
+   * `cellSaved` trả về cho cột checkbox không đáng tin — cờ ghi xuống bị ngược với ô tick,
+   * nên tick "đã gồm VAT" lại lưu false và menu cộng thêm VAT. Cột này giờ render checkbox
+   * thường và tự bắt onChange, nên trạng thái đọc được đúng bằng thứ người dùng vừa bấm.
+   */
+  const setItemVatIncluded = useCallback((itemId: number, flag: boolean) => {
+    setVatByItem(prev => new Map(prev).set(itemId, flag));
+
+    const touched = variants
+      .filter(v => {
+        const cell = entriesCache.get(v.id)?.get(itemId);
+        return cell !== undefined && cell.isVatIncluded !== flag;
+      })
+      .map(v => v.id);
+    if (touched.length === 0) return;   // món chưa có ô giá nào — tick giữ trong vatByItem
+
+    setEntriesCache(prev => {
+      const next = new Map(prev);
+      for (const vid of touched) {
+        const vm = next.get(vid);
+        const cell = vm?.get(itemId);
+        if (!vm || !cell) continue;
+        const copy = new Map(vm);
+        copy.set(itemId, { ...cell, isVatIncluded: flag });
+        next.set(vid, copy);
+      }
+      return next;
+    });
+    setDirtyVariants(prev => new Set([...prev, ...touched]));
+  }, [variants, entriesCache]);
+
+  const vatCellTemplate = useCallback((r: PivotRow) => (
+    <input
+      type="checkbox"
+      className="cbx"
+      checked={r.isVatIncluded === true}
+      onChange={e => setItemVatIncluded(r.id, e.target.checked)}
+      aria-label="Giá đã gồm VAT"
+    />
+  ), [setItemVatIncluded]);
+
   type CellSaveArgs = {
     columnName?: string;
     value?: unknown;
@@ -520,38 +564,6 @@ export function WinPricing() {
   const handlePivotCellSaved = (args: CellSaveArgs) => {
     if (!args.columnName || !args.rowData) return;
     const itemId = args.rowData.id;
-
-    // Checkbox theo dòng → ghi cùng một cờ vào mọi ô giá của món.
-    if (args.columnName === "isVatIncluded") {
-      // Syncfusion batch edit trả giá trị checkbox không đồng nhất giữa các đường
-      // (click thẳng vs mở editor), nên nhận cả boolean lẫn dạng chuỗi/số.
-      const raw = args.value;
-      const flag = raw === true || raw === "true" || raw === 1 || raw === "1";
-      setVatByItem(prev => new Map(prev).set(itemId, flag));
-
-      const touched = variants
-        .filter(v => {
-          const cell = entriesCache.get(v.id)?.get(itemId);
-          return cell !== undefined && cell.isVatIncluded !== flag;
-        })
-        .map(v => v.id);
-      if (touched.length === 0) return;   // món chưa có ô giá nào — tick giữ trong vatByItem
-
-      setEntriesCache(prev => {
-        const next = new Map(prev);
-        for (const vid of touched) {
-          const vm = next.get(vid);
-          const cell = vm?.get(itemId);
-          if (!vm || !cell) continue;
-          const copy = new Map(vm);
-          copy.set(itemId, { ...cell, isVatIncluded: flag });
-          next.set(vid, copy);
-        }
-        return next;
-      });
-      setDirtyVariants(prev => new Set([...prev, ...touched]));
-      return;
-    }
 
     const m = args.columnName.match(/^p_(\d+)$/);
     if (!m) return;
@@ -736,9 +748,9 @@ export function WinPricing() {
                           field="isVatIncluded"
                           headerText="Giá đã gồm VAT"
                           width="140"
-                          displayAsCheckBox
-                          editType="booleanedit"
-                          type="boolean"
+                          textAlign="Center"
+                          allowEditing={false}
+                          template={vatCellTemplate}
                         />
                         {variants.map(v => (
                           <ColumnDirective

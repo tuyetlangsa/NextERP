@@ -4,6 +4,22 @@ Branch: `main`
 
 ---
 
+## Sửa cờ VAT bị ghi ngược — 2026-08-31
+
+Tick "Giá đã gồm VAT" rồi lưu thì menu lại cộng thêm VAT (giá 20.000, VAT 10% → hiện 22.000), bỏ
+tick thì hiện đúng 20.000 — cờ ghi xuống ngược hẳn với ô tick, nhất quán ở cả hai chiều.
+
+Cột dùng editor boolean của Syncfusion (`editType="booleanedit"` + `displayAsCheckBox`) và đọc
+`args.value` trong `cellSaved`. Theo source `batch-edit.js` / `boolean-edit-cell.js` thì `args.value`
+lấy từ `getCurrentEditedData(form)` và `read()` trả `element.checked`, tức phải là giá trị mới — đọc
+source không giải thích được hiện tượng. Thay vì vá bằng phỏng đoán (`previousValue`, phủ định...),
+bỏ luôn phụ thuộc vào editor: cột chuyển sang `allowEditing={false}` + `template` render
+`<input type="checkbox">` tự bắt `onChange`, nên trạng thái đọc được đúng bằng thứ vừa bấm.
+
+Nhánh `isVatIncluded` trong `handlePivotCellSaved` gỡ bỏ; logic ghi cờ vào mọi cột giá của món tách
+ra `setItemVatIncluded`, hành vi không đổi. BE không sai — `UpsertPriceEntries` vẫn ghi đúng thứ nó
+nhận, chỉ là thứ nó nhận đã ngược từ giao diện.
+
 ## Bỏ các con số đếm trên màn bảng giá — 2026-08-31
 
 Nút "Lưu giá (N)", dòng "Sửa giá trực tiếp · N Item · N variant · N variant chưa lưu" và dòng
