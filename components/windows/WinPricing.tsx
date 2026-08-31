@@ -453,7 +453,7 @@ export function WinPricing() {
       args.cancel = true;
       const row = (Array.isArray(args.data) ? args.data[0] : args.data) as PriceVariant | undefined;
       if (!row) return;
-      if (!window.confirm(`Xoá variant "${row.code} — ${row.name}"?`)) return;
+      if (!window.confirm(`Xoá cột điều kiện giá "${row.code} — ${row.name}"?`)) return;
       const res = await priceVariantsApi.remove(row.id);
       if (res.isSuccess) {
         setSelectedVariantId(null);
@@ -529,8 +529,6 @@ export function WinPricing() {
             <TB icon={ChromeIcons.Refresh} onClick={() => { reloadTablesGrid(); reloadVariants(); }}>
               Làm mới
             </TB>
-            <TB icon={ChromeIcons.Search}>Tìm kiếm</TB>
-            <TB icon={ChromeIcons.Fn}>Chức năng</TB>
           </>
         }
       />
@@ -652,8 +650,8 @@ export function WinPricing() {
                   {variants.length === 0 ? (
                     <div className="empty">
                       <div>
-                        <div className="em-title">Bảng giá chưa có variant</div>
-                        <div>Sang tab "Điều kiện áp dụng" để tạo variant đầu tiên (gợi ý: V_DEFAULT — catch-all).</div>
+                        <div className="em-title">Bảng giá chưa có cột điều kiện giá</div>
+                        <div>Sang tab "Điều kiện áp dụng" để tạo cột điều kiện giá đầu tiên (gợi ý: V_DEFAULT — áp dụng cho mọi trường hợp).</div>
                       </div>
                     </div>
                   ) : (
@@ -696,7 +694,7 @@ export function WinPricing() {
           {bottomTab === "conditions" && (
             <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
               <div style={{ flex: "0 0 56%", display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)", minHeight: 0 }}>
-                {variantsRes.loading && selectedTableId !== null && <LoadingBar text="Đang tải variant..." />}
+                {variantsRes.loading && selectedTableId !== null && <LoadingBar text="Đang tải cột điều kiện giá..." />}
                 <GridComponent
                   key={`variants-${selectedTableId ?? "none"}-rev-${variantsRev}`}
                   ref={(g: GridComponent | null) => { variantsGridRef.current = g; }}
@@ -740,12 +738,17 @@ export function WinPricing() {
                   <div style={{ fontSize: 13 }}>
                     <h4 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
                       {selectedVariant.code} — {selectedVariant.name}
-                      <span className="badge">spec {selectedVariant.specificity}</span>
+                      <span
+                        className="badge"
+                        title="Số chiều bị giới hạn (khung giờ, thứ trong tuần, khu) — càng cụ thể càng được ưu tiên khi nhiều cột cùng khớp."
+                      >
+                        độ cụ thể {selectedVariant.specificity}/3
+                      </span>
                     </h4>
                     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px 12px", fontSize: 12 }}>
                       <div className="mute">Khung giờ</div>
                       <div>{selectedVariant.beginTime && selectedVariant.endTime
-                        ? `${selectedVariant.beginTime.slice(0, 5)} – ${selectedVariant.endTime.slice(0, 5)} (end exclusive)`
+                        ? `${selectedVariant.beginTime.slice(0, 5)} – ${selectedVariant.endTime.slice(0, 5)} (không tính mốc kết thúc)`
                         : "Cả ngày"}</div>
 
                       <div className="mute">Thứ trong tuần</div>
@@ -777,7 +780,7 @@ export function WinPricing() {
                 ) : (
                   <div className="empty">
                     <div>
-                      <div className="em-title">Chọn 1 variant</div>
+                      <div className="em-title">Chọn 1 cột điều kiện giá</div>
                       <div>Click vào dòng bên trái để xem điều kiện áp dụng.</div>
                     </div>
                   </div>
@@ -897,7 +900,7 @@ function VariantScopeDialog({
   return (
     <DialogComponent
       visible={visible}
-      header={draft.id !== undefined ? `Sửa variant — ${draft.code || "(mới)"}` : "Tạo variant mới"}
+      header={draft.id !== undefined ? `Sửa cột điều kiện giá — ${draft.code || "(mới)"}` : "Tạo cột điều kiện giá mới"}
       width="560px"
       showCloseIcon
       isModal
