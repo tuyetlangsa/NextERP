@@ -676,8 +676,14 @@ button {
   color: var(--danger);
   margin-left: 2px;
 }
-.field input:not([type="checkbox"]):not([type="radio"]),
-.field select,
+/* `:not(.e-input)` / `:not(.e-ddt-hidden)`: Syncfusion dựng sẵn wrapper có viền
+   rồi mới nhét input vào trong, nên rule này phải TRÁNH phần tử của nó. Đè bằng
+   một rule riêng không ăn thua: hai `:not([type=...])` ở đây nâng specificity lên
+   (0,3,1), cao hơn `.field .e-input-group input` (0,2,1) — đó chính là lý do
+   input của DropDownTree vẫn giữ viền và vẽ thành hộp kết thúc trước ô chevron,
+   làm nút mũi tên trông như bị cắt. Loại trừ ngay tại đây là cách duy nhất gọn. */
+.field input:not([type="checkbox"]):not([type="radio"]):not(.e-input),
+.field select:not(.e-ddt-hidden),
 .field textarea {
   padding: 6px 10px;
   border: 1px solid var(--border-strong);
@@ -687,8 +693,8 @@ button {
   font-size: var(--t-13);
   font-family: inherit;
 }
-.field input:not([type="checkbox"]):not([type="radio"]):focus,
-.field select:focus,
+.field input:not([type="checkbox"]):not([type="radio"]):not(.e-input):focus,
+.field select:not(.e-ddt-hidden):focus,
 .field textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -715,20 +721,6 @@ button {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
-/* Syncfusion dựng sẵn wrapper có viền (.e-input-group) rồi mới nhét input vào
-   trong. Rule `.field input/select` ở trên vẽ thêm một viền thứ hai bên trong
-   wrapper đó. Nặng hơn: DropDownTree prepend một <select class="e-ddt-hidden">
-   rộng 0px, padding 6px 10px của ta thổi nó thành khối vô hình ~20px, đẩy ô
-   hiển thị lệch sang phải — đúng chỗ lệch ở picker "Nhóm chính". */
-.field .e-input-group input,
-.field .e-input-group select {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-}
-.field .e-ddt-hidden {
-  padding: 0;
-}
 /* Ô chứa icon của Syncfusion khai `border: 1px solid` rồi bỏ border trên và
    dưới, nên chỉ còn hai vạch dọc hai bên — nút mũi tên trông như bị cắt đôi.
    Vạch phải lẽ ra được `.e-input-group-icon:last-child` gỡ, nhưng DropDownTree
