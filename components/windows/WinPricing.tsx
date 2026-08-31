@@ -588,7 +588,7 @@ export function WinPricing() {
           <>
             <TB icon={ChromeIcons.Save} kind="primary" onClick={handleSaveAllEntries}
                 disabled={dirtyVariants.size === 0 || savingEntries}>
-              {savingEntries ? "Đang lưu..." : `Lưu giá (${dirtyVariants.size})`}
+              {savingEntries ? "Đang lưu..." : "Lưu giá"}
             </TB>
             <div className="tb-divider" />
             <TB icon={ChromeIcons.Refresh} onClick={() => { reloadTablesGrid(); reloadVariants(); }}>
@@ -706,10 +706,7 @@ export function WinPricing() {
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
                 <div className="grid-filterbar" style={{ borderTop: "none" }}>
-                  <span className="tb-help">
-                    Sửa giá trực tiếp · {itemRows.length} Item · {variants.length} variant
-                    {dirtyVariants.size > 0 && ` · ${dirtyVariants.size} variant chưa lưu`}
-                  </span>
+                  <span className="tb-help">Sửa giá trực tiếp</span>
                 </div>
                 <div style={{ flex: 1, overflow: "hidden" }}>
                   {variants.length === 0 ? (
@@ -878,15 +875,9 @@ export function WinPricing() {
         left={
           <>
             <span>{tablesCache.length} bảng giá</span>
-            {dirtyVariants.size > 0 && (
-              <>
-                <span>·</span>
-                <span style={{ color: "var(--warning)" }}>{dirtyVariants.size} variant chưa lưu giá</span>
-              </>
-            )}
           </>
         }
-        right={selectedTable ? <span>{selectedTable.code} · {variants.length} variant</span> : null}
+        right={selectedTable ? <span>{selectedTable.code}</span> : null}
       />
 
       <VariantScopeDialog

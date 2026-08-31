@@ -4,6 +4,18 @@ Branch: `main`
 
 ---
 
+## Bỏ các con số đếm trên màn bảng giá — 2026-08-31
+
+Nút "Lưu giá (N)", dòng "Sửa giá trực tiếp · N Item · N variant · N variant chưa lưu" và dòng
+"N variant chưa lưu giá" ở status bar đều đếm `dirtyVariants.size` — tức **số cột giá** sắp gửi,
+không phải số ô sắp đổi. Vì `dirtyVariants` là Set các variantId và mỗi lần tick checkbox VAT lại
+chạm hết mọi cột giá của món, con số đó đứng yên ở đúng số cột của bảng: tick 1 dòng ra 3, tick 2
+dòng vẫn ra 3. Nó không nói lên điều gì mà người đọc tưởng nó nói.
+
+Bỏ cả ba chỗ hiển thị, kèm hai đếm "N Item · N variant" ở dòng bên cạnh và "N variant" ở góc phải
+status bar — góc đó giờ chỉ còn mã bảng giá. `dirtyVariants` vẫn giữ nguyên vai trò: bật/tắt nút Lưu
+giá và quyết định gửi những cột nào.
+
 ## Ô tick "Giá đã gồm VAT" trên lưới giá — 2026-08-31
 
 `PriceEntry.IsVatIncluded` có ở BE từ đầu (entity, `ListPriceEntries`, `UpsertPriceEntries`,
