@@ -18,6 +18,7 @@ import { StatusBar } from "@/components/ui/StatusBar";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { countersApi, areasApi, type CounterUpsert } from "@/lib/api/restaurant";
 import { useResource } from "@/lib/http/useResource";
+import { formatApiError } from "@/lib/http/formatError";
 import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { mockCounters, mockAreas } from "@/data/mock";
 import type { Counter } from "@/types/api/restaurant";
@@ -90,7 +91,7 @@ export function WinCounter() {
       setSelectedId(res.data.id);
       setDraft({ ...res.data });
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -106,7 +107,7 @@ export function WinCounter() {
       setSelectedId(null);
       setDraft(null);
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };

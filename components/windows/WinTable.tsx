@@ -21,6 +21,7 @@ import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { areasApi, countersApi, tablesApi, type TableBatchCreate, type TableUpsert } from "@/lib/api/restaurant";
 import { useResource } from "@/lib/http/useResource";
+import { formatApiError } from "@/lib/http/formatError";
 import { mockAreas, mockCounters, mockTables } from "@/data/mock";
 import type { Area, RestaurantTable } from "@/types/api/restaurant";
 import { PosModuleTabs, type PosModuleTab } from "@/components/devices/PosModuleTabs";
@@ -195,7 +196,7 @@ export function WinTable() {
         await tables.reload();
         setBatchDraft(null);
       } else {
-        setErrorMsg(res.detail || res.title);
+        setErrorMsg(formatApiError(res));
       }
       setSaving(false);
       return;
@@ -219,7 +220,7 @@ export function WinTable() {
       setSelectedId(res.data.id);
       setDraft({ ...res.data });
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -235,7 +236,7 @@ export function WinTable() {
       setSelectedId(null);
       setDraft(null);
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };

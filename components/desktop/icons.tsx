@@ -45,7 +45,7 @@ export const SubsystemIcons: Record<SubsystemIconKey, LucideIcon> = {
 };
 
 export const subsystemIconKey: Record<string, SubsystemIconKey> = {
-  counter: "counter", area: "area", "area-menu-category": "area-menu-category", table: "table", floorplan: "floorplan",
+  counter: "counter", area: "area", "area-menu-category": "area-menu-category", table: "table",
   items: "items", uom: "uom", "uom-conversion": "uom-conversion", choice: "choice", setmenu: "setmenu",
   "kitchen-station": "kitchen-station", recipe: "recipe",
   stock: "stock",

@@ -78,5 +78,13 @@ export function formatApiError<T>(res: BaseResponse<T>): string {
   if (res.title && BUSINESS_ERROR_MESSAGES[res.title]) {
     return BUSINESS_ERROR_MESSAGES[res.title];
   }
-  return res.detail || res.title || "Lỗi không xác định";
+
+  if (res.detail?.trim()) return res.detail;
+
+  // Authorization failures come back from the middleware with no body at all,
+  // so there is no `detail` to show — only the status says what happened.
+  if (res.statusCode === 403) return "Bạn không có quyền thực hiện thao tác này";
+  if (res.statusCode === 401) return "Phiên đăng nhập đã hết hạn — vui lòng đăng nhập lại";
+
+  return res.title || "Lỗi không xác định";
 }

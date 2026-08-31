@@ -19,6 +19,7 @@ import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { uomsApi, type UomUpsert } from "@/lib/api/menu";
 import { useResource } from "@/lib/http/useResource";
+import { formatApiError } from "@/lib/http/formatError";
 import { mockUoms } from "@/data/mock";
 import type { Uom } from "@/types/api/menu";
 
@@ -84,7 +85,7 @@ export function WinUom() {
       setSelectedId(res.data.id);
       setDraft({ ...res.data });
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -100,7 +101,7 @@ export function WinUom() {
       setSelectedId(null);
       setDraft(null);
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };

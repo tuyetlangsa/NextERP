@@ -19,6 +19,7 @@ import { LoadingBar, OfflineBar, ErrorBar } from "@/components/ui/ResourceBars";
 import { ChromeIcons } from "@/components/desktop/icons";
 import { areasApi, countersApi, tablesApi, type AreaUpsert } from "@/lib/api/restaurant";
 import { useResource } from "@/lib/http/useResource";
+import { formatApiError } from "@/lib/http/formatError";
 import { mockAreas, mockCounters, mockTables } from "@/data/mock";
 import type { Area } from "@/types/api/restaurant";
 
@@ -114,7 +115,7 @@ export function WinArea() {
       setSelectedId(res.data.id);
       setDraft({ ...res.data });
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -130,7 +131,7 @@ export function WinArea() {
       setSelectedId(null);
       setDraft(null);
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };

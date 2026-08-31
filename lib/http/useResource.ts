@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BaseResponse } from "./types";
+import { formatApiError } from "./formatError";
 
 export interface ResourceState<T> {
   data: T | null;
@@ -72,7 +73,7 @@ export function useResource<T>(
       }
 
       setIsApiError(true);
-      setError(res.detail || res.title);
+      setError(formatApiError(res));
       setLoading(false);
       return null;
     } catch (e) {
