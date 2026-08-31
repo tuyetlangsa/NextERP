@@ -729,6 +729,16 @@ button {
 .field .e-ddt-hidden {
   padding: 0;
 }
+/* Ô chứa icon của Syncfusion khai `border: 1px solid` rồi bỏ border trên và
+   dưới, nên chỉ còn hai vạch dọc hai bên — nút mũi tên trông như bị cắt đôi.
+   Vạch phải lẽ ra được `.e-input-group-icon:last-child` gỡ, nhưng DropDownTree
+   chèn `.e-clear-icon` SAU icon (drop-down-tree.js: createClearIcon) nên chevron
+   không còn là last-child. Thêm nữa `border: 1px solid` không khai màu → lấy
+   currentColor, thành vạch đen đậm thay vì xám nhạt. Bỏ hẳn viền cho ô icon
+   nằm gọn trong khung như mũi tên của <select> thường. */
+.field .e-input-group .e-input-group-icon {
+  border: 0;
+}
 /* The recipe window's ingredient form sits in a pane roughly 250px tall and has
    to show every field without scrolling. Scoped so the roomier default spacing
    stays everywhere else. */

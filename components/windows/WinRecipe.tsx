@@ -41,7 +41,9 @@ export function WinRecipe() {
   const [busy, setBusy] = useState(false);
   const treeRef = useRef<TreeViewComponent | null>(null);
 
-  const categories = useResource(() => categoriesApi.list());
+  // Chỉ subtree HÀNG BÁN: nguyên vật liệu không được tạo công thức chế biến
+  // (BE cũng đã lọc ở ListRecipeItems, đây là cho cây danh mục bên trái).
+  const categories = useResource(() => categoriesApi.list({ rootCode: "HANG_BAN" }));
   const categoryList = useMemo<Category[]>(() => categories.data ?? [], [categories.data]);
 
   const items = useResource(

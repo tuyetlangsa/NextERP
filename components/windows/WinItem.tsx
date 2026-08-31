@@ -85,7 +85,7 @@ function renderInfoTab(
 ) {
   return (
     <div style={{ padding: 12 }}>
-      {/* Hai–ba field ngắn trên một dòng: form tạo Item trước đây mỗi field một
+      {/* Hai–ba field ngắn trên một dòng: form tạo hàng hoá trước đây mỗi field một
           dòng nên phải cuộn mới thấy hết. */}
       <div className="field-row field-row-2">
         <Field label="Mã" required>
@@ -256,7 +256,7 @@ function renderImageTab(
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={draft.imageUrl}
-          alt="Item"
+          alt="Hàng hoá"
           style={{
             width: "100%",
             maxHeight: 240,
@@ -342,7 +342,7 @@ function renderSubCategoryTab(
   return (
     <div style={{ padding: 12 }}>
       <div style={{ fontSize: 11, color: "var(--fg-muted)", marginBottom: 8 }}>
-        Tick các nhóm phụ để Item xuất hiện trong danh sách khi lọc theo nhóm đó. Nhóm chính
+        Tick các nhóm phụ để hàng hoá xuất hiện trong danh sách khi lọc theo nhóm đó. Nhóm chính
         không hiện ở đây — đổi nhóm chính ở tab Thông tin.
       </div>
       <div
@@ -472,7 +472,7 @@ export function WinItem() {
     return [
       {
         id: "all",
-        text: "Tất cả Item",
+        text: "Tất cả hàng hoá",
         expanded: true,
         child: roots,
       },
@@ -480,7 +480,7 @@ export function WinItem() {
   }, [categoryList]);
 
   /**
-   * Same hierarchy as the left pane, minus its "Tất cả Item" root — this picker
+   * Same hierarchy as the left pane, minus its "Tất cả hàng hoá" root — this picker
    * has to end on a real category. Values are the plain category ids so the
    * change handler can use them directly.
    */
@@ -627,7 +627,7 @@ export function WinItem() {
   const handleSave = async () => {
     if (!draft) return;
     if (draft.categories.length === 0) {
-      setErrorMsg("Item phải thuộc ít nhất 1 Category.");
+      setErrorMsg("Hàng hoá phải thuộc ít nhất 1 nhóm.");
       return;
     }
     if (!draft.categories.some(c => c.isMain)) {
@@ -668,7 +668,7 @@ export function WinItem() {
 
   const handleDelete = async () => {
     if (!editingId || !draft) return;
-    if (!window.confirm(`Xoá Item "${draft.code} — ${draft.name}"?`)) return;
+    if (!window.confirm(`Xoá hàng hoá "${draft.code} — ${draft.name}"?`)) return;
     setSaving(true);
     const res = await itemsApi.remove(editingId);
     if (res.isSuccess) {
@@ -853,7 +853,7 @@ export function WinItem() {
               onClick={openCreate}
               disabled={categoryFilter === null}
             >
-              Tạo mới Item
+              Tạo mới hàng hoá
             </TB>
             <TB
               icon={ChromeIcons.Refresh}
@@ -866,7 +866,7 @@ export function WinItem() {
             </TB>
             {categoryFilter === null && (
               <span style={{ fontSize: 11, color: "var(--fg-muted)", marginLeft: 8 }}>
-                Chọn 1 nhóm bên trái để tạo Item
+                Chọn 1 nhóm bên trái để tạo hàng hoá
               </span>
             )}
           </>
@@ -934,7 +934,7 @@ export function WinItem() {
         </div>
 
         <div className="data-list" style={{ flex: 1 }}>
-          {items.loading && <LoadingBar text="Đang tải Item..." />}
+          {items.loading && <LoadingBar text="Đang tải hàng hoá..." />}
           {items.isOffline && <OfflineBar onRetry={() => items.reload()} />}
           {items.isApiError && <ErrorBar text={items.error ?? ""} onRetry={() => items.reload()} />}
           <GridComponent
@@ -975,7 +975,7 @@ export function WinItem() {
       <StatusBar
         left={
           <>
-            <span>{totalCount} Item · trang {pageNumber}/{Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}</span>
+            <span>{totalCount} hàng hoá · trang {pageNumber}/{Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}</span>
             <span>·</span>
             <span>{categoryList.length} Danh mục</span>
             {categoryFilter !== null && (
@@ -986,12 +986,12 @@ export function WinItem() {
             )}
           </>
         }
-        right={<span>Click Item để xem/sửa</span>}
+        right={<span>Click hàng hoá để xem/sửa</span>}
       />
 
       <DialogComponent
         visible={dialogOpen}
-        header={editingId ? "Sửa Item" : "Tạo Item mới"}
+        header={editingId ? "Sửa hàng hoá" : "Tạo hàng hoá mới"}
         showCloseIcon
         isModal
         width="760px"
