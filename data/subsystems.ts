@@ -5,8 +5,7 @@ export const subsystems: Subsystem[] = [
   { id: "counter", label: "Quầy",              description: "Top-level: Quầy → Khu → Bàn",      group: "layout",  showOnDesktop: true, win: "WinCounter" },
   { id: "area",    label: "Khu",               description: "Quản lý khu vực bàn",              group: "layout",  showOnDesktop: true, win: "WinArea" },
   { id: "area-menu-category", label: "Menu theo Khu", description: "Gán Category cho Khu vực (Area Menu Category)", group: "layout", showOnDesktop: true, win: "WinAreaMenuCategory" },
-  { id: "table",   label: "Bàn / Phòng / Máy", description: "Cấu hình bàn",                     group: "layout",  showOnDesktop: true, win: "WinTable" },
-  { id: "floorplan", label: "Sơ đồ bàn",       description: "Editor kéo-thả",                   group: "layout",  showOnDesktop: true, win: null },
+  { id: "table",   label: "Danh sách bàn", description: "Cấu hình bàn",                     group: "layout",  showOnDesktop: true, win: "WinTable" },
   // Menu
   { id: "items",   label: "Hàng hóa / Dịch vụ", description: "Catalog + nhóm hàng",             group: "menu",    showOnDesktop: true, win: "WinItem" },
   { id: "uom",     label: "Đơn vị tính",        description: "Phần / Tô / Chai / Kg / ...",     group: "menu",    showOnDesktop: true, win: "WinUom" },

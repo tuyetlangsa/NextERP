@@ -11,7 +11,6 @@ export const SUBSYSTEM_PAGE_CODE: Record<string, string> = {
   area: "nexterp.areas",
   "area-menu-category": "nexterp.area_menu_category",
   table: "nexterp.tables",
-  floorplan: "nexterp.floor_plan",
 
   // Thực đơn
   items: "nexterp.items",

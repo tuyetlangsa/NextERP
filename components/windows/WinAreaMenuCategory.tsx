@@ -82,7 +82,8 @@ function buildCategoryDfs(categories: Category[]): Category[] {
 export function WinAreaMenuCategory() {
   const areas = useResource(() => areasApi.list(), { fallback: mockAreas });
   const counters = useResource(() => countersApi.list(), { fallback: mockCounters });
-  const categories = useResource(() => categoriesApi.list({ isActive: true }));
+  // Chỉ lấy subtree HÀNG BÁN — nhóm nguyên vật liệu không bán ở khu nào.
+  const categories = useResource(() => categoriesApi.list({ isActive: true, rootCode: "HANG_BAN" }));
 
   const areaList = areas.data ?? [];
   const counterList = counters.data ?? [];
@@ -410,18 +411,6 @@ export function WinAreaMenuCategory() {
                   background: "#fff",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--fg-muted)",
-                    marginBottom: 8,
-                    padding: "0 4px",
-                  }}
-                >
-                  Tick nhóm cha → lưu chỉ id cha, backend tự bao cả cây con. Con hiện tick mờ = đã
-                  gồm qua cha (không tick riêng được). Muốn bán một phần nhánh: bỏ tick cha, rồi
-                  tick từng con cần bán.
-                </div>
                 <div
                   style={{
                     border: "1px solid var(--border)",

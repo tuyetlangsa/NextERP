@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { authApi } from "@/lib/api/auth";
+import { formatApiError } from "@/lib/http/formatError";
 import type { SessionUser } from "@/types/domain";
 
 interface Props {
@@ -59,7 +60,7 @@ export function LoginScreen({ onDone }: Props) {
       return;
     }
 
-    setError(res.detail || res.title || "Đăng nhập thất bại");
+    setError(formatApiError(res) || "Đăng nhập thất bại");
     setSubmitting(false);
   };
 

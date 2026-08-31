@@ -37,6 +37,7 @@ import {
 } from "@/lib/api/menu";
 import { lookupsApi } from "@/lib/api/lookups";
 import { useResource } from "@/lib/http/useResource";
+import { formatApiError } from "@/lib/http/formatError";
 import { uploadToCloudinary } from "@/lib/upload/cloudinary";
 import { ItemUomConversionTab } from "@/components/inventory/ItemUomConversionTab";
 import { ItemBomTab } from "@/components/inventory/ItemBomTab";
@@ -84,12 +85,16 @@ function renderInfoTab(
 ) {
   return (
     <div style={{ padding: 12 }}>
-      <Field label="Mã" required>
-        <input value={draft.code} onChange={e => setDraft({ ...draft, code: e.target.value })} />
-      </Field>
-      <Field label="Tên" required>
-        <input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-      </Field>
+      {/* Hai–ba field ngắn trên một dòng: form tạo Item trước đây mỗi field một
+          dòng nên phải cuộn mới thấy hết. */}
+      <div className="field-row field-row-2">
+        <Field label="Mã" required>
+          <input value={draft.code} onChange={e => setDraft({ ...draft, code: e.target.value })} />
+        </Field>
+        <Field label="Tên" required>
+          <input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+        </Field>
+      </div>
       <Field label="Mô tả">
         <textarea
           rows={2}
@@ -97,127 +102,144 @@ function renderInfoTab(
           onChange={e => setDraft({ ...draft, description: e.target.value || null })}
         />
       </Field>
-      <Field label="Nhóm chính" required>
-        {/* A real tree rather than a <select> padded with em-dashes: the category
-            hierarchy is what the user is navigating, and the flat list made depth
-            guesswork. Same shape as the tree in the left pane. */}
-        {/* Uncontrolled on purpose. Passing `value` on every render let React
-            re-apply the old id over the pick the user had just made, so the field
-            snapped back. The key seeds it once per item and the events carry the
-            choice into the draft from there. */}
-        <DropDownTreeComponent
-          // Keyed on the catalogue only. Anything that changes while the form is
-          // open — the code the user is typing, for instance — must NOT remount
-          // this, or the pick is thrown away mid-edit.
-          key={`maincat-${
-            Array.isArray(mainCategoryFields.dataSource) ? mainCategoryFields.dataSource.length : 0
-          }`}
-          fields={mainCategoryFields}
-          value={mainCategoryId != null ? [String(mainCategoryId)] : undefined}
-          placeholder="(Chọn nhóm chính)"
-          popupHeight="260px"
-          changeOnBlur={false}
-          // Both events: `select` fires on every node pick, `change` when the
-          // value settles. Relying on either alone left the draft out of step.
-          select={(e: DdtSelectEventArgs) => {
-            if (e.action !== "select") return;
-            const id = Number((e.itemData as { id?: string })?.id);
-            if (Number.isFinite(id)) setMainCategoryOnly(id);
-          }}
-          change={(e: DdtChangeEventArgs) => {
-            const picked = e.value?.[0];
-            if (picked) setMainCategoryOnly(Number(picked));
-          }}
-        />
-      </Field>
-      <Field label="ĐVT" required>
-        {/* Tồn kho, quy đổi đơn vị và công thức đều tính theo đơn vị này, và không
-            có gì ghi lại chúng được ghi dưới đơn vị nào — nên đổi sau khi tạo sẽ
-            làm sai toàn bộ số cũ. BE từ chối bằng Item.BaseUomImmutable. */}
-        <select
-          value={draft.baseUomId}
-          disabled={isEdit}
-          title={isEdit ? "Không thể đổi đơn vị gốc sau khi đã tạo. Cần đơn vị khác thì tạo hàng hoá mới." : undefined}
-          onChange={e => setDraft({ ...draft, baseUomId: Number(e.target.value) })}
-        >
-          {uomList.map(u => (
-            <option key={u.id} value={u.id}>
-              {u.code} — {u.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="VAT %">
-        <input
-          type="number"
-          min={0}
-          max={100}
-          step={0.5}
-          value={draft.vatPercent}
-          onChange={e => setDraft({ ...draft, vatPercent: Number(e.target.value) })}
-        />
-      </Field>
-      <Field label="Trạm bếp">
-        <select
-          value={draft.kitchenStationId ?? ""}
-          onChange={e =>
-            setDraft({ ...draft, kitchenStationId: e.target.value ? Number(e.target.value) : null })
-          }
-        >
-          <option value="">(Không)</option>
-          {stationList.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.code} — {s.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Thời gian nấu (phút)" required>
-        <input
-          type="number"
-          min={1}
-          max={600}
-          step={1}
-          value={draft.prepMinutes}
-          onChange={e => setDraft({ ...draft, prepMinutes: Number(e.target.value) })}
-        />
-      </Field>
-      <Field label="Quản kho">
-        <input
-          type="checkbox"
-          checked={draft.isStockable}
-          onChange={e => setDraft({ ...draft, isStockable: e.target.checked })}
-        />
-      </Field>
-      {draft.isStockable && (
-        <Field label="Ngưỡng cảnh báo">
+      <div className="field-row field-row-2">
+        <Field label="Nhóm chính" required>
+          {/* A real tree rather than a <select> padded with em-dashes: the category
+              hierarchy is what the user is navigating, and the flat list made depth
+              guesswork. Same shape as the tree in the left pane. */}
+          {/* Uncontrolled on purpose. Passing `value` on every render let React
+              re-apply the old id over the pick the user had just made, so the field
+              snapped back. The key seeds it once per item and the events carry the
+              choice into the draft from there. */}
+          <DropDownTreeComponent
+            // Keyed on the catalogue only. Anything that changes while the form is
+            // open — the code the user is typing, for instance — must NOT remount
+            // this, or the pick is thrown away mid-edit.
+            key={`maincat-${
+              Array.isArray(mainCategoryFields.dataSource) ? mainCategoryFields.dataSource.length : 0
+            }`}
+            fields={mainCategoryFields}
+            value={mainCategoryId != null ? [String(mainCategoryId)] : undefined}
+            placeholder="(Chọn nhóm chính)"
+            popupHeight="260px"
+            changeOnBlur={false}
+            // Both events: `select` fires on every node pick, `change` when the
+            // value settles. Relying on either alone left the draft out of step.
+            select={(e: DdtSelectEventArgs) => {
+              if (e.action !== "select") return;
+              const id = Number((e.itemData as { id?: string })?.id);
+              if (Number.isFinite(id)) setMainCategoryOnly(id);
+            }}
+            change={(e: DdtChangeEventArgs) => {
+              const picked = e.value?.[0];
+              if (picked) setMainCategoryOnly(Number(picked));
+            }}
+          />
+        </Field>
+        <Field label="ĐVT" required>
+          {/* Tồn kho, quy đổi đơn vị và công thức đều tính theo đơn vị này, và không
+              có gì ghi lại chúng được ghi dưới đơn vị nào — nên đổi sau khi tạo sẽ
+              làm sai toàn bộ số cũ. BE từ chối bằng Item.BaseUomImmutable. */}
+          <select
+            value={draft.baseUomId}
+            disabled={isEdit}
+            title={isEdit ? "Không thể đổi đơn vị gốc sau khi đã tạo. Cần đơn vị khác thì tạo hàng hoá mới." : undefined}
+            onChange={e => setDraft({ ...draft, baseUomId: Number(e.target.value) })}
+          >
+            {uomList.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.code} — {u.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <div className="field-row field-row-3">
+        <Field label="VAT %">
           <input
             type="number"
             min={0}
-            value={draft.lowStockThreshold ?? ""}
-            onChange={e =>
-              setDraft({
-                ...draft,
-                lowStockThreshold: e.target.value ? Number(e.target.value) : null,
-              })
-            }
+            max={100}
+            step={0.5}
+            value={draft.vatPercent}
+            onChange={e => setDraft({ ...draft, vatPercent: Number(e.target.value) })}
           />
         </Field>
+        <Field label="Trạm bếp">
+          <select
+            value={draft.kitchenStationId ?? ""}
+            onChange={e =>
+              setDraft({ ...draft, kitchenStationId: e.target.value ? Number(e.target.value) : null })
+            }
+          >
+            <option value="">(Không)</option>
+            {stationList.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.code} — {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Thời gian nấu (phút)" required>
+          <input
+            type="number"
+            min={1}
+            max={600}
+            step={1}
+            value={draft.prepMinutes}
+            onChange={e => setDraft({ ...draft, prepMinutes: Number(e.target.value) })}
+          />
+        </Field>
+      </div>
+      <div className="field-row field-row-3">
+        <div className="field-checkbox">
+          <label className="field-checkbox-label">
+            <input
+              type="checkbox"
+              checked={draft.isStockable}
+              onChange={e => setDraft({ ...draft, isStockable: e.target.checked })}
+            />
+            Quản kho
+          </label>
+        </div>
+        <div className="field-checkbox">
+          <label className="field-checkbox-label">
+            <input
+              type="checkbox"
+              checked={draft.hasRecipe}
+              onChange={e => setDraft({ ...draft, hasRecipe: e.target.checked })}
+            />
+            Có recipe
+          </label>
+        </div>
+        <div className="field-checkbox">
+          <label className="field-checkbox-label">
+            <input
+              type="checkbox"
+              checked={draft.isActive}
+              onChange={e => setDraft({ ...draft, isActive: e.target.checked })}
+            />
+            Kích hoạt
+          </label>
+        </div>
+      </div>
+      {draft.isStockable && (
+        <div className="field-row field-row-3">
+          <Field label="Ngưỡng cảnh báo">
+            <input
+              type="number"
+              min={0}
+              value={draft.lowStockThreshold ?? ""}
+              onChange={e =>
+                setDraft({
+                  ...draft,
+                  lowStockThreshold: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+            />
+          </Field>
+        </div>
       )}
-      <Field label="Có recipe">
-        <input
-          type="checkbox"
-          checked={draft.hasRecipe}
-          onChange={e => setDraft({ ...draft, hasRecipe: e.target.checked })}
-        />
-      </Field>
-      <Field label="Kích hoạt">
-        <input
-          type="checkbox"
-          checked={draft.isActive}
-          onChange={e => setDraft({ ...draft, isActive: e.target.checked })}
-        />
-      </Field>
     </div>
   );
 }
@@ -593,7 +615,7 @@ export function WinItem() {
         categories: d.categories.map(c => ({ categoryId: c.categoryId, isMain: c.isMain })),
       });
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
   };
 
@@ -639,7 +661,7 @@ export function WinItem() {
       await categories.reload();
       closeDialog();
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -655,7 +677,7 @@ export function WinItem() {
       await categories.reload();
       closeDialog();
     } else {
-      setErrorMsg(res.detail || res.title);
+      setErrorMsg(formatApiError(res));
     }
     setSaving(false);
   };
@@ -757,7 +779,7 @@ export function WinItem() {
         isActive: c.isActive,
       });
     } else {
-      setCatErrorMsg(res.detail || res.title);
+      setCatErrorMsg(formatApiError(res));
     }
   };
 
@@ -780,7 +802,7 @@ export function WinItem() {
       await categories.reload();
       closeCatDialog();
     } else {
-      setCatErrorMsg(res.detail || res.title);
+      setCatErrorMsg(formatApiError(res));
     }
     setCatSaving(false);
   };
@@ -798,8 +820,8 @@ export function WinItem() {
       await categories.reload();
       await items.reload();
     } else {
-      setCatErrorMsg(res.detail || res.title);
-      window.alert(res.detail || res.title);
+      setCatErrorMsg(formatApiError(res));
+      window.alert(formatApiError(res));
     }
     setCatSaving(false);
   };

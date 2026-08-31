@@ -124,7 +124,10 @@ function normalize<T>(statusCode: number, raw: unknown): BaseResponse<T> {
     type: pd.type ?? "about:blank",
     title: pd.title ?? `http_${statusCode}`,
     status: pd.status ?? statusCode,
-    detail: pd.detail ?? `Request failed with status ${statusCode}`,
+    // Empty on purpose when the body carried no detail — 401/403 from the auth
+    // middleware have no body at all, and a synthesised English sentence here
+    // would win over the status-based Vietnamese fallback in formatApiError.
+    detail: pd.detail ?? "",
     extensions,
     statusCode,
   } satisfies ErrorResponse;

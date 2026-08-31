@@ -32,7 +32,10 @@ export function WinAiAssistant() {
         </div>
         <div className="flex-1 overflow-auto">
           {chat.loadingSessions && <div className="p-2 text-xs text-gray-400">Đang tải…</div>}
-          {!chat.loadingSessions && chat.sessions.length === 0 && (
+          {chat.sessionsError && (
+            <div className="p-2 text-xs text-red-600 whitespace-pre-wrap">{chat.sessionsError}</div>
+          )}
+          {!chat.loadingSessions && !chat.sessionsError && chat.sessions.length === 0 && (
             <div className="p-2 text-xs text-gray-400">Chưa có phiên chat nào.</div>
           )}
           {chat.sessions.map((s) => (

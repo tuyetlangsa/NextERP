@@ -116,7 +116,7 @@ export function buildDataManager<TRow extends { id?: number }, TUpsert>(
           // enough acknowledgement that the delete succeeded.
           option.onSuccess({});
         } else {
-          option.onFailure(res.detail || res.title || "Xoá thất bại");
+          option.onFailure(formatApiError(res));
         }
       } catch (e) {
         option.onFailure(e);

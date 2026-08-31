@@ -170,6 +170,9 @@ export function ShiftAssignModal({
       const preview = await scheduleApi.previewAssignment(previewId, staff.id);
       if (preview.isSuccess) {
         warning = parsePreviewWarning(preview.data as Parameters<typeof parsePreviewWarning>[0]);
+      } else {
+        // Nuốt lỗi ở đây là nguy hiểm: không có warning trông y hệt "không trùng ca".
+        onError(formatApiError(preview));
       }
     }
 
