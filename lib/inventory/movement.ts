@@ -11,10 +11,10 @@ export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
 /** Background tint per movement type (append-only ledger row styling). */
 export const MOVEMENT_TYPE_COLORS: Record<StockMovementType, string> = {
   STOCK_IN: "#dcfce7",
-  ADJUST_IN: "#ecfdf5",
+  ADJUST_IN: "#dbeafe",
   ADJUST_OUT: "#ffedd5",
   DEDUCT: "#fee2e2",
-  RETURN_IN: "#d1fae5",
+  RETURN_IN: "#ffffff",
 };
 
 export const MANUAL_MOVEMENT_TYPES = ["STOCK_IN", "ADJUST_IN", "ADJUST_OUT"] as const;
