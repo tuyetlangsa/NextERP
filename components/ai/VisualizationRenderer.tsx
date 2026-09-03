@@ -6,6 +6,7 @@ import {
   AccumulationChartComponent, AccumulationSeriesCollectionDirective,
   AccumulationSeriesDirective, PieSeries, AccumulationLegend, AccumulationTooltip,
 } from "@syncfusion/ej2-react-charts";
+import { isRenderableVisualization } from "@/components/ai/visualizationValidation";
 import type { ChatVisualization } from "@/types/api/ai";
 
 const CARTESIAN: Record<string, "Line" | "Column" | "Area"> = {
@@ -13,6 +14,8 @@ const CARTESIAN: Record<string, "Line" | "Column" | "Area"> = {
 };
 
 export function VisualizationRenderer({ viz }: { viz: ChatVisualization }) {
+  if (!isRenderableVisualization(viz)) return null;
+
   if (viz.kind === "kpi" && viz.metrics) {
     return (
       <div className="my-2">
@@ -107,7 +110,7 @@ export function VisualizationRenderer({ viz }: { viz: ChatVisualization }) {
     );
   }
 
-  return <div className="text-xs text-gray-400">[{viz.kind}] không hiển thị được</div>;
+  return null;
 }
 
 function formatCell(value: unknown, format?: string): string {
