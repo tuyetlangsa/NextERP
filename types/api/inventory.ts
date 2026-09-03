@@ -67,7 +67,8 @@ export type StockMovementType =
   | "STOCK_IN"
   | "ADJUST_IN"
   | "ADJUST_OUT"
-  | "DEDUCT";
+  | "DEDUCT"
+  | "RETURN_IN";
 
 export interface StockMovement {
   id: number;
@@ -95,7 +96,8 @@ export interface StockMovement {
 
 export interface StockMovementCreate {
   itemId: number;
-  movementType: Exclude<StockMovementType, "DEDUCT">;
+  // DEDUCT + RETURN_IN đều là movement hệ thống tự sinh (StartCook / xử lý trả hàng), không nhập tay.
+  movementType: Exclude<StockMovementType, "DEDUCT" | "RETURN_IN">;
   quantity: number;
   /** Uom the quantity is entered in — base Uom or an active conversion of the item. */
   uomId: number;
