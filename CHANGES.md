@@ -4,6 +4,16 @@ Branch: `main`
 
 ---
 
+## Nhập/Xuất kho: bổ sung loại `RETURN_IN` — 2026-08-31
+
+BE trả 5 `StockMovementType` (`STOCK_IN`, `ADJUST_IN`, `ADJUST_OUT`, `DEDUCT`, `RETURN_IN`) nhưng FE mới khai 4 → dòng `RETURN_IN` (hệ thống hoàn kho khi bếp xử lý dòng trả hàng) hiện cột "Loại" **trống** và không lọc được.
+
+- `types/api/inventory.ts` — `StockMovementType` thêm `"RETURN_IN"`; `StockMovementCreate.movementType` đổi thành `Exclude<StockMovementType, "DEDUCT" | "RETURN_IN">` (cả hai là movement hệ thống, không nhập tay).
+- `lib/inventory/movement.ts` — `MOVEMENT_TYPE_LABELS.RETURN_IN = "Hoàn kho (trả hàng)"`, `MOVEMENT_TYPE_COLORS.RETURN_IN = "#d1fae5"` (xanh nhạt, movement +kho).
+- `WinStockMovement` không phải sửa: cột "Loại", màu dòng và dropdown lọc "Loại" đều suy từ 2 map trên (dropdown dùng `Object.keys(MOVEMENT_TYPE_LABELS)`); form tạo tay dùng `MANUAL_MOVEMENT_TYPES` nên vẫn không cho chọn `RETURN_IN`.
+
+---
+
 ## Bỏ "(spec N)" trên tiêu đề cột giá — 2026-08-31
 
 Tiêu đề mỗi cột giá ở tab Chi tiết là `${v.code} (spec ${v.specificity})`. `specificity` là số nội bộ

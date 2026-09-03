@@ -5,6 +5,7 @@ export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   ADJUST_IN: "Điều chỉnh tăng",
   ADJUST_OUT: "Hao hụt / hư hỏng",
   DEDUCT: "Trừ kho (StartCook)",
+  RETURN_IN: "Hoàn kho (trả hàng)",
 };
 
 /** Background tint per movement type (append-only ledger row styling). */
@@ -13,6 +14,7 @@ export const MOVEMENT_TYPE_COLORS: Record<StockMovementType, string> = {
   ADJUST_IN: "#ecfdf5",
   ADJUST_OUT: "#ffedd5",
   DEDUCT: "#fee2e2",
+  RETURN_IN: "#d1fae5",
 };
 
 export const MANUAL_MOVEMENT_TYPES = ["STOCK_IN", "ADJUST_IN", "ADJUST_OUT"] as const;
