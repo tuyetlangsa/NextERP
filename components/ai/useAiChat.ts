@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { toChatDisplayText } from "@/components/ai/chatDisplay";
 import { aiApi } from "@/lib/api/ai";
 import { formatApiError } from "@/lib/http/formatError";
 import type { ChatVisualization, ConversationSummary } from "@/types/api/ai";
@@ -83,7 +84,7 @@ export function useAiChat() {
     setTurns(
       data.turns.map((turn) => ({
         role: turn.role === "USER" ? "user" : "ai",
-        text: turn.content,
+        text: turn.role === "USER" ? toChatDisplayText(turn.content) : turn.content,
         visualizations: turn.visualizations ?? undefined,
       }))
     );

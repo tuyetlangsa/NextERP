@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:ai-chat-display": "tsx components/ai/chatDisplay.test.ts",
     "test:ai-visualization": "tsx components/ai/visualizationValidation.test.ts",
     "test:top-order-staff": "tsx components/reports/topOrderStaffRows.test.ts"
   },
